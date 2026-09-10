@@ -25,6 +25,9 @@ struct TotalActivityView: View {
                 noDataView
             }
         }
+        .task {
+            markActivityReportAsReady()
+        }
     }
 
     private var remainingTimeView: some View {
@@ -85,6 +88,19 @@ struct TotalActivityView: View {
         }
 
         return max(0, dailyLimit - configuration.usedTime)
+    }
+
+    private func markActivityReportAsReady() {
+        guard let requestID = sharedDefaults?.string(
+            forKey: MujoShared.DefaultsKey.activityReportRequestID
+        ) else {
+            return
+        }
+
+        sharedDefaults?.set(
+            requestID,
+            forKey: MujoShared.DefaultsKey.readyActivityReportRequestID
+        )
     }
 }
 

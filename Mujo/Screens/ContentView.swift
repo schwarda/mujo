@@ -18,6 +18,7 @@ struct ContentView: View {
     @State private var petalsStartedDuringOnboarding = false
     @State private var hasResolvedInitialAuthorization = false
     @State private var isShowingLaunchOverlay = true
+    @State private var canLoadActivityReport = false
     @AppStorage("hasReachedScreenTimePermission")
     private var hasReachedScreenTimePermission = false
     @AppStorage("hasCompletedOnboarding")
@@ -40,7 +41,8 @@ struct ContentView: View {
                                         screenTime: screenTime,
                                         windStrength: $sharedWindStrength,
                                         petalSimulationTime: $petalSimulationTime,
-                                        petalsStartFilled: !petalsStartedDuringOnboarding
+                                        petalsStartFilled: !petalsStartedDuringOnboarding,
+                                        canLoadActivityReport: canLoadActivityReport
                                     )
                                 case .history:
                                     HistoryScreen(
@@ -152,18 +154,29 @@ struct ContentView: View {
 
         if screenTime.isAuthorized {
             hasCompletedOnboarding = true
+            let activityReportRequestID = screenTime.beginActivityReportLoad()
+            canLoadActivityReport = true
             hasResolvedInitialAuthorization = true
 
             Task {
-                await finishAuthorizedLaunch()
+                await finishAuthorizedLaunch(
+                    activityReportRequestID: activityReportRequestID
+                )
             }
         } else {
             hasResolvedInitialAuthorization = true
             isShowingLaunchOverlay = false
+            canLoadActivityReport = true
         }
     }
 
-    private func finishAuthorizedLaunch() async {
+    private func finishAuthorizedLaunch(
+        activityReportRequestID: String
+    ) async {
+        await screenTime.waitUntilActivityReportIsReady(
+            requestID: activityReportRequestID
+        )
+        guard !Task.isCancelled else { return }
         await Task.yield()
         withAnimation(.easeOut(duration: 0.2)) {
             isShowingLaunchOverlay = false

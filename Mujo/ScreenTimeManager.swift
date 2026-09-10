@@ -22,6 +22,7 @@ final class ScreenTimeManager: ObservableObject {
 
     private let limitStore: DailyLimitStore
     private let monitoring: ScreenTimeMonitoring
+    private let activityReportLoader: ActivityReportLoadCoordinator
     private var authorizationStatusSubscription: AnyCancellable?
 
     init() {
@@ -30,6 +31,9 @@ final class ScreenTimeManager: ObservableObject {
         ) ?? .standard
         let limitStore = DailyLimitStore(sharedDefaults: defaults)
         self.limitStore = limitStore
+        activityReportLoader = ActivityReportLoadCoordinator(
+            sharedDefaults: defaults
+        )
         monitoring = ScreenTimeMonitoring(
             suiteName: MujoShared.appGroupIdentifier
         )
@@ -77,6 +81,14 @@ final class ScreenTimeManager: ObservableObject {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    func beginActivityReportLoad() -> String {
+        activityReportLoader.beginLoading()
+    }
+
+    func waitUntilActivityReportIsReady(requestID: String) async {
+        await activityReportLoader.waitUntilReady(requestID: requestID)
     }
 
     func requestAuthorizationAndStart() async {

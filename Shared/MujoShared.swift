@@ -23,6 +23,10 @@ enum MujoShared {
         nonisolated static let hasUsageCheckpoint = "hasUsageCheckpoint"
         nonisolated static let usageMonitoringStartedAt =
             "usageMonitoringStartedAt"
+        nonisolated static let activityReportRequestID =
+            "activityReportRequestID"
+        nonisolated static let readyActivityReportRequestID =
+            "readyActivityReportRequestID"
     }
 
     enum Monitoring {

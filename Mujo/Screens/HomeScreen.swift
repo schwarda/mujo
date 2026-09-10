@@ -13,15 +13,23 @@ struct HomeScreen: View {
     @Binding var windStrength: Double
     @Binding var petalSimulationTime: Double
     let petalsStartFilled: Bool
+    let canLoadActivityReport: Bool
     @State private var selectedMinutes = 5 * 60
+    @State private var shouldLoadReport = false
 
     var body: some View {
         ZStack {
             VStack {
-                DeviceActivityReport(
-                    .mujoToday,
-                    filter: screenTime.reportFilter
-                )
+                Group {
+                    if shouldLoadReport {
+                        DeviceActivityReport(
+                            .mujoToday,
+                            filter: screenTime.reportFilter
+                        )
+                    } else {
+                        Color.clear
+                    }
+                }
                 .frame(height: 170)
                 .padding(.top, 64)
 
@@ -62,6 +70,11 @@ struct HomeScreen: View {
         }
         .task {
             selectedMinutes = screenTime.dailyLimitMinutes
+        }
+        .task(id: canLoadActivityReport) {
+            guard canLoadActivityReport else { return }
+            await Task.yield()
+            shouldLoadReport = true
         }
     }
 }
