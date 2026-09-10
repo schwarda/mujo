@@ -5,38 +5,35 @@
 //  Created by Lopk Art on 09/09/2026.
 //
 
-import WidgetKit
 import SwiftUI
+import WidgetKit
 
-struct Provider: AppIntentTimelineProvider {
-    func placeholder(in context: Context) -> SimpleEntry {
-        SimpleEntry(
+struct CountdownProvider: TimelineProvider {
+    func placeholder(in context: Context) -> CountdownEntry {
+        CountdownEntry(
             date: Date(),
-            configuration: ConfigurationAppIntent(),
             remainingTime: 3 * 60 * 60 + 42 * 60,
             isEstimateAvailable: true
         )
     }
 
-    func snapshot(
-        for configuration: ConfigurationAppIntent,
-        in context: Context
-    ) async -> SimpleEntry {
-        SimpleEntry(
+    func getSnapshot(
+        in context: Context,
+        completion: @escaping (CountdownEntry) -> Void
+    ) {
+        completion(CountdownEntry(
             date: .now,
-            configuration: configuration,
             estimate: loadEstimate()
-        )
+        ))
     }
 
-    func timeline(
-        for configuration: ConfigurationAppIntent,
-        in context: Context
-    ) async -> Timeline<SimpleEntry> {
+    func getTimeline(
+        in context: Context,
+        completion: @escaping (Timeline<CountdownEntry>) -> Void
+    ) {
         let now = Date.now
-        let entry = SimpleEntry(
+        let entry = CountdownEntry(
             date: now,
-            configuration: configuration,
             estimate: loadEstimate(at: now)
         )
         let nextDay = Calendar.current.date(
@@ -45,10 +42,10 @@ struct Provider: AppIntentTimelineProvider {
             to: Calendar.current.startOfDay(for: now)
         ) ?? now.addingTimeInterval(24 * 60 * 60)
 
-        return Timeline(
+        completion(Timeline(
             entries: [entry],
             policy: .after(nextDay)
-        )
+        ))
     }
 
     private func loadEstimate(at date: Date = .now) -> UsageEstimate {
@@ -106,32 +103,27 @@ private struct UsageEstimate {
     let isAvailable: Bool
 }
 
-struct SimpleEntry: TimelineEntry {
+struct CountdownEntry: TimelineEntry {
     let date: Date
-    let configuration: ConfigurationAppIntent
     let remainingTime: TimeInterval
     let isEstimateAvailable: Bool
 
     init(
         date: Date,
-        configuration: ConfigurationAppIntent,
         remainingTime: TimeInterval,
         isEstimateAvailable: Bool
     ) {
         self.date = date
-        self.configuration = configuration
         self.remainingTime = remainingTime
         self.isEstimateAvailable = isEstimateAvailable
     }
 
     fileprivate init(
         date: Date,
-        configuration: ConfigurationAppIntent,
         estimate: UsageEstimate
     ) {
         self.init(
             date: date,
-            configuration: configuration,
             remainingTime: estimate.remainingTime,
             isEstimateAvailable: estimate.isAvailable
         )
@@ -139,7 +131,7 @@ struct SimpleEntry: TimelineEntry {
 }
 
 struct CountdownWidgetEntryView: View {
-    var entry: Provider.Entry
+    let entry: CountdownProvider.Entry
 
     var body: some View {
         VStack(spacing: 6) {
@@ -168,31 +160,23 @@ struct CountdownWidget: Widget {
     let kind: String = "CountdownWidget"
 
     var body: some WidgetConfiguration {
-        AppIntentConfiguration(
+        StaticConfiguration(
             kind: kind,
-            intent: ConfigurationAppIntent.self,
-            provider: Provider()
+            provider: CountdownProvider()
         ) { entry in
             CountdownWidgetEntryView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
-    }
-}
-
-extension ConfigurationAppIntent {
-    fileprivate static var smiley: ConfigurationAppIntent {
-        let intent = ConfigurationAppIntent()
-        intent.favoriteEmoji = "😀"
-        return intent
+        .configurationDisplayName("Mujø Remaining Time")
+        .description("Shows your approximate Screen Time remaining today.")
     }
 }
 
 #Preview(as: .systemSmall) {
     CountdownWidget()
 } timeline: {
-    SimpleEntry(
+    CountdownEntry(
         date: .now,
-        configuration: .smiley,
         remainingTime: 3 * 60 * 60 + 42 * 60,
         isEstimateAvailable: true
     )
