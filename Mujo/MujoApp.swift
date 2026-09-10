@@ -2,7 +2,7 @@
 //  MujoApp.swift
 //  Mujo
 //
-//  Created by Lopk Art on 05/09/2026.
+//  Created by Aikari Studio on 05/09/2026.
 //
 
 import SwiftUI
