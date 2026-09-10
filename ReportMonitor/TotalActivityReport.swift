@@ -13,7 +13,7 @@ extension DeviceActivityReport.Context {
     static let mujoToday = Self("mujo.today")
 }
 
-struct TotalActivityReport: DeviceActivityReportScene {
+struct TotalActivityReport: nonisolated DeviceActivityReportScene {
     let context: DeviceActivityReport.Context = .mujoToday
 
     let content: (TodayActivityConfiguration) -> TotalActivityView
