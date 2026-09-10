@@ -47,9 +47,14 @@ final class ScreenTimeManager: ObservableObject {
         )
     }
 
-    func restoreMonitoringIfPossible() {
+    @discardableResult
+    func refreshAuthorizationStatus() -> Bool {
         authorizationStatus = AuthorizationCenter.shared.authorizationStatus
-        guard isAuthorized else { return }
+        return isAuthorized
+    }
+
+    func restoreMonitoringIfPossible() {
+        guard refreshAuthorizationStatus() else { return }
 
         do {
             try monitoring.restore(limit: limitStore.currentLimit)

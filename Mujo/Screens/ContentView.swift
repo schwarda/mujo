@@ -16,6 +16,7 @@ struct ContentView: View {
     @State private var sharedWindStrength = 0.0
     @State private var petalSimulationTime = 0.0
     @State private var petalsStartedDuringOnboarding = false
+    @State private var hasResolvedInitialAuthorization = false
     @AppStorage("hasReachedScreenTimePermission")
     private var hasReachedScreenTimePermission = false
     @AppStorage("hasCompletedOnboarding")
@@ -26,7 +27,9 @@ struct ContentView: View {
             SakuraBackground()
 
             Group {
-                if hasCompletedOnboarding || screenTime.isAuthorized {
+                if !hasResolvedInitialAuthorization {
+                    Color.clear
+                } else if screenTime.isAuthorized {
                     TabView(selection: $selectedTab) {
                         ForEach(AppTab.allCases) { tab in
                             Group {
@@ -72,11 +75,15 @@ struct ContentView: View {
 
         }
         .task {
-            screenTime.restoreMonitoringIfPossible()
+            let isAuthorized = screenTime.refreshAuthorizationStatus()
 
-            if screenTime.isAuthorized {
+            if isAuthorized {
                 hasCompletedOnboarding = true
             }
+
+            hasResolvedInitialAuthorization = true
+            await Task.yield()
+            screenTime.restoreMonitoringIfPossible()
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else { return }
@@ -102,7 +109,7 @@ struct ContentView: View {
     }
 
     private var shouldShowPermissionExplanation: Bool {
-        if hasReachedScreenTimePermission {
+        if hasCompletedOnboarding || hasReachedScreenTimePermission {
             return true
         }
 
