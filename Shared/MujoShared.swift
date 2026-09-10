@@ -28,8 +28,12 @@ enum MujoShared {
     enum Monitoring {
         nonisolated static let usageActivityName = "mujo.usage"
         nonisolated static let limitActivityName = "mujo.limit"
-        nonisolated static let usedEventPrefix = "mujo.used."
+        nonisolated static let usageEventPrefix = usageActivityName + "."
         nonisolated static let limitEventPrefix = limitActivityName + "."
+
+        nonisolated static func usageEventName(minutes: Int) -> String {
+            usageEventPrefix + String(minutes)
+        }
 
         nonisolated static func limitEventName(seconds: Int) -> String {
             limitEventPrefix + String(seconds)

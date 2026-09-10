@@ -36,7 +36,7 @@ final class ScreenTimeMonitoring {
             by: Self.checkpointIntervalMinutes
         ) {
             let name = DeviceActivityEvent.Name(
-                MujoShared.Monitoring.usedEventPrefix + String(usedMinutes)
+                MujoShared.Monitoring.usageEventName(minutes: usedMinutes)
             )
             events[name] = DeviceActivityEvent(
                 threshold: durationComponents(

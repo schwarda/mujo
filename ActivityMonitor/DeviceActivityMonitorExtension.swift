@@ -117,7 +117,7 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     private func usageCheckpointSeconds(
         from event: DeviceActivityEvent.Name
     ) -> TimeInterval? {
-        let prefix = MujoShared.Monitoring.usedEventPrefix
+        let prefix = MujoShared.Monitoring.usageEventPrefix
         guard event.rawValue.hasPrefix(prefix),
               let minutes = Int(event.rawValue.dropFirst(prefix.count))
         else {
