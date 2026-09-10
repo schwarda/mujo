@@ -9,6 +9,7 @@ import SwiftUI
 import FamilyControls
 
 struct ContentView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var screenTime = ScreenTimeManager()
     @State private var selectedTab: AppTab = .home
     @State private var isRequestingAuthorization = false
@@ -71,10 +72,15 @@ struct ContentView: View {
 
         }
         .task {
+            screenTime.restoreMonitoringIfPossible()
+
             if screenTime.isAuthorized {
                 hasCompletedOnboarding = true
-                screenTime.restoreMonitoringIfPossible()
             }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active else { return }
+            screenTime.restoreMonitoringIfPossible()
         }
         .alert(
             "Screen Time Error",

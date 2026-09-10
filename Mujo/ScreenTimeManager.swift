@@ -151,12 +151,14 @@ final class ScreenTimeManager: ObservableObject {
         guard isAuthorized else { return }
 
         let safeLimit = max(60, TimeInterval(minutes * 60))
-        sharedDefaults.set(
-            safeLimit,
-            forKey: MujoShared.DefaultsKey.dailyLimit
-        )
-        dailyLimitMinutes = Int(safeLimit / 60)
-        WidgetCenter.shared.reloadTimelines(ofKind: MujoShared.widgetKind)
+        if safeLimit != storedDailyLimit {
+            sharedDefaults.set(
+                safeLimit,
+                forKey: MujoShared.DefaultsKey.dailyLimit
+            )
+            dailyLimitMinutes = Int(safeLimit / 60)
+            WidgetCenter.shared.reloadTimelines(ofKind: MujoShared.widgetKind)
+        }
 
         do {
             let center = DeviceActivityCenter()
@@ -167,15 +169,17 @@ final class ScreenTimeManager: ObservableObject {
         }
     }
 
-    private var dailySchedule: DeviceActivitySchedule {
+    private lazy var dailySchedule: DeviceActivitySchedule = {
         DeviceActivitySchedule(
             intervalStart: DateComponents(hour: 0, minute: 0),
             intervalEnd: DateComponents(hour: 23, minute: 59, second: 59),
             repeats: true
         )
-    }
+    }()
 
-    private var usageEvents: [DeviceActivityEvent.Name: DeviceActivityEvent] {
+    private lazy var usageEvents: [
+        DeviceActivityEvent.Name: DeviceActivityEvent
+    ] = {
         var events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
 
         for usedMinutes in stride(
@@ -195,7 +199,7 @@ final class ScreenTimeManager: ObservableObject {
         }
 
         return events
-    }
+    }()
 
     private func ensureUsageMonitoring(
         using center: DeviceActivityCenter

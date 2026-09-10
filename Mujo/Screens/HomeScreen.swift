@@ -9,7 +9,6 @@ import SwiftUI
 import DeviceActivity
 
 struct HomeScreen: View {
-    @Environment(\.scenePhase) private var scenePhase
     @ObservedObject var screenTime: ScreenTimeManager
     @Binding var windStrength: Double
     @Binding var petalSimulationTime: Double
@@ -17,7 +16,6 @@ struct HomeScreen: View {
     @State private var selectedMinutes = 5 * 60
 
     var body: some View {
-
         ZStack {
             VStack {
                 DeviceActivityReport(
@@ -63,12 +61,7 @@ struct HomeScreen: View {
             }
         }
         .task {
-            screenTime.restoreMonitoringIfPossible()
             selectedMinutes = screenTime.dailyLimitMinutes
-        }
-        .onChange(of: scenePhase) { _, newPhase in
-            guard newPhase == .active else { return }
-            screenTime.restoreMonitoringIfPossible()
         }
     }
 }

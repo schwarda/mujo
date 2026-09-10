@@ -4,7 +4,7 @@
 //
 
 import SwiftUI
-import UIKit
+import QuartzCore
 
 struct TimeDial: View {
     private struct Configuration {
@@ -25,7 +25,6 @@ struct TimeDial: View {
         var minorTickWidth: CGFloat { diameter * 0.0108 }
         var majorTickHeight: CGFloat { diameter * 0.0647 }
         var minorTickHeight: CGFloat { diameter * 0.0431 }
-        var symbolFontSize: CGFloat { diameter * 0.108 }
         var timeFontSize: CGFloat { diameter * 0.153 }
         var hintFontSize: CGFloat { diameter * 0.6 }
     }
@@ -41,6 +40,7 @@ struct TimeDial: View {
     @State private var unconsumedRotation = 0.0
     @State private var visualRotation = 0.0
     @State private var previousSampleTime: TimeInterval?
+    @State private var didChangeDuringGesture = false
     @State private var hintIsMoving = false
     @AppStorage("hasUsedCenteredTimeDialHint")
     private var hasUsedTimeDial = false
@@ -80,15 +80,17 @@ struct TimeDial: View {
         .accessibilityAdjustableAction { direction in
             hasUsedTimeDial = true
 
+            let amount: Int
             switch direction {
             case .increment:
-                changeMinutes(by: configuration.minutesPerStep)
+                amount = configuration.minutesPerStep
             case .decrement:
-                changeMinutes(by: -configuration.minutesPerStep)
+                amount = -configuration.minutesPerStep
             @unknown default:
-                break
+                return
             }
 
+            guard changeMinutes(by: amount) else { return }
             onCommit(minutes)
         }
         .onAppear {
@@ -155,6 +157,7 @@ struct TimeDial: View {
                 guard let previousAngle else {
                     self.previousAngle = angle
                     previousSampleTime = CACurrentMediaTime()
+                    didChangeDuringGesture = false
                     return
                 }
 
@@ -175,21 +178,27 @@ struct TimeDial: View {
                     }
 
                     let direction = unconsumedRotation > 0 ? 1 : -1
-                    changeMinutes(
+                    if changeMinutes(
                         by: direction * configuration.minutesPerStep
-                    )
+                    ) {
+                        didChangeDuringGesture = true
+                    }
                     unconsumedRotation -= Double(direction)
                         * configuration.degreesPerStep
                 }
             }
             .onEnded { _ in
+                let shouldCommit = didChangeDuringGesture
                 previousAngle = nil
                 previousSampleTime = nil
                 unconsumedRotation = 0
+                didChangeDuringGesture = false
                 withAnimation(.easeOut(duration: 1.25)) {
                     windStrength = 0
                 }
-                onCommit(minutes)
+                if shouldCommit {
+                    onCommit(minutes)
+                }
             }
     }
 
@@ -199,15 +208,17 @@ struct TimeDial: View {
         return String(format: "%d:%02d", hours, remainingMinutes)
     }
 
-    private func changeMinutes(by amount: Int) {
+    @discardableResult
+    private func changeMinutes(by amount: Int) -> Bool {
         let newValue = min(
             configuration.maximumMinutes,
             max(configuration.minimumMinutes, minutes + amount)
         )
-        guard newValue != minutes else { return }
+        guard newValue != minutes else { return false }
 
         minutes = newValue
         onValueChange(newValue)
+        return true
     }
 
     private func updateWindStrength(for angleDelta: Double) {
