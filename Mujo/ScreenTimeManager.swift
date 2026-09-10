@@ -11,8 +11,8 @@ import SwiftUI
 import WidgetKit
 
 extension DeviceActivityName {
-    static let mujoUsage = Self("mujo.usage")
-    static let mujoLimit = Self("mujo.limit")
+    static let mujoUsage = Self(MujoShared.Monitoring.usageActivityName)
+    static let mujoLimit = Self(MujoShared.Monitoring.limitActivityName)
     fileprivate static let legacyMujoDaily = Self("mujo.daily")
 }
 
@@ -22,34 +22,34 @@ extension DeviceActivityReport.Context {
 
 @MainActor
 final class ScreenTimeManager: ObservableObject {
-    static let appGroupIdentifier = "group.AikariStudio.Mujo.shared"
-    static let dailyLimitKey = "dailyLimitSeconds"
-    static let previewDailyLimitKey = "previewDailyLimitSeconds"
-
     private static let checkpointIntervalMinutes = 15
     private static let maximumTrackedUsageMinutes = 12 * 60
-    private static let usageMonitoringStartedAtKey = "usageMonitoringStartedAt"
-    private static let dailyLimitReachedKey = "dailyLimitReached"
-    private static let widgetKind = "CountdownWidget"
 
     @Published private(set) var authorizationStatus = AuthorizationCenter.shared.authorizationStatus
     @Published private(set) var errorMessage: String?
     @Published private(set) var dailyLimitMinutes: Int
-
-    let defaultDailyLimit: TimeInterval = 5 * 60 * 60
 
     private let sharedDefaults: UserDefaults
     private let previewWriteQueue = DispatchQueue(
         label: "AikariStudio.Mujo.daily-limit-preview",
         qos: .userInitiated
     )
+    private var pendingPreviewWrite: DispatchWorkItem?
 
     init() {
-        let defaults = UserDefaults(suiteName: Self.appGroupIdentifier) ?? .standard
+        let defaults = UserDefaults(
+            suiteName: MujoShared.appGroupIdentifier
+        ) ?? .standard
         sharedDefaults = defaults
-        let storedValue = defaults.double(forKey: Self.dailyLimitKey)
-        let initialLimit = storedValue > 0 ? storedValue : 5 * 60 * 60
-        defaults.removeObject(forKey: Self.previewDailyLimitKey)
+        let storedValue = defaults.double(
+            forKey: MujoShared.DefaultsKey.dailyLimit
+        )
+        let initialLimit = storedValue > 0
+            ? storedValue
+            : MujoShared.defaultDailyLimit
+        defaults.removeObject(
+            forKey: MujoShared.DefaultsKey.previewDailyLimit
+        )
         dailyLimitMinutes = max(1, Int(initialLimit / 60))
     }
 
@@ -114,20 +114,27 @@ final class ScreenTimeManager: ObservableObject {
     func previewDailyLimit(minutes: Int) {
         let safeMinutes = max(1, minutes)
         let previewLimit = TimeInterval(safeMinutes * 60)
-        let defaults = sharedDefaults
-
-        previewWriteQueue.async {
-            defaults.set(previewLimit, forKey: Self.previewDailyLimitKey)
+        let suiteName = MujoShared.appGroupIdentifier
+        let key = MujoShared.DefaultsKey.previewDailyLimit
+        let workItem = DispatchWorkItem {
+            UserDefaults(suiteName: suiteName)?.set(
+                previewLimit,
+                forKey: key
+            )
         }
+
+        pendingPreviewWrite?.cancel()
+        pendingPreviewWrite = workItem
+        previewWriteQueue.asyncAfter(
+            deadline: .now() + .milliseconds(50),
+            execute: workItem
+        )
     }
 
     func setDailyLimit(minutes: Int) async {
         errorMessage = nil
         defer {
-            let defaults = sharedDefaults
-            previewWriteQueue.async {
-                defaults.removeObject(forKey: Self.previewDailyLimitKey)
-            }
+            clearDailyLimitPreview()
         }
 
         if !isAuthorized {
@@ -144,13 +151,12 @@ final class ScreenTimeManager: ObservableObject {
         guard isAuthorized else { return }
 
         let safeLimit = max(60, TimeInterval(minutes * 60))
-        let previousLimit = storedDailyLimit
-        sharedDefaults.set(safeLimit, forKey: Self.dailyLimitKey)
-        if safeLimit != previousLimit {
-            sharedDefaults.set(false, forKey: Self.dailyLimitReachedKey)
-        }
+        sharedDefaults.set(
+            safeLimit,
+            forKey: MujoShared.DefaultsKey.dailyLimit
+        )
         dailyLimitMinutes = Int(safeLimit / 60)
-        WidgetCenter.shared.reloadTimelines(ofKind: Self.widgetKind)
+        WidgetCenter.shared.reloadTimelines(ofKind: MujoShared.widgetKind)
 
         do {
             let center = DeviceActivityCenter()
@@ -177,7 +183,9 @@ final class ScreenTimeManager: ObservableObject {
             through: Self.maximumTrackedUsageMinutes,
             by: Self.checkpointIntervalMinutes
         ) {
-            let name = DeviceActivityEvent.Name("mujo.used.\(usedMinutes)")
+            let name = DeviceActivityEvent.Name(
+                MujoShared.Monitoring.usedEventPrefix + "\(usedMinutes)"
+            )
             events[name] = DeviceActivityEvent(
                 threshold: durationComponents(
                     for: TimeInterval(usedMinutes * 60)
@@ -213,7 +221,7 @@ final class ScreenTimeManager: ObservableObject {
         )
         sharedDefaults.set(
             Date.now.timeIntervalSince1970,
-            forKey: Self.usageMonitoringStartedAtKey
+            forKey: MujoShared.DefaultsKey.usageMonitoringStartedAt
         )
     }
 
@@ -222,7 +230,7 @@ final class ScreenTimeManager: ObservableObject {
         using center: DeviceActivityCenter
     ) throws {
         let eventName = DeviceActivityEvent.Name(
-            "mujo.limit.\(Int(limit))"
+            MujoShared.Monitoring.limitEventName(seconds: Int(limit))
         )
         let events = [
             eventName: DeviceActivityEvent(
@@ -254,12 +262,12 @@ final class ScreenTimeManager: ObservableObject {
 
     private func recordUsageMonitoringStartIfNeeded() {
         guard sharedDefaults.double(
-            forKey: Self.usageMonitoringStartedAtKey
+            forKey: MujoShared.DefaultsKey.usageMonitoringStartedAt
         ) == 0 else { return }
 
         sharedDefaults.set(
             Date.now.timeIntervalSince1970,
-            forKey: Self.usageMonitoringStartedAtKey
+            forKey: MujoShared.DefaultsKey.usageMonitoringStartedAt
         )
     }
 
@@ -276,7 +284,22 @@ final class ScreenTimeManager: ObservableObject {
     }
 
     private var storedDailyLimit: TimeInterval {
-        let storedValue = sharedDefaults.double(forKey: Self.dailyLimitKey)
-        return storedValue > 0 ? storedValue : defaultDailyLimit
+        let storedValue = sharedDefaults.double(
+            forKey: MujoShared.DefaultsKey.dailyLimit
+        )
+        return storedValue > 0
+            ? storedValue
+            : MujoShared.defaultDailyLimit
+    }
+
+    private func clearDailyLimitPreview() {
+        pendingPreviewWrite?.cancel()
+        pendingPreviewWrite = nil
+
+        let suiteName = MujoShared.appGroupIdentifier
+        let key = MujoShared.DefaultsKey.previewDailyLimit
+        previewWriteQueue.async {
+            UserDefaults(suiteName: suiteName)?.removeObject(forKey: key)
+        }
     }
 }

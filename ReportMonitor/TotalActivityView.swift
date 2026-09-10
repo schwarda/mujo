@@ -10,9 +10,8 @@ import SwiftUI
 struct TotalActivityView: View {
     let configuration: TodayActivityConfiguration
 
-    private let defaultDailyLimit: TimeInterval = 5 * 60 * 60
     private let sharedDefaults = UserDefaults(
-        suiteName: "group.AikariStudio.Mujo.shared"
+        suiteName: MujoShared.appGroupIdentifier
     )
 
     var body: some View {
@@ -70,10 +69,10 @@ struct TotalActivityView: View {
 
     private var remainingTime: TimeInterval {
         let previewLimit = sharedDefaults?.double(
-            forKey: "previewDailyLimitSeconds"
+            forKey: MujoShared.DefaultsKey.previewDailyLimit
         ) ?? 0
         let storedLimit = sharedDefaults?.double(
-            forKey: "dailyLimitSeconds"
+            forKey: MujoShared.DefaultsKey.dailyLimit
         ) ?? 0
         let dailyLimit: TimeInterval
 
@@ -82,7 +81,7 @@ struct TotalActivityView: View {
         } else if storedLimit > 0 {
             dailyLimit = storedLimit
         } else {
-            dailyLimit = defaultDailyLimit
+            dailyLimit = MujoShared.defaultDailyLimit
         }
 
         return max(0, dailyLimit - configuration.usedTime)

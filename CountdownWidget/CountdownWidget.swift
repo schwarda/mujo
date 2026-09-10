@@ -50,28 +50,28 @@ struct CountdownProvider: TimelineProvider {
 
     private func loadEstimate(at date: Date = .now) -> UsageEstimate {
         let defaults = UserDefaults(
-            suiteName: "group.AikariStudio.Mujo.shared"
+            suiteName: MujoShared.appGroupIdentifier
         )
 
         let storedLimit = defaults?.double(
-            forKey: "dailyLimitSeconds"
+            forKey: MujoShared.DefaultsKey.dailyLimit
         ) ?? 0
 
         let dailyLimit = storedLimit > 0
             ? storedLimit
-            : 5 * 60 * 60
+            : MujoShared.defaultDailyLimit
 
         let usedTime = defaults?.double(
-            forKey: "estimatedUsedTimeSeconds"
+            forKey: MujoShared.DefaultsKey.estimatedUsedTime
         ) ?? 0
         let estimateDay = defaults?.double(
-            forKey: "lastCheckpointResetDay"
+            forKey: MujoShared.DefaultsKey.lastCheckpointResetDay
         ) ?? 0
         let monitoringStartedAt = defaults?.double(
-            forKey: "usageMonitoringStartedAt"
+            forKey: MujoShared.DefaultsKey.usageMonitoringStartedAt
         ) ?? 0
         let hasCheckpoint = defaults?.bool(
-            forKey: "hasUsageCheckpoint"
+            forKey: MujoShared.DefaultsKey.hasUsageCheckpoint
         ) ?? false
         let today = Calendar.current.startOfDay(for: date).timeIntervalSince1970
         let monitoringPredatesToday = monitoringStartedAt > 0
@@ -157,11 +157,9 @@ struct CountdownWidgetEntryView: View {
 }
 
 struct CountdownWidget: Widget {
-    let kind: String = "CountdownWidget"
-
     var body: some WidgetConfiguration {
         StaticConfiguration(
-            kind: kind,
+            kind: MujoShared.widgetKind,
             provider: CountdownProvider()
         ) { entry in
             CountdownWidgetEntryView(entry: entry)
