@@ -22,6 +22,7 @@ final class ScreenTimeManager: ObservableObject {
 
     private let limitStore: DailyLimitStore
     private let monitoring: ScreenTimeMonitoring
+    private var authorizationStatusSubscription: AnyCancellable?
 
     init() {
         let defaults = UserDefaults(
@@ -29,12 +30,27 @@ final class ScreenTimeManager: ObservableObject {
         ) ?? .standard
         let limitStore = DailyLimitStore(sharedDefaults: defaults)
         self.limitStore = limitStore
-        monitoring = ScreenTimeMonitoring(sharedDefaults: defaults)
+        monitoring = ScreenTimeMonitoring(
+            suiteName: MujoShared.appGroupIdentifier
+        )
         dailyLimitMinutes = max(1, Int(limitStore.currentLimit / 60))
+        authorizationStatusSubscription = AuthorizationCenter.shared
+            .$authorizationStatus
+            .removeDuplicates()
+            .sink { [weak self] status in
+                self?.authorizationStatus = status
+            }
     }
 
     var isAuthorized: Bool {
-        authorizationStatus == .approved
+        switch authorizationStatus {
+        case .approved, .approvedWithDataAccess:
+            true
+        case .notDetermined, .denied:
+            false
+        @unknown default:
+            false
+        }
     }
 
     var reportFilter: DeviceActivityFilter {
@@ -53,11 +69,11 @@ final class ScreenTimeManager: ObservableObject {
         return isAuthorized
     }
 
-    func restoreMonitoringIfPossible() {
+    func restoreMonitoringIfPossible() async {
         guard refreshAuthorizationStatus() else { return }
 
         do {
-            try monitoring.restore(limit: limitStore.currentLimit)
+            try await monitoring.restore(limit: limitStore.currentLimit)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -71,7 +87,7 @@ final class ScreenTimeManager: ObservableObject {
             authorizationStatus = AuthorizationCenter.shared.authorizationStatus
 
             guard isAuthorized else { return }
-            try monitoring.restore(limit: limitStore.currentLimit)
+            try await monitoring.restore(limit: limitStore.currentLimit)
         } catch {
             authorizationStatus = AuthorizationCenter.shared.authorizationStatus
             errorMessage = error.localizedDescription
@@ -112,7 +128,7 @@ final class ScreenTimeManager: ObservableObject {
         }
 
         do {
-            try monitoring.updateLimit(to: safeLimit)
+            try await monitoring.updateLimit(to: safeLimit)
         } catch {
             errorMessage = error.localizedDescription
         }

@@ -17,6 +17,7 @@ struct ContentView: View {
     @State private var petalSimulationTime = 0.0
     @State private var petalsStartedDuringOnboarding = false
     @State private var hasResolvedInitialAuthorization = false
+    @State private var isShowingLaunchOverlay = true
     @AppStorage("hasReachedScreenTimePermission")
     private var hasReachedScreenTimePermission = false
     @AppStorage("hasCompletedOnboarding")
@@ -73,21 +74,44 @@ struct ContentView: View {
                 }
             }
 
-        }
-        .task {
-            let isAuthorized = screenTime.refreshAuthorizationStatus()
+            if isShowingLaunchOverlay {
+                ZStack {
+                    Color("LaunchBackground")
+                        .ignoresSafeArea()
 
-            if isAuthorized {
-                hasCompletedOnboarding = true
+                    Image("LaunchLogo")
+                        .frame(width: 160, height: 160)
+                }
+                .transition(.opacity)
+                .accessibilityHidden(true)
+                .zIndex(1)
             }
 
-            hasResolvedInitialAuthorization = true
-            await Task.yield()
-            screenTime.restoreMonitoringIfPossible()
+        }
+        .task {
+            screenTime.refreshAuthorizationStatus()
+            let hasRequestedAuthorization = hasCompletedOnboarding
+                || hasReachedScreenTimePermission
+
+            if screenTime.authorizationStatus != .notDetermined
+                || !hasRequestedAuthorization {
+                completeInitialSetup()
+            } else {
+                try? await Task.sleep(for: .seconds(2))
+                guard !Task.isCancelled else { return }
+                screenTime.refreshAuthorizationStatus()
+                completeInitialSetup()
+            }
+        }
+        .onChange(of: screenTime.authorizationStatus) { _, newStatus in
+            guard newStatus != .notDetermined else { return }
+            completeInitialSetup()
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else { return }
-            screenTime.restoreMonitoringIfPossible()
+            Task {
+                await screenTime.restoreMonitoringIfPossible()
+            }
         }
         .alert(
             "Screen Time Error",
@@ -116,11 +140,36 @@ struct ContentView: View {
         switch screenTime.authorizationStatus {
         case .denied:
             return true
-        case .notDetermined, .approved:
+        case .notDetermined, .approved, .approvedWithDataAccess:
             return false
         default:
             return true
         }
+    }
+
+    private func completeInitialSetup() {
+        guard !hasResolvedInitialAuthorization else { return }
+
+        if screenTime.isAuthorized {
+            hasCompletedOnboarding = true
+            hasResolvedInitialAuthorization = true
+
+            Task {
+                await finishAuthorizedLaunch()
+            }
+        } else {
+            hasResolvedInitialAuthorization = true
+            isShowingLaunchOverlay = false
+        }
+    }
+
+    private func finishAuthorizedLaunch() async {
+        await Task.yield()
+        withAnimation(.easeOut(duration: 0.2)) {
+            isShowingLaunchOverlay = false
+        }
+
+        await screenTime.restoreMonitoringIfPossible()
     }
 
     private func requestScreenTimeAuthorization() {

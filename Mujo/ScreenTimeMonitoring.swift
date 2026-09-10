@@ -7,13 +7,16 @@ import DeviceActivity
 import Foundation
 
 private extension DeviceActivityName {
-    static let mujoUsage = Self(MujoShared.Monitoring.usageActivityName)
-    static let mujoLimit = Self(MujoShared.Monitoring.limitActivityName)
-    static let legacyMujoDaily = Self("mujo.daily")
+    nonisolated static let mujoUsage = Self(
+        MujoShared.Monitoring.usageActivityName
+    )
+    nonisolated static let mujoLimit = Self(
+        MujoShared.Monitoring.limitActivityName
+    )
+    nonisolated static let legacyMujoDaily = Self("mujo.daily")
 }
 
-@MainActor
-final class ScreenTimeMonitoring {
+actor ScreenTimeMonitoring {
     private static let checkpointIntervalMinutes = 15
     private static let maximumTrackedUsageMinutes = 12 * 60
 
@@ -49,8 +52,8 @@ final class ScreenTimeMonitoring {
         return events
     }()
 
-    init(sharedDefaults: UserDefaults) {
-        self.sharedDefaults = sharedDefaults
+    init(suiteName: String) {
+        sharedDefaults = UserDefaults(suiteName: suiteName) ?? .standard
     }
 
     func restore(limit: TimeInterval) throws {
