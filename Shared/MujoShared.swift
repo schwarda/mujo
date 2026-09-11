@@ -12,6 +12,10 @@ enum MujoShared {
     nonisolated static let defaultDailyLimit: TimeInterval = 5 * 60 * 60
     nonisolated static let widgetKind = "CountdownWidget"
 
+    enum Reporting {
+        nonisolated static let todayContextName = "mujo.today"
+    }
+
     enum DefaultsKey {
         nonisolated static let dailyLimit = "dailyLimitSeconds"
         nonisolated static let previewDailyLimit =

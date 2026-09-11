@@ -11,7 +11,7 @@ import SwiftUI
 import WidgetKit
 
 extension DeviceActivityReport.Context {
-    static let mujoToday = Self("mujo.today")
+    static let mujoToday = Self(MujoShared.Reporting.todayContextName)
 }
 
 @MainActor
