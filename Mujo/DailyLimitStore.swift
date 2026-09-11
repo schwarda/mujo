@@ -8,14 +8,24 @@ import Foundation
 @MainActor
 final class DailyLimitStore {
     private let sharedDefaults: UserDefaults
-    private let previewWriteQueue = DispatchQueue(
-        label: "AikariStudio.Mujo.daily-limit-preview",
-        qos: .userInitiated
-    )
+    private let previewSuiteName: String
+    private let previewWriteQueue: DispatchQueue
+    private let previewWriteDelay: DispatchTimeInterval
     private var pendingPreviewWrite: DispatchWorkItem?
 
-    init(sharedDefaults: UserDefaults) {
+    init(
+        sharedDefaults: UserDefaults,
+        previewSuiteName: String = MujoShared.appGroupIdentifier,
+        previewWriteQueue: DispatchQueue = DispatchQueue(
+            label: "AikariStudio.Mujo.daily-limit-preview",
+            qos: .userInitiated
+        ),
+        previewWriteDelay: DispatchTimeInterval = .milliseconds(50)
+    ) {
         self.sharedDefaults = sharedDefaults
+        self.previewSuiteName = previewSuiteName
+        self.previewWriteQueue = previewWriteQueue
+        self.previewWriteDelay = previewWriteDelay
         sharedDefaults.removeObject(
             forKey: MujoShared.DefaultsKey.previewDailyLimit
         )
@@ -44,7 +54,7 @@ final class DailyLimitStore {
     func preview(minutes: Int) {
         let safeMinutes = max(1, minutes)
         let previewLimit = TimeInterval(safeMinutes * 60)
-        let suiteName = MujoShared.appGroupIdentifier
+        let suiteName = previewSuiteName
         let key = MujoShared.DefaultsKey.previewDailyLimit
         let workItem = DispatchWorkItem {
             UserDefaults(suiteName: suiteName)?.set(
@@ -56,7 +66,7 @@ final class DailyLimitStore {
         pendingPreviewWrite?.cancel()
         pendingPreviewWrite = workItem
         previewWriteQueue.asyncAfter(
-            deadline: .now() + .milliseconds(50),
+            deadline: .now() + previewWriteDelay,
             execute: workItem
         )
     }
@@ -65,7 +75,7 @@ final class DailyLimitStore {
         pendingPreviewWrite?.cancel()
         pendingPreviewWrite = nil
 
-        let suiteName = MujoShared.appGroupIdentifier
+        let suiteName = previewSuiteName
         let key = MujoShared.DefaultsKey.previewDailyLimit
         previewWriteQueue.async {
             UserDefaults(suiteName: suiteName)?.removeObject(forKey: key)

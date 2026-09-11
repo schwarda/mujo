@@ -70,6 +70,58 @@ struct DailyLimitStoreTests {
         )
     }
 
+    @Test("Rapid previews persist only the newest value")
+    func coalescesPreviewWrites() async {
+        await withSuspendedPreviewQueue { store, defaults in
+            store.preview(minutes: 30)
+            store.preview(minutes: 60)
+            store.preview(minutes: 90)
+
+            return {
+                #expect(
+                    defaults.double(
+                        forKey: MujoShared.DefaultsKey.previewDailyLimit
+                    ) == 90 * 60
+                )
+            }
+        }
+    }
+
+    @Test("Preview values are clamped to at least one minute")
+    func clampsPreviewToOneMinute() async {
+        await withSuspendedPreviewQueue { store, defaults in
+            store.preview(minutes: 0)
+
+            return {
+                #expect(
+                    defaults.double(
+                        forKey: MujoShared.DefaultsKey.previewDailyLimit
+                    ) == 60
+                )
+            }
+        }
+    }
+
+    @Test("Clearing preview cancels its pending write")
+    func clearsPendingPreview() async {
+        await withSuspendedPreviewQueue { store, defaults in
+            defaults.set(
+                30 * 60,
+                forKey: MujoShared.DefaultsKey.previewDailyLimit
+            )
+            store.preview(minutes: 90)
+            store.clearPreview()
+
+            return {
+                #expect(
+                    defaults.object(
+                        forKey: MujoShared.DefaultsKey.previewDailyLimit
+                    ) == nil
+                )
+            }
+        }
+    }
+
     private func withStore(
         configure: (UserDefaults) -> Void = { _ in },
         assertions: (DailyLimitStore, UserDefaults) -> Void
@@ -89,5 +141,55 @@ struct DailyLimitStoreTests {
         configure(defaults)
         let store = DailyLimitStore(sharedDefaults: defaults)
         assertions(store, defaults)
+    }
+
+    private func withSuspendedPreviewQueue(
+        scheduleWrites: (
+            DailyLimitStore,
+            UserDefaults
+        ) -> (() -> Void)
+    ) async {
+        let suiteName = "AikariStudio.MujoTests.DailyLimitPreview."
+            + UUID().uuidString
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            Issue.record("Unable to create isolated UserDefaults")
+            return
+        }
+
+        defaults.removePersistentDomain(forName: suiteName)
+        let queue = DispatchQueue(
+            label: suiteName,
+            qos: .userInitiated
+        )
+        let store = DailyLimitStore(
+            sharedDefaults: defaults,
+            previewSuiteName: suiteName,
+            previewWriteQueue: queue,
+            previewWriteDelay: .milliseconds(0)
+        )
+
+        queue.suspend()
+        var queueIsSuspended = true
+        defer {
+            if queueIsSuspended {
+                queue.resume()
+            }
+            defaults.removePersistentDomain(forName: suiteName)
+        }
+
+        let assertions = scheduleWrites(store, defaults)
+        try? await Task.sleep(for: .milliseconds(5))
+        queue.resume()
+        queueIsSuspended = false
+        await drain(queue)
+        assertions()
+    }
+
+    private func drain(_ queue: DispatchQueue) async {
+        await withCheckedContinuation { continuation in
+            queue.async {
+                continuation.resume()
+            }
+        }
     }
 }
