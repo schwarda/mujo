@@ -1,12 +1,12 @@
 //
-//  MujoShared.swift
+//  AppConfiguration.swift
 //  Mujo
 //
 
 import Foundation
 
 /// Values shared by the app and its extension processes.
-enum MujoShared {
+enum AppConfiguration {
     nonisolated static let appGroupIdentifier =
         "group.AikariStudio.Mujo.shared"
     nonisolated static let defaultDailyLimit: TimeInterval = 2 * 60 * 60

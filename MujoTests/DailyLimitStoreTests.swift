@@ -13,14 +13,14 @@ struct DailyLimitStoreTests {
     @Test("Missing and invalid values use the two-hour default")
     func usesDefaultLimit() {
         withStore { store, defaults in
-            #expect(MujoShared.defaultDailyLimit == 2 * 60 * 60)
-            #expect(store.currentLimit == MujoShared.defaultDailyLimit)
+            #expect(AppConfiguration.defaultDailyLimit == 2 * 60 * 60)
+            #expect(store.currentLimit == AppConfiguration.defaultDailyLimit)
 
             defaults.set(
                 -60,
-                forKey: MujoShared.DefaultsKey.dailyLimit
+                forKey: AppConfiguration.DefaultsKey.dailyLimit
             )
-            #expect(store.currentLimit == MujoShared.defaultDailyLimit)
+            #expect(store.currentLimit == AppConfiguration.defaultDailyLimit)
         }
     }
 
@@ -32,7 +32,7 @@ struct DailyLimitStoreTests {
             #expect(store.save(newLimit))
             #expect(store.currentLimit == newLimit)
             #expect(
-                defaults.double(forKey: MujoShared.DefaultsKey.dailyLimit)
+                defaults.double(forKey: AppConfiguration.DefaultsKey.dailyLimit)
                     == newLimit
             )
             #expect(!store.save(newLimit))
@@ -45,7 +45,7 @@ struct DailyLimitStoreTests {
             #expect(!store.save(0))
             #expect(!store.save(-60))
             #expect(
-                defaults.object(forKey: MujoShared.DefaultsKey.dailyLimit)
+                defaults.object(forKey: AppConfiguration.DefaultsKey.dailyLimit)
                     == nil
             )
         }
@@ -57,13 +57,13 @@ struct DailyLimitStoreTests {
             configure: { defaults in
                 defaults.set(
                     60 * 60,
-                    forKey: MujoShared.DefaultsKey.previewDailyLimit
+                    forKey: AppConfiguration.DefaultsKey.previewDailyLimit
                 )
             },
             assertions: { _, defaults in
                 #expect(
                     defaults.object(
-                        forKey: MujoShared.DefaultsKey.previewDailyLimit
+                        forKey: AppConfiguration.DefaultsKey.previewDailyLimit
                     ) == nil
                 )
             }
@@ -80,7 +80,7 @@ struct DailyLimitStoreTests {
             return {
                 #expect(
                     defaults.double(
-                        forKey: MujoShared.DefaultsKey.previewDailyLimit
+                        forKey: AppConfiguration.DefaultsKey.previewDailyLimit
                     ) == 90 * 60
                 )
             }
@@ -95,7 +95,7 @@ struct DailyLimitStoreTests {
             return {
                 #expect(
                     defaults.double(
-                        forKey: MujoShared.DefaultsKey.previewDailyLimit
+                        forKey: AppConfiguration.DefaultsKey.previewDailyLimit
                     ) == 60
                 )
             }
@@ -107,7 +107,7 @@ struct DailyLimitStoreTests {
         await withSuspendedPreviewQueue { store, defaults in
             defaults.set(
                 30 * 60,
-                forKey: MujoShared.DefaultsKey.previewDailyLimit
+                forKey: AppConfiguration.DefaultsKey.previewDailyLimit
             )
             store.preview(minutes: 90)
             store.clearPreview()
@@ -115,7 +115,7 @@ struct DailyLimitStoreTests {
             return {
                 #expect(
                     defaults.object(
-                        forKey: MujoShared.DefaultsKey.previewDailyLimit
+                        forKey: AppConfiguration.DefaultsKey.previewDailyLimit
                     ) == nil
                 )
             }

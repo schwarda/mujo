@@ -11,34 +11,34 @@ import Testing
 struct MonitoringEventParserTests {
     @Test("Usage checkpoints are converted from minutes to seconds")
     func parsesUsageCheckpoint() {
-        let eventName = MujoShared.Monitoring.usageEventName(minutes: 15)
+        let eventName = AppConfiguration.Monitoring.usageEventName(minutes: 15)
 
         #expect(
-            MujoShared.Monitoring.usageCheckpointSeconds(from: eventName)
+            AppConfiguration.Monitoring.usageCheckpointSeconds(from: eventName)
                 == TimeInterval(15 * 60)
         )
     }
 
     @Test("Limit thresholds remain expressed in seconds")
     func parsesLimitThreshold() {
-        let eventName = MujoShared.Monitoring.limitEventName(
+        let eventName = AppConfiguration.Monitoring.limitEventName(
             seconds: 2 * 60 * 60
         )
 
         #expect(
-            MujoShared.Monitoring.limitSeconds(from: eventName)
+            AppConfiguration.Monitoring.limitSeconds(from: eventName)
                 == TimeInterval(2 * 60 * 60)
         )
     }
 
     @Test("An event cannot be parsed as the other event type")
     func rejectsMismatchedEventTypes() {
-        let usageEvent = MujoShared.Monitoring.usageEventName(minutes: 15)
-        let limitEvent = MujoShared.Monitoring.limitEventName(seconds: 7_200)
+        let usageEvent = AppConfiguration.Monitoring.usageEventName(minutes: 15)
+        let limitEvent = AppConfiguration.Monitoring.limitEventName(seconds: 7_200)
 
-        #expect(MujoShared.Monitoring.limitSeconds(from: usageEvent) == nil)
+        #expect(AppConfiguration.Monitoring.limitSeconds(from: usageEvent) == nil)
         #expect(
-            MujoShared.Monitoring.usageCheckpointSeconds(from: limitEvent)
+            AppConfiguration.Monitoring.usageCheckpointSeconds(from: limitEvent)
                 == nil
         )
     }
@@ -49,13 +49,13 @@ struct MonitoringEventParserTests {
     )
     func rejectsInvalidThresholds(_ suffix: String) {
         #expect(
-            MujoShared.Monitoring.usageCheckpointSeconds(
-                from: MujoShared.Monitoring.usageEventPrefix + suffix
+            AppConfiguration.Monitoring.usageCheckpointSeconds(
+                from: AppConfiguration.Monitoring.usageEventPrefix + suffix
             ) == nil
         )
         #expect(
-            MujoShared.Monitoring.limitSeconds(
-                from: MujoShared.Monitoring.limitEventPrefix + suffix
+            AppConfiguration.Monitoring.limitSeconds(
+                from: AppConfiguration.Monitoring.limitEventPrefix + suffix
             ) == nil
         )
     }

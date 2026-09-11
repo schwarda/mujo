@@ -45,7 +45,7 @@ struct RemainingTimeCalculatorTests {
             storedLimit: 0
         )
 
-        #expect(remainingTime == MujoShared.defaultDailyLimit - (30 * 60))
+        #expect(remainingTime == AppConfiguration.defaultDailyLimit - (30 * 60))
     }
 
     @Test func remainingTimeCannotBeNegative() {

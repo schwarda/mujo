@@ -27,7 +27,7 @@ enum WidgetUsageEstimator {
     ) -> WidgetUsageEstimate {
         let dailyLimit = snapshot.storedDailyLimit > 0
             ? snapshot.storedDailyLimit
-            : MujoShared.defaultDailyLimit
+            : AppConfiguration.defaultDailyLimit
         guard snapshot.checkpointTimeZoneIdentifier
             == calendar.timeZone.identifier else {
             return WidgetUsageEstimate(

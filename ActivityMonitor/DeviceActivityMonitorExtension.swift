@@ -11,8 +11,8 @@ import OSLog
 import WidgetKit
 
 extension DeviceActivityName {
-    static let mujoUsage = Self(MujoShared.Monitoring.usageActivityName)
-    static let mujoLimit = Self(MujoShared.Monitoring.limitActivityName)
+    static let mujoUsage = Self(AppConfiguration.Monitoring.usageActivityName)
+    static let mujoLimit = Self(AppConfiguration.Monitoring.limitActivityName)
 }
 
 private let logger = Logger(
@@ -25,7 +25,7 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         super.intervalDidStart(for: activity)
 
         guard let defaults = UserDefaults(
-            suiteName: MujoShared.appGroupIdentifier
+            suiteName: AppConfiguration.appGroupIdentifier
         ) else {
             logger.error("App Group UserDefaults is unavailable")
             return
@@ -41,7 +41,7 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         super.eventDidReachThreshold(event, activity: activity)
 
         guard let defaults = UserDefaults(
-            suiteName: MujoShared.appGroupIdentifier
+            suiteName: AppConfiguration.appGroupIdentifier
         ) else {
             logger.error("App Group UserDefaults is unavailable")
             return
@@ -54,22 +54,22 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         ) else { return }
 
         let previousSeconds = defaults.double(
-            forKey: MujoShared.DefaultsKey.estimatedUsedTime
+            forKey: AppConfiguration.DefaultsKey.estimatedUsedTime
         )
         let newestSeconds = max(previousSeconds, reachedSeconds)
         defaults.set(
             newestSeconds,
-            forKey: MujoShared.DefaultsKey.estimatedUsedTime
+            forKey: AppConfiguration.DefaultsKey.estimatedUsedTime
         )
         defaults.set(
             true,
-            forKey: MujoShared.DefaultsKey.hasUsageCheckpoint
+            forKey: AppConfiguration.DefaultsKey.hasUsageCheckpoint
         )
 
         logger.notice(
             "Reached \(event.rawValue, privacy: .public); stored \(newestSeconds, privacy: .public) seconds"
         )
-        WidgetCenter.shared.reloadTimelines(ofKind: MujoShared.widgetKind)
+        WidgetCenter.shared.reloadTimelines(ofKind: AppConfiguration.widgetKind)
     }
 
     private func resetEstimateForNewDayIfNeeded(_ defaults: UserDefaults) {
@@ -77,32 +77,32 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         let today = calendar.startOfDay(for: .now).timeIntervalSince1970
         let timeZoneIdentifier = calendar.timeZone.identifier
         let isCurrentDay = defaults.double(
-            forKey: MujoShared.DefaultsKey.lastCheckpointResetDay
+            forKey: AppConfiguration.DefaultsKey.lastCheckpointResetDay
         ) == today
         let isCurrentTimeZone = defaults.string(
-            forKey: MujoShared.DefaultsKey.lastCheckpointTimeZoneIdentifier
+            forKey: AppConfiguration.DefaultsKey.lastCheckpointTimeZoneIdentifier
         ) == timeZoneIdentifier
         guard !isCurrentDay || !isCurrentTimeZone else { return }
 
         defaults.set(
             today,
-            forKey: MujoShared.DefaultsKey.lastCheckpointResetDay
+            forKey: AppConfiguration.DefaultsKey.lastCheckpointResetDay
         )
         defaults.set(
             timeZoneIdentifier,
-            forKey: MujoShared.DefaultsKey.lastCheckpointTimeZoneIdentifier
+            forKey: AppConfiguration.DefaultsKey.lastCheckpointTimeZoneIdentifier
         )
         defaults.set(
             false,
-            forKey: MujoShared.DefaultsKey.hasUsageCheckpoint
+            forKey: AppConfiguration.DefaultsKey.hasUsageCheckpoint
         )
         defaults.set(
             0,
-            forKey: MujoShared.DefaultsKey.estimatedUsedTime
+            forKey: AppConfiguration.DefaultsKey.estimatedUsedTime
         )
 
         logger.notice("Started a new daily monitoring interval")
-        WidgetCenter.shared.reloadTimelines(ofKind: MujoShared.widgetKind)
+        WidgetCenter.shared.reloadTimelines(ofKind: AppConfiguration.widgetKind)
     }
 
     private func reachedUsageSeconds(
@@ -127,7 +127,7 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     private func usageCheckpointSeconds(
         from event: DeviceActivityEvent.Name
     ) -> TimeInterval? {
-        guard let seconds = MujoShared.Monitoring.usageCheckpointSeconds(
+        guard let seconds = AppConfiguration.Monitoring.usageCheckpointSeconds(
             from: event.rawValue
         ) else {
             logger.error("Unknown usage event: \(event.rawValue, privacy: .public)")
@@ -141,11 +141,11 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         from event: DeviceActivityEvent.Name,
         defaults: UserDefaults
     ) -> TimeInterval? {
-        guard let configuredLimit = MujoShared.Monitoring.limitSeconds(
+        guard let configuredLimit = AppConfiguration.Monitoring.limitSeconds(
             from: event.rawValue
         ),
               configuredLimit == defaults.double(
-                  forKey: MujoShared.DefaultsKey.dailyLimit
+                  forKey: AppConfiguration.DefaultsKey.dailyLimit
               )
         else {
             logger.notice(

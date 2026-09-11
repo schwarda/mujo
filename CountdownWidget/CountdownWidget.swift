@@ -50,27 +50,27 @@ struct CountdownProvider: TimelineProvider {
 
     private func loadEstimate(at date: Date = .now) -> WidgetUsageEstimate {
         let defaults = UserDefaults(
-            suiteName: MujoShared.appGroupIdentifier
+            suiteName: AppConfiguration.appGroupIdentifier
         )
 
         let snapshot = WidgetUsageSnapshot(
             storedDailyLimit: defaults?.double(
-                forKey: MujoShared.DefaultsKey.dailyLimit
+                forKey: AppConfiguration.DefaultsKey.dailyLimit
             ) ?? 0,
             estimatedUsedTime: defaults?.double(
-                forKey: MujoShared.DefaultsKey.estimatedUsedTime
+                forKey: AppConfiguration.DefaultsKey.estimatedUsedTime
             ) ?? 0,
             estimateDay: defaults?.double(
-                forKey: MujoShared.DefaultsKey.lastCheckpointResetDay
+                forKey: AppConfiguration.DefaultsKey.lastCheckpointResetDay
             ) ?? 0,
             checkpointTimeZoneIdentifier: defaults?.string(
-                forKey: MujoShared.DefaultsKey.lastCheckpointTimeZoneIdentifier
+                forKey: AppConfiguration.DefaultsKey.lastCheckpointTimeZoneIdentifier
             ),
             monitoringStartedAt: defaults?.double(
-                forKey: MujoShared.DefaultsKey.usageMonitoringStartedAt
+                forKey: AppConfiguration.DefaultsKey.usageMonitoringStartedAt
             ) ?? 0,
             hasCheckpoint: defaults?.bool(
-                forKey: MujoShared.DefaultsKey.hasUsageCheckpoint
+                forKey: AppConfiguration.DefaultsKey.hasUsageCheckpoint
             ) ?? false
         )
 
@@ -134,7 +134,7 @@ struct CountdownWidgetEntryView: View {
 struct CountdownWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(
-            kind: MujoShared.widgetKind,
+            kind: AppConfiguration.widgetKind,
             provider: CountdownProvider()
         ) { entry in
             CountdownWidgetEntryView(entry: entry)

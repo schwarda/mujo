@@ -1,12 +1,12 @@
 //
-//  FirstScreen.swift
+//  IntroductionView.swift
 //  Mujo
 //
 //  Created by Aikari Studio on 08/09/2026.
 //
 import SwiftUI
 
-struct FirstScreen: View {
+struct IntroductionView: View {
     private let texts: [String] = [
         "Nothing remains",
         "Time passes",
@@ -147,5 +147,5 @@ struct FirstScreen: View {
 }
 
 #Preview {
-    FirstScreen()
+    IntroductionView()
 }

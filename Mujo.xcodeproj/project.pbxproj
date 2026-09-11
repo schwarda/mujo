@@ -8,25 +8,28 @@
 
 /* Begin PBXBuildFile section */
 		1521AF673052002B00866109 /* CountdownWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 152EF0813051F9D400BB7370 /* CountdownWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		1521AF6B305202F100866109 /* Fonts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF693052015500866109 /* Fonts.swift */; };
-		1521AF6C3052030800866109 /* Fonts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF693052015500866109 /* Fonts.swift */; };
-		1521AF6E3052050900866109 /* Time.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF6D3052050600866109 /* Time.swift */; };
-		1521AF6F3052050900866109 /* Time.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF6D3052050600866109 /* Time.swift */; };
-		A17E4E053060000000000001 /* Time.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF6D3052050600866109 /* Time.swift */; };
-		A17E4E073060000000000001 /* WidgetUsageEstimate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E063060000000000001 /* WidgetUsageEstimate.swift */; };
-		A17E4E083060000000000001 /* WidgetUsageEstimate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E063060000000000001 /* WidgetUsageEstimate.swift */; };
-		1521AF813052A00000866109 /* MujoShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* MujoShared.swift */; };
-		1521AF823052A00000866109 /* MujoShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* MujoShared.swift */; };
-		1521AF833052A00000866109 /* MujoShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* MujoShared.swift */; };
-		1521AF843052A00000866109 /* MujoShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* MujoShared.swift */; };
-		A17E4E023060000000000001 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E013060000000000001 /* Theme.swift */; };
-		A17E4E033060000000000001 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E013060000000000001 /* Theme.swift */; };
-		A17E4E043060000000000001 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E013060000000000001 /* Theme.swift */; };
+		1521AF6B305202F100866109 /* GlassText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF693052015500866109 /* GlassText.swift */; };
+		1521AF6C3052030800866109 /* GlassText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF693052015500866109 /* GlassText.swift */; };
+		1521AF6E3052050900866109 /* TimeFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF6D3052050600866109 /* TimeFormatting.swift */; };
+		1521AF6F3052050900866109 /* TimeFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF6D3052050600866109 /* TimeFormatting.swift */; };
+		1521AF813052A00000866109 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* AppConfiguration.swift */; };
+		1521AF823052A00000866109 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* AppConfiguration.swift */; };
+		1521AF833052A00000866109 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* AppConfiguration.swift */; };
+		1521AF843052A00000866109 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* AppConfiguration.swift */; };
 		152EF0823051F9D400BB7370 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 152EF0643051F97400BB7370 /* WidgetKit.framework */; };
 		152EF0833051F9D400BB7370 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 152EF0663051F97400BB7370 /* SwiftUI.framework */; };
 		15FC877A304DE555001D7A9A /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 15FC8779304DE555001D7A9A /* DeviceActivity.framework */; };
 		15FC8782304DE555001D7A9A /* ActivityMonitor.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 15FC8777304DE555001D7A9A /* ActivityMonitor.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		15FC8798304DE57D001D7A9A /* ReportMonitor.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = 15FC878C304DE57C001D7A9A /* ReportMonitor.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A17E4E023060000000000001 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E013060000000000001 /* Theme.swift */; };
+		A17E4E033060000000000001 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E013060000000000001 /* Theme.swift */; };
+		A17E4E043060000000000001 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E013060000000000001 /* Theme.swift */; };
+		A17E4E053060000000000001 /* TimeFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF6D3052050600866109 /* TimeFormatting.swift */; };
+		A17E4E073060000000000001 /* WidgetUsageEstimate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E063060000000000001 /* WidgetUsageEstimate.swift */; };
+		A17E4E083060000000000001 /* WidgetUsageEstimate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E063060000000000001 /* WidgetUsageEstimate.swift */; };
+		A17E4E0B3060000000000001 /* ActivityReportModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E093060000000000001 /* ActivityReportModels.swift */; };
+		A17E4E0C3060000000000001 /* RemainingTimeCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E0A3060000000000001 /* RemainingTimeCalculator.swift */; };
+		A17E4E0D3060000000000001 /* RemainingTimeCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E0A3060000000000001 /* RemainingTimeCalculator.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -94,12 +97,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		1521AF693052015500866109 /* Fonts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fonts.swift; sourceTree = "<group>"; };
-		1521AF6D3052050600866109 /* Time.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Time.swift; sourceTree = "<group>"; };
-		1521AF803052A00000866109 /* MujoShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MujoShared.swift; sourceTree = "<group>"; };
-		A17E4E013060000000000001 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
-		A17E4E063060000000000001 /* WidgetUsageEstimate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetUsageEstimate.swift; sourceTree = "<group>"; };
+		1521AF693052015500866109 /* GlassText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassText.swift; sourceTree = "<group>"; };
+		1521AF6D3052050600866109 /* TimeFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeFormatting.swift; sourceTree = "<group>"; };
 		1521AF723052908200866109 /* CountdownWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CountdownWidgetExtension.entitlements; sourceTree = "<group>"; };
+		1521AF803052A00000866109 /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		152EF0643051F97400BB7370 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		152EF0663051F97400BB7370 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		152EF0813051F9D400BB7370 /* CountdownWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CountdownWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -109,6 +110,10 @@
 		15FC8777304DE555001D7A9A /* ActivityMonitor.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ActivityMonitor.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		15FC8779304DE555001D7A9A /* DeviceActivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DeviceActivity.framework; path = System/Library/Frameworks/DeviceActivity.framework; sourceTree = SDKROOT; };
 		15FC878C304DE57C001D7A9A /* ReportMonitor.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = ReportMonitor.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A17E4E013060000000000001 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		A17E4E063060000000000001 /* WidgetUsageEstimate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetUsageEstimate.swift; sourceTree = "<group>"; };
+		A17E4E093060000000000001 /* ActivityReportModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityReportModels.swift; sourceTree = "<group>"; };
+		A17E4E0A3060000000000001 /* RemainingTimeCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemainingTimeCalculator.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -239,11 +244,13 @@
 		1521AF683052013E00866109 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
-				1521AF803052A00000866109 /* MujoShared.swift */,
+				A17E4E093060000000000001 /* ActivityReportModels.swift */,
+				1521AF803052A00000866109 /* AppConfiguration.swift */,
+				1521AF693052015500866109 /* GlassText.swift */,
+				A17E4E0A3060000000000001 /* RemainingTimeCalculator.swift */,
 				A17E4E013060000000000001 /* Theme.swift */,
+				1521AF6D3052050600866109 /* TimeFormatting.swift */,
 				A17E4E063060000000000001 /* WidgetUsageEstimate.swift */,
-				1521AF6D3052050600866109 /* Time.swift */,
-				1521AF693052015500866109 /* Fonts.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -535,10 +542,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1521AF843052A00000866109 /* MujoShared.swift in Sources */,
+				1521AF843052A00000866109 /* AppConfiguration.swift in Sources */,
 				A17E4E033060000000000001 /* Theme.swift in Sources */,
-				1521AF6F3052050900866109 /* Time.swift in Sources */,
-				1521AF6B305202F100866109 /* Fonts.swift in Sources */,
+				1521AF6F3052050900866109 /* TimeFormatting.swift in Sources */,
+				1521AF6B305202F100866109 /* GlassText.swift in Sources */,
 				A17E4E083060000000000001 /* WidgetUsageEstimate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -547,9 +554,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1521AF813052A00000866109 /* MujoShared.swift in Sources */,
+				1521AF813052A00000866109 /* AppConfiguration.swift in Sources */,
 				A17E4E023060000000000001 /* Theme.swift in Sources */,
-				A17E4E053060000000000001 /* Time.swift in Sources */,
+				A17E4E053060000000000001 /* TimeFormatting.swift in Sources */,
+				A17E4E0C3060000000000001 /* RemainingTimeCalculator.swift in Sources */,
 				A17E4E073060000000000001 /* WidgetUsageEstimate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -572,7 +580,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1521AF823052A00000866109 /* MujoShared.swift in Sources */,
+				1521AF823052A00000866109 /* AppConfiguration.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -580,10 +588,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1521AF833052A00000866109 /* MujoShared.swift in Sources */,
+				1521AF833052A00000866109 /* AppConfiguration.swift in Sources */,
 				A17E4E043060000000000001 /* Theme.swift in Sources */,
-				1521AF6C3052030800866109 /* Fonts.swift in Sources */,
-				1521AF6E3052050900866109 /* Time.swift in Sources */,
+				1521AF6C3052030800866109 /* GlassText.swift in Sources */,
+				1521AF6E3052050900866109 /* TimeFormatting.swift in Sources */,
+				A17E4E0B3060000000000001 /* ActivityReportModels.swift in Sources */,
+				A17E4E0D3060000000000001 /* RemainingTimeCalculator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

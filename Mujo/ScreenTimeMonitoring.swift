@@ -8,10 +8,10 @@ import Foundation
 
 private extension DeviceActivityName {
     nonisolated static let mujoUsage = Self(
-        MujoShared.Monitoring.usageActivityName
+        AppConfiguration.Monitoring.usageActivityName
     )
     nonisolated static let mujoLimit = Self(
-        MujoShared.Monitoring.limitActivityName
+        AppConfiguration.Monitoring.limitActivityName
     )
     nonisolated static let legacyMujoDaily = Self("mujo.daily")
 }
@@ -39,7 +39,7 @@ actor ScreenTimeMonitoring {
             by: Self.checkpointIntervalMinutes
         ) {
             let name = DeviceActivityEvent.Name(
-                MujoShared.Monitoring.usageEventName(minutes: usedMinutes)
+                AppConfiguration.Monitoring.usageEventName(minutes: usedMinutes)
             )
             events[name] = DeviceActivityEvent(
                 threshold: durationComponents(
@@ -93,7 +93,7 @@ actor ScreenTimeMonitoring {
         )
         sharedDefaults.set(
             Date.now.timeIntervalSince1970,
-            forKey: MujoShared.DefaultsKey.usageMonitoringStartedAt
+            forKey: AppConfiguration.DefaultsKey.usageMonitoringStartedAt
         )
     }
 
@@ -102,7 +102,7 @@ actor ScreenTimeMonitoring {
         using center: DeviceActivityCenter
     ) throws {
         let eventName = DeviceActivityEvent.Name(
-            MujoShared.Monitoring.limitEventName(seconds: Int(limit))
+            AppConfiguration.Monitoring.limitEventName(seconds: Int(limit))
         )
         let events = [
             eventName: DeviceActivityEvent(
@@ -134,12 +134,12 @@ actor ScreenTimeMonitoring {
 
     private func recordUsageMonitoringStartIfNeeded() {
         guard sharedDefaults.double(
-            forKey: MujoShared.DefaultsKey.usageMonitoringStartedAt
+            forKey: AppConfiguration.DefaultsKey.usageMonitoringStartedAt
         ) == 0 else { return }
 
         sharedDefaults.set(
             Date.now.timeIntervalSince1970,
-            forKey: MujoShared.DefaultsKey.usageMonitoringStartedAt
+            forKey: AppConfiguration.DefaultsKey.usageMonitoringStartedAt
         )
     }
 

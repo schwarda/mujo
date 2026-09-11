@@ -17,10 +17,10 @@ final class ActivityReportLoadCoordinator {
         let requestID = UUID().uuidString
         sharedDefaults.set(
             requestID,
-            forKey: MujoShared.DefaultsKey.activityReportRequestID
+            forKey: AppConfiguration.DefaultsKey.activityReportRequestID
         )
         sharedDefaults.removeObject(
-            forKey: MujoShared.DefaultsKey.readyActivityReportRequestID
+            forKey: AppConfiguration.DefaultsKey.readyActivityReportRequestID
         )
         return requestID
     }
@@ -35,7 +35,7 @@ final class ActivityReportLoadCoordinator {
 
         while !Task.isCancelled && clock.now < deadline {
             let readyRequestID = sharedDefaults.string(
-                forKey: MujoShared.DefaultsKey.readyActivityReportRequestID
+                forKey: AppConfiguration.DefaultsKey.readyActivityReportRequestID
             )
             if readyRequestID == requestID {
                 return true

@@ -11,7 +11,7 @@ import SwiftUI
 import WidgetKit
 
 extension DeviceActivityReport.Context {
-    static let mujoToday = Self(MujoShared.Reporting.todayContextName)
+    static let mujoToday = Self(AppConfiguration.Reporting.todayContextName)
 }
 
 @MainActor
@@ -27,7 +27,7 @@ final class ScreenTimeManager: ObservableObject {
 
     init() {
         let defaults = UserDefaults(
-            suiteName: MujoShared.appGroupIdentifier
+            suiteName: AppConfiguration.appGroupIdentifier
         ) ?? .standard
         let limitStore = DailyLimitStore(sharedDefaults: defaults)
         self.limitStore = limitStore
@@ -35,7 +35,7 @@ final class ScreenTimeManager: ObservableObject {
             sharedDefaults: defaults
         )
         monitoring = ScreenTimeMonitoring(
-            suiteName: MujoShared.appGroupIdentifier
+            suiteName: AppConfiguration.appGroupIdentifier
         )
         dailyLimitMinutes = max(1, Int(limitStore.currentLimit / 60))
         authorizationStatusSubscription = AuthorizationCenter.shared
@@ -136,7 +136,7 @@ final class ScreenTimeManager: ObservableObject {
         let safeLimit = max(60, TimeInterval(minutes * 60))
         if limitStore.save(safeLimit) {
             dailyLimitMinutes = Int(safeLimit / 60)
-            WidgetCenter.shared.reloadTimelines(ofKind: MujoShared.widgetKind)
+            WidgetCenter.shared.reloadTimelines(ofKind: AppConfiguration.widgetKind)
         }
 
         do {

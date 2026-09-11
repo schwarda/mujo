@@ -75,7 +75,7 @@ struct ContentView: View {
                 retry: requestScreenTimeAuthorization
             )
         } else {
-            FirstScreen(
+            IntroductionView(
                 isRequestingPermission: isRequestingAuthorization,
                 petalSimulationTime: $petalSimulationTime,
                 onCherryBlossomsStarted: {

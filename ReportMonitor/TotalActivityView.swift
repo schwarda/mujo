@@ -11,7 +11,7 @@ struct TotalActivityView: View {
     let configuration: TodayActivityConfiguration
 
     private let sharedDefaults = UserDefaults(
-        suiteName: MujoShared.appGroupIdentifier
+        suiteName: AppConfiguration.appGroupIdentifier
     )
 
     var body: some View {
@@ -71,10 +71,10 @@ struct TotalActivityView: View {
 
     private var remainingTime: TimeInterval {
         let previewLimit = sharedDefaults?.double(
-            forKey: MujoShared.DefaultsKey.previewDailyLimit
+            forKey: AppConfiguration.DefaultsKey.previewDailyLimit
         ) ?? 0
         let storedLimit = sharedDefaults?.double(
-            forKey: MujoShared.DefaultsKey.dailyLimit
+            forKey: AppConfiguration.DefaultsKey.dailyLimit
         ) ?? 0
 
         return RemainingTimeCalculator.calculate(
@@ -86,14 +86,14 @@ struct TotalActivityView: View {
 
     private func markActivityReportAsReady() {
         guard let requestID = sharedDefaults?.string(
-            forKey: MujoShared.DefaultsKey.activityReportRequestID
+            forKey: AppConfiguration.DefaultsKey.activityReportRequestID
         ) else {
             return
         }
 
         sharedDefaults?.set(
             requestID,
-            forKey: MujoShared.DefaultsKey.readyActivityReportRequestID
+            forKey: AppConfiguration.DefaultsKey.readyActivityReportRequestID
         )
     }
 }

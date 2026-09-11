@@ -10,7 +10,7 @@ import ExtensionKit
 import SwiftUI
 
 extension DeviceActivityReport.Context {
-    static let mujoToday = Self(MujoShared.Reporting.todayContextName)
+    static let mujoToday = Self(AppConfiguration.Reporting.todayContextName)
 }
 
 struct TotalActivityReport: nonisolated DeviceActivityReportScene {

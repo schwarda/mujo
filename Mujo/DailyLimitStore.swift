@@ -15,7 +15,7 @@ final class DailyLimitStore {
 
     init(
         sharedDefaults: UserDefaults,
-        previewSuiteName: String = MujoShared.appGroupIdentifier,
+        previewSuiteName: String = AppConfiguration.appGroupIdentifier,
         previewWriteQueue: DispatchQueue = DispatchQueue(
             label: "AikariStudio.Mujo.daily-limit-preview",
             qos: .userInitiated
@@ -27,17 +27,17 @@ final class DailyLimitStore {
         self.previewWriteQueue = previewWriteQueue
         self.previewWriteDelay = previewWriteDelay
         sharedDefaults.removeObject(
-            forKey: MujoShared.DefaultsKey.previewDailyLimit
+            forKey: AppConfiguration.DefaultsKey.previewDailyLimit
         )
     }
 
     var currentLimit: TimeInterval {
         let storedValue = sharedDefaults.double(
-            forKey: MujoShared.DefaultsKey.dailyLimit
+            forKey: AppConfiguration.DefaultsKey.dailyLimit
         )
         return storedValue > 0
             ? storedValue
-            : MujoShared.defaultDailyLimit
+            : AppConfiguration.defaultDailyLimit
     }
 
     @discardableResult
@@ -46,7 +46,7 @@ final class DailyLimitStore {
 
         sharedDefaults.set(
             limit,
-            forKey: MujoShared.DefaultsKey.dailyLimit
+            forKey: AppConfiguration.DefaultsKey.dailyLimit
         )
         return true
     }
@@ -55,7 +55,7 @@ final class DailyLimitStore {
         let safeMinutes = max(1, minutes)
         let previewLimit = TimeInterval(safeMinutes * 60)
         let suiteName = previewSuiteName
-        let key = MujoShared.DefaultsKey.previewDailyLimit
+        let key = AppConfiguration.DefaultsKey.previewDailyLimit
         let workItem = DispatchWorkItem {
             UserDefaults(suiteName: suiteName)?.set(
                 previewLimit,
@@ -76,7 +76,7 @@ final class DailyLimitStore {
         pendingPreviewWrite = nil
 
         let suiteName = previewSuiteName
-        let key = MujoShared.DefaultsKey.previewDailyLimit
+        let key = AppConfiguration.DefaultsKey.previewDailyLimit
         previewWriteQueue.async {
             UserDefaults(suiteName: suiteName)?.removeObject(forKey: key)
         }

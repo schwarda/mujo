@@ -18,19 +18,19 @@ struct ActivityReportLoadCoordinatorTests {
         let firstRequestID = context.coordinator.beginLoading()
         context.defaults.set(
             firstRequestID,
-            forKey: MujoShared.DefaultsKey.readyActivityReportRequestID
+            forKey: AppConfiguration.DefaultsKey.readyActivityReportRequestID
         )
         let secondRequestID = context.coordinator.beginLoading()
 
         #expect(firstRequestID != secondRequestID)
         #expect(
             context.defaults.string(
-                forKey: MujoShared.DefaultsKey.activityReportRequestID
+                forKey: AppConfiguration.DefaultsKey.activityReportRequestID
             ) == secondRequestID
         )
         #expect(
             context.defaults.object(
-                forKey: MujoShared.DefaultsKey.readyActivityReportRequestID
+                forKey: AppConfiguration.DefaultsKey.readyActivityReportRequestID
             ) == nil
         )
     }
@@ -45,7 +45,7 @@ struct ActivityReportLoadCoordinatorTests {
             try? await Task.sleep(for: .milliseconds(30))
             context.defaults.set(
                 requestID,
-                forKey: MujoShared.DefaultsKey.readyActivityReportRequestID
+                forKey: AppConfiguration.DefaultsKey.readyActivityReportRequestID
             )
         }
         let isReady = await context.coordinator.waitUntilReady(
@@ -64,7 +64,7 @@ struct ActivityReportLoadCoordinatorTests {
         let requestID = context.coordinator.beginLoading()
         context.defaults.set(
             UUID().uuidString,
-            forKey: MujoShared.DefaultsKey.readyActivityReportRequestID
+            forKey: AppConfiguration.DefaultsKey.readyActivityReportRequestID
         )
 
         let isReady = await context.coordinator.waitUntilReady(
