@@ -127,26 +127,23 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     private func usageCheckpointSeconds(
         from event: DeviceActivityEvent.Name
     ) -> TimeInterval? {
-        let prefix = MujoShared.Monitoring.usageEventPrefix
-        guard event.rawValue.hasPrefix(prefix),
-              let minutes = Int(event.rawValue.dropFirst(prefix.count))
-        else {
+        guard let seconds = MujoShared.Monitoring.usageCheckpointSeconds(
+            from: event.rawValue
+        ) else {
             logger.error("Unknown usage event: \(event.rawValue, privacy: .public)")
             return nil
         }
 
-        return TimeInterval(minutes * 60)
+        return seconds
     }
 
     private func currentLimitSeconds(
         from event: DeviceActivityEvent.Name,
         defaults: UserDefaults
     ) -> TimeInterval? {
-        let prefix = MujoShared.Monitoring.limitEventPrefix
-        guard event.rawValue.hasPrefix(prefix),
-              let configuredLimit = TimeInterval(
-                  event.rawValue.dropFirst(prefix.count)
-              ),
+        guard let configuredLimit = MujoShared.Monitoring.limitSeconds(
+            from: event.rawValue
+        ),
               configuredLimit == defaults.double(
                   forKey: MujoShared.DefaultsKey.dailyLimit
               )

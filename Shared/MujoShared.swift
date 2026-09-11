@@ -48,5 +48,45 @@ enum MujoShared {
         nonisolated static func limitEventName(seconds: Int) -> String {
             limitEventPrefix + String(seconds)
         }
+
+        nonisolated static func usageCheckpointSeconds(
+            from eventName: String
+        ) -> TimeInterval? {
+            guard let minutes = positiveIntegerSuffix(
+                in: eventName,
+                after: usageEventPrefix
+            ) else {
+                return nil
+            }
+
+            return TimeInterval(minutes) * 60
+        }
+
+        nonisolated static func limitSeconds(
+            from eventName: String
+        ) -> TimeInterval? {
+            guard let seconds = positiveIntegerSuffix(
+                in: eventName,
+                after: limitEventPrefix
+            ) else {
+                return nil
+            }
+
+            return TimeInterval(seconds)
+        }
+
+        private nonisolated static func positiveIntegerSuffix(
+            in value: String,
+            after prefix: String
+        ) -> Int? {
+            guard value.hasPrefix(prefix),
+                  let number = Int(value.dropFirst(prefix.count)),
+                  number > 0
+            else {
+                return nil
+            }
+
+            return number
+        }
     }
 }
