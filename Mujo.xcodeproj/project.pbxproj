@@ -12,6 +12,7 @@
 		1521AF6C3052030800866109 /* Fonts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF693052015500866109 /* Fonts.swift */; };
 		1521AF6E3052050900866109 /* Time.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF6D3052050600866109 /* Time.swift */; };
 		1521AF6F3052050900866109 /* Time.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF6D3052050600866109 /* Time.swift */; };
+		A17E4E053060000000000001 /* Time.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF6D3052050600866109 /* Time.swift */; };
 		1521AF813052A00000866109 /* MujoShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* MujoShared.swift */; };
 		1521AF823052A00000866109 /* MujoShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* MujoShared.swift */; };
 		1521AF833052A00000866109 /* MujoShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* MujoShared.swift */; };
@@ -543,6 +544,7 @@
 			files = (
 				1521AF813052A00000866109 /* MujoShared.swift in Sources */,
 				A17E4E023060000000000001 /* Theme.swift in Sources */,
+				A17E4E053060000000000001 /* Time.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
