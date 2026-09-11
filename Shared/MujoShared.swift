@@ -24,6 +24,8 @@ enum MujoShared {
             "estimatedUsedTimeSeconds"
         nonisolated static let lastCheckpointResetDay =
             "lastCheckpointResetDay"
+        nonisolated static let lastCheckpointTimeZoneIdentifier =
+            "lastCheckpointTimeZoneIdentifier"
         nonisolated static let hasUsageCheckpoint = "hasUsageCheckpoint"
         nonisolated static let usageMonitoringStartedAt =
             "usageMonitoringStartedAt"

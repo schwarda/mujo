@@ -73,14 +73,24 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     }
 
     private func resetEstimateForNewDayIfNeeded(_ defaults: UserDefaults) {
-        let today = Calendar.current.startOfDay(for: .now).timeIntervalSince1970
-        guard defaults.double(
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: .now).timeIntervalSince1970
+        let timeZoneIdentifier = calendar.timeZone.identifier
+        let isCurrentDay = defaults.double(
             forKey: MujoShared.DefaultsKey.lastCheckpointResetDay
-        ) != today else { return }
+        ) == today
+        let isCurrentTimeZone = defaults.string(
+            forKey: MujoShared.DefaultsKey.lastCheckpointTimeZoneIdentifier
+        ) == timeZoneIdentifier
+        guard !isCurrentDay || !isCurrentTimeZone else { return }
 
         defaults.set(
             today,
             forKey: MujoShared.DefaultsKey.lastCheckpointResetDay
+        )
+        defaults.set(
+            timeZoneIdentifier,
+            forKey: MujoShared.DefaultsKey.lastCheckpointTimeZoneIdentifier
         )
         defaults.set(
             false,

@@ -125,6 +125,60 @@ struct WidgetUsageEstimateTests {
         #expect(estimate.remainingTime == 0)
     }
 
+    @Test("Travel from Bratislava to New York invalidates the estimate")
+    func invalidatesEstimateAfterWestwardTravel() throws {
+        try expectUnavailableAfterTravel(
+            from: "Europe/Bratislava",
+            to: "America/New_York"
+        )
+    }
+
+    @Test("Travel from Bratislava to Tokyo invalidates the estimate")
+    func invalidatesEstimateAfterEastwardTravel() throws {
+        try expectUnavailableAfterTravel(
+            from: "Europe/Bratislava",
+            to: "Asia/Tokyo"
+        )
+    }
+
+    @Test("Crossing the date line invalidates the estimate")
+    func invalidatesEstimateAcrossDateLine() throws {
+        try expectUnavailableAfterTravel(
+            from: "Pacific/Kiritimati",
+            to: "Pacific/Honolulu"
+        )
+    }
+
+    @Test("A daylight-saving change keeps today's estimate valid")
+    func keepsEstimateAcrossDaylightSavingChange() throws {
+        let bratislava = try makeCalendar(
+            timeZoneIdentifier: "Europe/Bratislava"
+        )
+        let date = try makeUTCDate(
+            year: 2026,
+            month: 10,
+            day: 25,
+            hour: 12
+        )
+        let estimate = WidgetUsageEstimator.estimate(
+            from: snapshot(
+                estimatedUsedTime: 60 * 60,
+                estimateDay: bratislava.startOfDay(for: date)
+                    .timeIntervalSince1970,
+                monitoringStartedAt: bratislava.startOfDay(for: date)
+                    .addingTimeInterval(-60)
+                    .timeIntervalSince1970,
+                hasCheckpoint: true,
+                checkpointTimeZoneIdentifier: bratislava.timeZone.identifier
+            ),
+            at: date,
+            calendar: bratislava
+        )
+
+        #expect(estimate.isAvailable)
+        #expect(estimate.remainingTime == 4 * 60 * 60)
+    }
+
     private func estimate(
         snapshot: WidgetUsageSnapshot
     ) -> WidgetUsageEstimate {
@@ -140,14 +194,77 @@ struct WidgetUsageEstimateTests {
         estimatedUsedTime: TimeInterval = 0,
         estimateDay: TimeInterval = 0,
         monitoringStartedAt: TimeInterval = 0,
-        hasCheckpoint: Bool = false
+        hasCheckpoint: Bool = false,
+        checkpointTimeZoneIdentifier: String? = "GMT"
     ) -> WidgetUsageSnapshot {
         WidgetUsageSnapshot(
             storedDailyLimit: storedDailyLimit,
             estimatedUsedTime: estimatedUsedTime,
             estimateDay: estimateDay,
+            checkpointTimeZoneIdentifier: checkpointTimeZoneIdentifier,
             monitoringStartedAt: monitoringStartedAt,
             hasCheckpoint: hasCheckpoint
         )
+    }
+
+    private func expectUnavailableAfterTravel(
+        from sourceIdentifier: String,
+        to destinationIdentifier: String
+    ) throws {
+        let sourceCalendar = try makeCalendar(
+            timeZoneIdentifier: sourceIdentifier
+        )
+        let destinationCalendar = try makeCalendar(
+            timeZoneIdentifier: destinationIdentifier
+        )
+        let date = try makeUTCDate(
+            year: 2026,
+            month: 9,
+            day: 11,
+            hour: 12
+        )
+        let sourceDay = sourceCalendar.startOfDay(for: date)
+        let estimate = WidgetUsageEstimator.estimate(
+            from: snapshot(
+                estimatedUsedTime: 60 * 60,
+                estimateDay: sourceDay.timeIntervalSince1970,
+                monitoringStartedAt: sourceDay
+                    .addingTimeInterval(-60)
+                    .timeIntervalSince1970,
+                hasCheckpoint: true,
+                checkpointTimeZoneIdentifier: sourceCalendar.timeZone.identifier
+            ),
+            at: date,
+            calendar: destinationCalendar
+        )
+
+        #expect(!estimate.isAvailable)
+        #expect(estimate.remainingTime == 5 * 60 * 60)
+    }
+
+    private func makeCalendar(
+        timeZoneIdentifier: String
+    ) throws -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(
+            TimeZone(identifier: timeZoneIdentifier)
+        )
+        return calendar
+    }
+
+    private func makeUTCDate(
+        year: Int,
+        month: Int,
+        day: Int,
+        hour: Int
+    ) throws -> Date {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .gmt
+        return try #require(calendar.date(from: DateComponents(
+            year: year,
+            month: month,
+            day: day,
+            hour: hour
+        )))
     }
 }

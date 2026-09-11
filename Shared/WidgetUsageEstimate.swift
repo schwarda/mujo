@@ -9,6 +9,7 @@ struct WidgetUsageSnapshot {
     let storedDailyLimit: TimeInterval
     let estimatedUsedTime: TimeInterval
     let estimateDay: TimeInterval
+    let checkpointTimeZoneIdentifier: String?
     let monitoringStartedAt: TimeInterval
     let hasCheckpoint: Bool
 }
@@ -27,6 +28,14 @@ enum WidgetUsageEstimator {
         let dailyLimit = snapshot.storedDailyLimit > 0
             ? snapshot.storedDailyLimit
             : MujoShared.defaultDailyLimit
+        guard snapshot.checkpointTimeZoneIdentifier
+            == calendar.timeZone.identifier else {
+            return WidgetUsageEstimate(
+                remainingTime: dailyLimit,
+                isAvailable: false
+            )
+        }
+
         let today = calendar.startOfDay(for: date).timeIntervalSince1970
         let monitoringPredatesToday = snapshot.monitoringStartedAt > 0
             && snapshot.monitoringStartedAt <= today

@@ -63,6 +63,9 @@ struct CountdownProvider: TimelineProvider {
             estimateDay: defaults?.double(
                 forKey: MujoShared.DefaultsKey.lastCheckpointResetDay
             ) ?? 0,
+            checkpointTimeZoneIdentifier: defaults?.string(
+                forKey: MujoShared.DefaultsKey.lastCheckpointTimeZoneIdentifier
+            ),
             monitoringStartedAt: defaults?.double(
                 forKey: MujoShared.DefaultsKey.usageMonitoringStartedAt
             ) ?? 0,
