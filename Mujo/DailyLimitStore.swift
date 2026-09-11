@@ -32,7 +32,7 @@ final class DailyLimitStore {
 
     @discardableResult
     func save(_ limit: TimeInterval) -> Bool {
-        guard limit != currentLimit else { return false }
+        guard limit > 0, limit != currentLimit else { return false }
 
         sharedDefaults.set(
             limit,

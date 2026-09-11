@@ -9,7 +9,7 @@ import Foundation
 enum MujoShared {
     nonisolated static let appGroupIdentifier =
         "group.AikariStudio.Mujo.shared"
-    nonisolated static let defaultDailyLimit: TimeInterval = 5 * 60 * 60
+    nonisolated static let defaultDailyLimit: TimeInterval = 2 * 60 * 60
     nonisolated static let widgetKind = "CountdownWidget"
 
     enum Reporting {

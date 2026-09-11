@@ -14,7 +14,9 @@ struct HomeScreen: View {
     @Binding var petalSimulationTime: Double
     let petalsStartFilled: Bool
     let canLoadActivityReport: Bool
-    @State private var selectedMinutes = 5 * 60
+    @State private var selectedMinutes = Int(
+        MujoShared.defaultDailyLimit / 60
+    )
     @State private var shouldLoadReport = false
 
     var body: some View {
