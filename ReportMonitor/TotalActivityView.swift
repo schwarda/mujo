@@ -76,17 +76,12 @@ struct TotalActivityView: View {
         let storedLimit = sharedDefaults?.double(
             forKey: MujoShared.DefaultsKey.dailyLimit
         ) ?? 0
-        let dailyLimit: TimeInterval
 
-        if previewLimit > 0 {
-            dailyLimit = previewLimit
-        } else if storedLimit > 0 {
-            dailyLimit = storedLimit
-        } else {
-            dailyLimit = MujoShared.defaultDailyLimit
-        }
-
-        return max(0, dailyLimit - configuration.usedTime)
+        return RemainingTimeCalculator.calculate(
+            usedTime: configuration.usedTime,
+            previewLimit: previewLimit,
+            storedLimit: storedLimit
+        )
     }
 
     private func markActivityReportAsReady() {
