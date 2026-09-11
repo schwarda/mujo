@@ -25,10 +25,11 @@ final class ActivityReportLoadCoordinator {
         return requestID
     }
 
+    @discardableResult
     func waitUntilReady(
         requestID: String,
         timeout: Duration = .seconds(2)
-    ) async {
+    ) async -> Bool {
         let clock = ContinuousClock()
         let deadline = clock.now.advanced(by: timeout)
 
@@ -37,10 +38,12 @@ final class ActivityReportLoadCoordinator {
                 forKey: MujoShared.DefaultsKey.readyActivityReportRequestID
             )
             if readyRequestID == requestID {
-                return
+                return true
             }
 
             try? await Task.sleep(for: .milliseconds(25))
         }
+
+        return false
     }
 }

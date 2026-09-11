@@ -88,7 +88,7 @@ final class ScreenTimeManager: ObservableObject {
     }
 
     func waitUntilActivityReportIsReady(requestID: String) async {
-        await activityReportLoader.waitUntilReady(requestID: requestID)
+        _ = await activityReportLoader.waitUntilReady(requestID: requestID)
     }
 
     func requestAuthorizationAndStart() async {
