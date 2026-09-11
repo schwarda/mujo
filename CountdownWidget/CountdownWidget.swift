@@ -48,59 +48,31 @@ struct CountdownProvider: TimelineProvider {
         ))
     }
 
-    private func loadEstimate(at date: Date = .now) -> UsageEstimate {
+    private func loadEstimate(at date: Date = .now) -> WidgetUsageEstimate {
         let defaults = UserDefaults(
             suiteName: MujoShared.appGroupIdentifier
         )
 
-        let storedLimit = defaults?.double(
-            forKey: MujoShared.DefaultsKey.dailyLimit
-        ) ?? 0
-
-        let dailyLimit = storedLimit > 0
-            ? storedLimit
-            : MujoShared.defaultDailyLimit
-
-        let usedTime = defaults?.double(
-            forKey: MujoShared.DefaultsKey.estimatedUsedTime
-        ) ?? 0
-        let estimateDay = defaults?.double(
-            forKey: MujoShared.DefaultsKey.lastCheckpointResetDay
-        ) ?? 0
-        let monitoringStartedAt = defaults?.double(
-            forKey: MujoShared.DefaultsKey.usageMonitoringStartedAt
-        ) ?? 0
-        let hasCheckpoint = defaults?.bool(
-            forKey: MujoShared.DefaultsKey.hasUsageCheckpoint
-        ) ?? false
-        let today = Calendar.current.startOfDay(for: date).timeIntervalSince1970
-        let monitoringPredatesToday = monitoringStartedAt > 0
-            && monitoringStartedAt <= today
-        let estimateWasResetToday = estimateDay == today
-        let canUseStoredEstimate = estimateWasResetToday
-            && (hasCheckpoint || monitoringPredatesToday)
-        let canAssumeZeroUsage = !estimateWasResetToday
-            && monitoringPredatesToday
-
-        guard canUseStoredEstimate || canAssumeZeroUsage else {
-            return UsageEstimate(
-                remainingTime: dailyLimit,
-                isAvailable: false
-            )
-        }
-
-        let validUsedTime = canUseStoredEstimate ? usedTime : 0
-
-        return UsageEstimate(
-            remainingTime: max(0, dailyLimit - validUsedTime),
-            isAvailable: true
+        let snapshot = WidgetUsageSnapshot(
+            storedDailyLimit: defaults?.double(
+                forKey: MujoShared.DefaultsKey.dailyLimit
+            ) ?? 0,
+            estimatedUsedTime: defaults?.double(
+                forKey: MujoShared.DefaultsKey.estimatedUsedTime
+            ) ?? 0,
+            estimateDay: defaults?.double(
+                forKey: MujoShared.DefaultsKey.lastCheckpointResetDay
+            ) ?? 0,
+            monitoringStartedAt: defaults?.double(
+                forKey: MujoShared.DefaultsKey.usageMonitoringStartedAt
+            ) ?? 0,
+            hasCheckpoint: defaults?.bool(
+                forKey: MujoShared.DefaultsKey.hasUsageCheckpoint
+            ) ?? false
         )
-    }
-}
 
-private struct UsageEstimate {
-    let remainingTime: TimeInterval
-    let isAvailable: Bool
+        return WidgetUsageEstimator.estimate(from: snapshot, at: date)
+    }
 }
 
 struct CountdownEntry: TimelineEntry {
@@ -120,7 +92,7 @@ struct CountdownEntry: TimelineEntry {
 
     fileprivate init(
         date: Date,
-        estimate: UsageEstimate
+        estimate: WidgetUsageEstimate
     ) {
         self.init(
             date: date,
