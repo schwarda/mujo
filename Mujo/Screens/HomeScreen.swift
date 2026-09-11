@@ -9,6 +9,7 @@ import SwiftUI
 import DeviceActivity
 
 struct HomeScreen: View {
+    @Environment(\.scenePhase) private var scenePhase
     @ObservedObject var screenTime: ScreenTimeManager
     @Binding var windStrength: Double
     @Binding var petalSimulationTime: Double
@@ -18,6 +19,7 @@ struct HomeScreen: View {
         AppConfiguration.defaultDailyLimit / 60
     )
     @State private var shouldLoadReport = false
+    @State private var reportInterval = LocalDayInterval.containing(.now)
 
     var body: some View {
         ZStack {
@@ -26,7 +28,7 @@ struct HomeScreen: View {
                     if shouldLoadReport {
                         DeviceActivityReport(
                             .mujoToday,
-                            filter: screenTime.reportFilter
+                            filter: screenTime.reportFilter(for: reportInterval)
                         )
                     } else {
                         Color.clear
@@ -79,6 +81,43 @@ struct HomeScreen: View {
             await Task.yield()
             shouldLoadReport = true
         }
+        .task {
+            await refreshReportAtDayBoundaries()
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active else { return }
+            refreshReportIfNeeded()
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: Notification.Name.NSSystemTimeZoneDidChange
+            )
+        ) { _ in
+            refreshReportIfNeeded()
+        }
+    }
+
+    private func refreshReportAtDayBoundaries() async {
+        while !Task.isCancelled {
+            let now = Date.now
+            let nextDay = LocalDayInterval.containing(now).end
+            let delay = max(1, nextDay.timeIntervalSince(now))
+
+            do {
+                try await Task.sleep(for: .seconds(delay))
+            } catch {
+                return
+            }
+
+            refreshReportIfNeeded()
+        }
+    }
+
+    private func refreshReportIfNeeded(at date: Date = .now) {
+        let currentInterval = LocalDayInterval.containing(date)
+        guard currentInterval != reportInterval else { return }
+
+        reportInterval = currentInterval
     }
 }
 

@@ -57,13 +57,9 @@ final class ScreenTimeManager: ObservableObject {
         }
     }
 
-    var reportFilter: DeviceActivityFilter {
-        let calendar = Calendar.current
-        let start = calendar.startOfDay(for: .now)
-        let end = calendar.date(byAdding: .day, value: 1, to: start)!
-
+    func reportFilter(for interval: DateInterval) -> DeviceActivityFilter {
         return DeviceActivityFilter(
-            segment: .hourly(during: DateInterval(start: start, end: end))
+            segment: .hourly(during: interval)
         )
     }
 
