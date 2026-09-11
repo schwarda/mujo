@@ -23,7 +23,7 @@ enum WidgetUsageEstimator {
     static func estimate(
         from snapshot: WidgetUsageSnapshot,
         at date: Date,
-        calendar: Calendar = .current
+        calendar: Calendar = .autoupdatingCurrent
     ) -> WidgetUsageEstimate {
         let dailyLimit = snapshot.storedDailyLimit > 0
             ? snapshot.storedDailyLimit

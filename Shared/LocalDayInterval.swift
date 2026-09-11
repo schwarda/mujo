@@ -5,6 +5,7 @@
 
 import Foundation
 
+/// Produces calendar-day boundaries without assuming that every day has 24 hours.
 enum LocalDayInterval {
     static func containing(
         _ date: Date,

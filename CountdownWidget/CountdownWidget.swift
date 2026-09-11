@@ -21,10 +21,8 @@ struct CountdownProvider: TimelineProvider {
         in context: Context,
         completion: @escaping (CountdownEntry) -> Void
     ) {
-        completion(CountdownEntry(
-            date: .now,
-            estimate: loadEstimate()
-        ))
+        let plan = makePlan(at: .now)
+        completion(CountdownEntry(plan: plan))
     }
 
     func getTimeline(
@@ -32,49 +30,21 @@ struct CountdownProvider: TimelineProvider {
         completion: @escaping (Timeline<CountdownEntry>) -> Void
     ) {
         let now = Date.now
-        let entry = CountdownEntry(
-            date: now,
-            estimate: loadEstimate(at: now)
-        )
-        let nextDay = Calendar.current.date(
-            byAdding: .day,
-            value: 1,
-            to: Calendar.current.startOfDay(for: now)
-        ) ?? now.addingTimeInterval(24 * 60 * 60)
+        let plan = makePlan(at: now)
 
         completion(Timeline(
-            entries: [entry],
-            policy: .after(nextDay)
+            entries: [CountdownEntry(plan: plan)],
+            policy: .after(plan.reloadAfter)
         ))
     }
 
-    private func loadEstimate(at date: Date = .now) -> WidgetUsageEstimate {
+    private func makePlan(at date: Date) -> WidgetTimelinePlan {
         let defaults = UserDefaults(
             suiteName: AppConfiguration.appGroupIdentifier
         )
+        let snapshot = WidgetUsageSnapshotLoader(defaults: defaults).load()
 
-        let snapshot = WidgetUsageSnapshot(
-            storedDailyLimit: defaults?.double(
-                forKey: AppConfiguration.DefaultsKey.dailyLimit
-            ) ?? 0,
-            estimatedUsedTime: defaults?.double(
-                forKey: AppConfiguration.DefaultsKey.estimatedUsedTime
-            ) ?? 0,
-            estimateDay: defaults?.double(
-                forKey: AppConfiguration.DefaultsKey.lastCheckpointResetDay
-            ) ?? 0,
-            checkpointTimeZoneIdentifier: defaults?.string(
-                forKey: AppConfiguration.DefaultsKey.lastCheckpointTimeZoneIdentifier
-            ),
-            monitoringStartedAt: defaults?.double(
-                forKey: AppConfiguration.DefaultsKey.usageMonitoringStartedAt
-            ) ?? 0,
-            hasCheckpoint: defaults?.bool(
-                forKey: AppConfiguration.DefaultsKey.hasUsageCheckpoint
-            ) ?? false
-        )
-
-        return WidgetUsageEstimator.estimate(from: snapshot, at: date)
+        return WidgetTimelinePlanner.makePlan(from: snapshot, at: date)
     }
 }
 
@@ -93,14 +63,11 @@ struct CountdownEntry: TimelineEntry {
         self.isEstimateAvailable = isEstimateAvailable
     }
 
-    fileprivate init(
-        date: Date,
-        estimate: WidgetUsageEstimate
-    ) {
+    fileprivate init(plan: WidgetTimelinePlan) {
         self.init(
-            date: date,
-            remainingTime: estimate.remainingTime,
-            isEstimateAvailable: estimate.isAvailable
+            date: plan.date,
+            remainingTime: plan.estimate.remainingTime,
+            isEstimateAvailable: plan.estimate.isAvailable
         )
     }
 }

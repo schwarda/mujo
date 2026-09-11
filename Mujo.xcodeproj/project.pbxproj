@@ -30,6 +30,12 @@
 		A17E4E0B3060000000000001 /* ActivityReportModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E093060000000000001 /* ActivityReportModels.swift */; };
 		A17E4E0C3060000000000001 /* RemainingTimeCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E0A3060000000000001 /* RemainingTimeCalculator.swift */; };
 		A17E4E0D3060000000000001 /* RemainingTimeCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E0A3060000000000001 /* RemainingTimeCalculator.swift */; };
+		A17E4E123060000000000001 /* LocalDayInterval.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E113060000000000001 /* LocalDayInterval.swift */; };
+		A17E4E133060000000000001 /* LocalDayInterval.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E113060000000000001 /* LocalDayInterval.swift */; };
+		A17E4E163060000000000001 /* WidgetUsageSnapshotLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E143060000000000001 /* WidgetUsageSnapshotLoader.swift */; };
+		A17E4E173060000000000001 /* WidgetUsageSnapshotLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E143060000000000001 /* WidgetUsageSnapshotLoader.swift */; };
+		A17E4E183060000000000001 /* WidgetTimelinePlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E153060000000000001 /* WidgetTimelinePlanner.swift */; };
+		A17E4E193060000000000001 /* WidgetTimelinePlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E153060000000000001 /* WidgetTimelinePlanner.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -114,6 +120,9 @@
 		A17E4E063060000000000001 /* WidgetUsageEstimate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetUsageEstimate.swift; sourceTree = "<group>"; };
 		A17E4E093060000000000001 /* ActivityReportModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityReportModels.swift; sourceTree = "<group>"; };
 		A17E4E0A3060000000000001 /* RemainingTimeCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemainingTimeCalculator.swift; sourceTree = "<group>"; };
+		A17E4E113060000000000001 /* LocalDayInterval.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalDayInterval.swift; sourceTree = "<group>"; };
+		A17E4E143060000000000001 /* WidgetUsageSnapshotLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetUsageSnapshotLoader.swift; sourceTree = "<group>"; };
+		A17E4E153060000000000001 /* WidgetTimelinePlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetTimelinePlanner.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -247,10 +256,13 @@
 				A17E4E093060000000000001 /* ActivityReportModels.swift */,
 				1521AF803052A00000866109 /* AppConfiguration.swift */,
 				1521AF693052015500866109 /* GlassText.swift */,
+				A17E4E113060000000000001 /* LocalDayInterval.swift */,
 				A17E4E0A3060000000000001 /* RemainingTimeCalculator.swift */,
 				A17E4E013060000000000001 /* Theme.swift */,
 				1521AF6D3052050600866109 /* TimeFormatting.swift */,
+				A17E4E153060000000000001 /* WidgetTimelinePlanner.swift */,
 				A17E4E063060000000000001 /* WidgetUsageEstimate.swift */,
+				A17E4E143060000000000001 /* WidgetUsageSnapshotLoader.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -546,7 +558,10 @@
 				A17E4E033060000000000001 /* Theme.swift in Sources */,
 				1521AF6F3052050900866109 /* TimeFormatting.swift in Sources */,
 				1521AF6B305202F100866109 /* GlassText.swift in Sources */,
+				A17E4E133060000000000001 /* LocalDayInterval.swift in Sources */,
 				A17E4E083060000000000001 /* WidgetUsageEstimate.swift in Sources */,
+				A17E4E173060000000000001 /* WidgetUsageSnapshotLoader.swift in Sources */,
+				A17E4E193060000000000001 /* WidgetTimelinePlanner.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -558,7 +573,10 @@
 				A17E4E023060000000000001 /* Theme.swift in Sources */,
 				A17E4E053060000000000001 /* TimeFormatting.swift in Sources */,
 				A17E4E0C3060000000000001 /* RemainingTimeCalculator.swift in Sources */,
+				A17E4E123060000000000001 /* LocalDayInterval.swift in Sources */,
 				A17E4E073060000000000001 /* WidgetUsageEstimate.swift in Sources */,
+				A17E4E163060000000000001 /* WidgetUsageSnapshotLoader.swift in Sources */,
+				A17E4E183060000000000001 /* WidgetTimelinePlanner.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
