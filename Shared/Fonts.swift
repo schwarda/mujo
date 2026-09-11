@@ -12,7 +12,7 @@ struct GlassText: View {
     var size: CGFloat = 118
 
     private var timeFont: Font {
-        .system (
+        .system(
             size: size,
             weight: .heavy,
             design: .rounded
@@ -26,16 +26,12 @@ struct GlassText: View {
             .lineLimit(1)
             .minimumScaleFactor(0.6)
     }
-    
-    private var accentColor: Color {
-        Color(red: 0.96, green: 0.62, blue: 0.72)
-    }
 
     var body: some View {
         ZStack {
             timeText(value)
-                .foregroundStyle(accentColor.opacity(0.68))
-            
+                .foregroundStyle(MujoTheme.glassAccent.opacity(0.68))
+
             timeText(value)
                 .foregroundStyle(.white.opacity(0.24))
                 .offset(x: -0.7, y: -0.9)
@@ -49,7 +45,7 @@ struct GlassText: View {
             y: -1
         )
         .shadow(
-            color: accentColor.opacity(0.30),
+            color: MujoTheme.glassAccent.opacity(0.30),
             radius: 3,
             x: 1,
             y: 2

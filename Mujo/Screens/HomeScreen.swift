@@ -46,12 +46,13 @@ struct HomeScreen: View {
                 Spacer()
 
                 Text("How much of today\nbelongs to a screen?")
-                    .font(.custom(
-                        "AvenirNext-Medium",
+                    .font(MujoTheme.mediumFont(
                         size: 22,
                         relativeTo: .title3
                     ))
-                    .foregroundStyle(.accent.opacity(0.72))
+                    .foregroundStyle(
+                        .accent.opacity(MujoTheme.secondaryTextOpacity)
+                    )
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.bottom, 16)

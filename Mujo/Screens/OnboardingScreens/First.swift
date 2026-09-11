@@ -69,12 +69,13 @@ struct FirstScreen: View {
 
                 Text(texts[currentIndex])
                     .id(currentIndex)
-                    .font(.custom(
-                        "AvenirNext-Italic",
+                    .font(MujoTheme.italicFont(
                         size: 22,
                         relativeTo: .title3
                     ))
-                    .foregroundStyle(.accent.opacity(0.72))
+                    .foregroundStyle(
+                        .accent.opacity(MujoTheme.secondaryTextOpacity)
+                    )
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                     .transition(

@@ -16,6 +16,9 @@
 		1521AF823052A00000866109 /* MujoShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* MujoShared.swift */; };
 		1521AF833052A00000866109 /* MujoShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* MujoShared.swift */; };
 		1521AF843052A00000866109 /* MujoShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* MujoShared.swift */; };
+		A17E4E023060000000000001 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E013060000000000001 /* Theme.swift */; };
+		A17E4E033060000000000001 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E013060000000000001 /* Theme.swift */; };
+		A17E4E043060000000000001 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E013060000000000001 /* Theme.swift */; };
 		152EF0823051F9D400BB7370 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 152EF0643051F97400BB7370 /* WidgetKit.framework */; };
 		152EF0833051F9D400BB7370 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 152EF0663051F97400BB7370 /* SwiftUI.framework */; };
 		15FC877A304DE555001D7A9A /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 15FC8779304DE555001D7A9A /* DeviceActivity.framework */; };
@@ -91,6 +94,7 @@
 		1521AF693052015500866109 /* Fonts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fonts.swift; sourceTree = "<group>"; };
 		1521AF6D3052050600866109 /* Time.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Time.swift; sourceTree = "<group>"; };
 		1521AF803052A00000866109 /* MujoShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MujoShared.swift; sourceTree = "<group>"; };
+		A17E4E013060000000000001 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		1521AF723052908200866109 /* CountdownWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CountdownWidgetExtension.entitlements; sourceTree = "<group>"; };
 		152EF0643051F97400BB7370 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		152EF0663051F97400BB7370 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -232,6 +236,7 @@
 			isa = PBXGroup;
 			children = (
 				1521AF803052A00000866109 /* MujoShared.swift */,
+				A17E4E013060000000000001 /* Theme.swift */,
 				1521AF6D3052050600866109 /* Time.swift */,
 				1521AF693052015500866109 /* Fonts.swift */,
 			);
@@ -526,6 +531,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1521AF843052A00000866109 /* MujoShared.swift in Sources */,
+				A17E4E033060000000000001 /* Theme.swift in Sources */,
 				1521AF6F3052050900866109 /* Time.swift in Sources */,
 				1521AF6B305202F100866109 /* Fonts.swift in Sources */,
 			);
@@ -536,6 +542,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1521AF813052A00000866109 /* MujoShared.swift in Sources */,
+				A17E4E023060000000000001 /* Theme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -566,6 +573,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1521AF833052A00000866109 /* MujoShared.swift in Sources */,
+				A17E4E043060000000000001 /* Theme.swift in Sources */,
 				1521AF6C3052030800866109 /* Fonts.swift in Sources */,
 				1521AF6E3052050900866109 /* Time.swift in Sources */,
 			);

@@ -33,13 +33,16 @@ struct TotalActivityView: View {
     private var remainingTimeView: some View {
         VStack {
             Text("Remaining")
-                .font(.custom(
-                    "AvenirNext-Medium",
+                .font(MujoTheme.mediumFont(
                     size: 12,
                     relativeTo: .caption2
                 ))
                 .textCase(.uppercase)
-                .foregroundStyle(accentColor.opacity(0.72))
+                .foregroundStyle(
+                    MujoTheme.glassAccent.opacity(
+                        MujoTheme.secondaryTextOpacity
+                    )
+                )
 
             GlassText(value: remainingTime.formatted())
         }
@@ -62,12 +65,8 @@ struct TotalActivityView: View {
             .multilineTextAlignment(.center)
             .foregroundStyle(.secondary)
         }
-        .foregroundStyle(accentColor)
+        .foregroundStyle(MujoTheme.glassAccent)
         .padding(.horizontal, 24)
-    }
-
-    private var accentColor: Color {
-        Color(red: 0.96, green: 0.62, blue: 0.72)
     }
 
     private var remainingTime: TimeInterval {
