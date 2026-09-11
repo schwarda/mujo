@@ -27,83 +27,11 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             SakuraBackground()
-
-            Group {
-                if !hasResolvedInitialAuthorization {
-                    Color.clear
-                } else if screenTime.isAuthorized {
-                    TabView(selection: $selectedTab) {
-                        ForEach(AppTab.allCases) { tab in
-                            Group {
-                                switch tab {
-                                case .home:
-                                    HomeScreen(
-                                        screenTime: screenTime,
-                                        windStrength: $sharedWindStrength,
-                                        petalSimulationTime: $petalSimulationTime,
-                                        petalsStartFilled: !petalsStartedDuringOnboarding,
-                                        canLoadActivityReport: canLoadActivityReport
-                                    )
-                                case .history:
-                                    HistoryScreen(
-                                        petalSimulationTime: $petalSimulationTime,
-                                        petalsStartFilled: !petalsStartedDuringOnboarding
-                                    )
-                                }
-                            }
-                            .tabItem {
-                                Label(tab.title, systemImage: tab.systemImage)
-                            }
-                            .tag(tab)
-                        }
-                    }
-                    .tint(.accentColor)
-                } else if shouldShowPermissionExplanation {
-                    ScreenTimePermissionView(
-                        petalSimulationTime: $petalSimulationTime,
-                        petalsStartFilled: !petalsStartedDuringOnboarding,
-                        retry: requestScreenTimeAuthorization
-                    )
-                } else {
-                    FirstScreen(
-                        isRequestingPermission: isRequestingAuthorization,
-                        petalSimulationTime: $petalSimulationTime,
-                        onCherryBlossomsStarted: {
-                            petalsStartedDuringOnboarding = true
-                        },
-                        onContinue: requestScreenTimeAuthorization
-                    )
-                }
-            }
-
-            if isShowingLaunchOverlay {
-                ZStack {
-                    Color("LaunchBackground")
-                        .ignoresSafeArea()
-
-                    Image("LaunchLogo")
-                        .frame(width: 160, height: 160)
-                }
-                .transition(.opacity)
-                .accessibilityHidden(true)
-                .zIndex(1)
-            }
-
+            rootContent
+            launchOverlay
         }
         .task {
-            screenTime.refreshAuthorizationStatus()
-            let hasRequestedAuthorization = hasCompletedOnboarding
-                || hasReachedScreenTimePermission
-
-            if screenTime.authorizationStatus != .notDetermined
-                || !hasRequestedAuthorization {
-                completeInitialSetup()
-            } else {
-                try? await Task.sleep(for: .seconds(2))
-                guard !Task.isCancelled else { return }
-                screenTime.refreshAuthorizationStatus()
-                completeInitialSetup()
-            }
+            await resolveInitialAuthorization()
         }
         .onChange(of: screenTime.authorizationStatus) { _, newStatus in
             guard newStatus != .notDetermined else { return }
@@ -134,6 +62,78 @@ struct ContentView: View {
         }
     }
 
+    @ViewBuilder
+    private var rootContent: some View {
+        if !hasResolvedInitialAuthorization {
+            Color.clear
+        } else if screenTime.isAuthorized {
+            authorizedTabs
+        } else if shouldShowPermissionExplanation {
+            ScreenTimePermissionView(
+                petalSimulationTime: $petalSimulationTime,
+                petalsStartFilled: !petalsStartedDuringOnboarding,
+                retry: requestScreenTimeAuthorization
+            )
+        } else {
+            FirstScreen(
+                isRequestingPermission: isRequestingAuthorization,
+                petalSimulationTime: $petalSimulationTime,
+                onCherryBlossomsStarted: {
+                    petalsStartedDuringOnboarding = true
+                },
+                onContinue: requestScreenTimeAuthorization
+            )
+        }
+    }
+
+    private var authorizedTabs: some View {
+        TabView(selection: $selectedTab) {
+            ForEach(AppTab.allCases) { tab in
+                tabContent(for: tab)
+                    .tabItem {
+                        Label(tab.title, systemImage: tab.systemImage)
+                    }
+                    .tag(tab)
+            }
+        }
+        .tint(.accentColor)
+    }
+
+    @ViewBuilder
+    private func tabContent(for tab: AppTab) -> some View {
+        switch tab {
+        case .home:
+            HomeScreen(
+                screenTime: screenTime,
+                windStrength: $sharedWindStrength,
+                petalSimulationTime: $petalSimulationTime,
+                petalsStartFilled: !petalsStartedDuringOnboarding,
+                canLoadActivityReport: canLoadActivityReport
+            )
+        case .history:
+            HistoryScreen(
+                petalSimulationTime: $petalSimulationTime,
+                petalsStartFilled: !petalsStartedDuringOnboarding
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var launchOverlay: some View {
+        if isShowingLaunchOverlay {
+            ZStack {
+                Color("LaunchBackground")
+                    .ignoresSafeArea()
+
+                Image("LaunchLogo")
+                    .frame(width: 160, height: 160)
+            }
+            .transition(.opacity)
+            .accessibilityHidden(true)
+            .zIndex(1)
+        }
+    }
+
     private var shouldShowPermissionExplanation: Bool {
         if hasCompletedOnboarding || hasReachedScreenTimePermission {
             return true
@@ -147,6 +147,23 @@ struct ContentView: View {
         default:
             return true
         }
+    }
+
+    private func resolveInitialAuthorization() async {
+        screenTime.refreshAuthorizationStatus()
+        let hasRequestedAuthorization = hasCompletedOnboarding
+            || hasReachedScreenTimePermission
+
+        if screenTime.authorizationStatus != .notDetermined
+            || !hasRequestedAuthorization {
+            completeInitialSetup()
+            return
+        }
+
+        try? await Task.sleep(for: .seconds(2))
+        guard !Task.isCancelled else { return }
+        screenTime.refreshAuthorizationStatus()
+        completeInitialSetup()
     }
 
     private func completeInitialSetup() {
