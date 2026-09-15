@@ -36,6 +36,7 @@
 		A17E4E173060000000000001 /* WidgetUsageSnapshotLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E143060000000000001 /* WidgetUsageSnapshotLoader.swift */; };
 		A17E4E183060000000000001 /* WidgetTimelinePlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E153060000000000001 /* WidgetTimelinePlanner.swift */; };
 		A17E4E193060000000000001 /* WidgetTimelinePlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E153060000000000001 /* WidgetTimelinePlanner.swift */; };
+		A17E4E1A3060000000000001 /* GlassText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF693052015500866109 /* GlassText.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -571,6 +572,7 @@
 			files = (
 				1521AF813052A00000866109 /* AppConfiguration.swift in Sources */,
 				A17E4E023060000000000001 /* Theme.swift in Sources */,
+				A17E4E1A3060000000000001 /* GlassText.swift in Sources */,
 				A17E4E053060000000000001 /* TimeFormatting.swift in Sources */,
 				A17E4E0C3060000000000001 /* RemainingTimeCalculator.swift in Sources */,
 				A17E4E123060000000000001 /* LocalDayInterval.swift in Sources */,

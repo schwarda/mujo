@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import DeviceActivity
 
 struct HomeScreen: View {
     @Environment(\.scenePhase) private var scenePhase
@@ -14,26 +13,14 @@ struct HomeScreen: View {
     @Binding var windStrength: Double
     @Binding var petalSimulationTime: Double
     let petalsStartFilled: Bool
-    let canLoadActivityReport: Bool
     @State private var selectedMinutes = Int(
         AppConfiguration.defaultDailyLimit / 60
     )
-    @State private var shouldLoadReport = false
-    @State private var reportInterval = LocalDayInterval.containing(.now)
 
     var body: some View {
         ZStack {
             VStack {
-                Group {
-                    if shouldLoadReport {
-                        DeviceActivityReport(
-                            .mujoToday,
-                            filter: screenTime.reportFilter(for: reportInterval)
-                        )
-                    } else {
-                        Color.clear
-                    }
-                }
+                remainingTimeView
                 .frame(height: 170)
                 .padding(.top, 64)
 
@@ -75,49 +62,63 @@ struct HomeScreen: View {
         }
         .task {
             selectedMinutes = screenTime.dailyLimitMinutes
-        }
-        .task(id: canLoadActivityReport) {
-            guard canLoadActivityReport else { return }
-            await Task.yield()
-            shouldLoadReport = true
-        }
-        .task {
-            await refreshReportAtDayBoundaries()
+            await refreshUsageWhileVisible()
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else { return }
-            refreshReportIfNeeded()
+            screenTime.refreshUsageSnapshot()
         }
         .onReceive(
             NotificationCenter.default.publisher(
                 for: Notification.Name.NSSystemTimeZoneDidChange
             )
         ) { _ in
-            refreshReportIfNeeded()
+            screenTime.refreshUsageSnapshot()
         }
     }
 
-    private func refreshReportAtDayBoundaries() async {
-        while !Task.isCancelled {
-            let now = Date.now
-            let nextDay = LocalDayInterval.containing(now).end
-            let delay = max(1, nextDay.timeIntervalSince(now))
+    @ViewBuilder
+    private var remainingTimeView: some View {
+        let estimate = screenTime.usageEstimate(
+            forLimitMinutes: selectedMinutes
+        )
 
-            do {
-                try await Task.sleep(for: .seconds(delay))
-            } catch {
-                return
+        VStack {
+            Text("Remaining")
+                .font(MujoTheme.mediumFont(
+                    size: 12,
+                    relativeTo: .caption2
+                ))
+                .textCase(.uppercase)
+                .foregroundStyle(
+                    MujoTheme.glassAccent.opacity(
+                        MujoTheme.secondaryTextOpacity
+                    )
+                )
+
+            if estimate.isAvailable {
+                GlassText(value: estimate.remainingTime.formatted())
+            } else {
+                Text("Waiting for data")
+                    .font(.headline)
+                    .foregroundStyle(
+                        MujoTheme.glassAccent.opacity(
+                            MujoTheme.secondaryTextOpacity
+                        )
+                    )
+            }
+        }
+        .padding()
+    }
+
+    private func refreshUsageWhileVisible() async {
+        while !Task.isCancelled {
+            if scenePhase == .active {
+                screenTime.refreshUsageSnapshot()
             }
 
-            refreshReportIfNeeded()
+            try? await Task.sleep(for: .seconds(1))
         }
-    }
-
-    private func refreshReportIfNeeded(at date: Date = .now) {
-        let currentInterval = LocalDayInterval.containing(date)
-        guard currentInterval != reportInterval else { return }
-
-        reportInterval = currentInterval
     }
 }
 

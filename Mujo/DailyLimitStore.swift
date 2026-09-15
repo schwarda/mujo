@@ -12,6 +12,7 @@ final class DailyLimitStore {
     private let previewWriteQueue: DispatchQueue
     private let previewWriteDelay: DispatchTimeInterval
     private var pendingPreviewWrite: DispatchWorkItem?
+    let migratedLimit: TimeInterval?
 
     init(
         sharedDefaults: UserDefaults,
@@ -26,6 +27,18 @@ final class DailyLimitStore {
         self.previewSuiteName = previewSuiteName
         self.previewWriteQueue = previewWriteQueue
         self.previewWriteDelay = previewWriteDelay
+        let key = AppConfiguration.DefaultsKey.dailyLimit
+        let storedObject = sharedDefaults.object(forKey: key)
+        let storedLimit = sharedDefaults.double(forKey: key)
+        let normalizedLimit = AppConfiguration.DailyLimit.normalizedLimit(
+            storedLimit
+        )
+        if storedObject != nil, storedLimit != normalizedLimit {
+            sharedDefaults.set(normalizedLimit, forKey: key)
+            migratedLimit = normalizedLimit
+        } else {
+            migratedLimit = nil
+        }
         sharedDefaults.removeObject(
             forKey: AppConfiguration.DefaultsKey.previewDailyLimit
         )
@@ -35,24 +48,24 @@ final class DailyLimitStore {
         let storedValue = sharedDefaults.double(
             forKey: AppConfiguration.DefaultsKey.dailyLimit
         )
-        return storedValue > 0
-            ? storedValue
-            : AppConfiguration.defaultDailyLimit
+        return AppConfiguration.DailyLimit.normalizedLimit(storedValue)
     }
 
     @discardableResult
     func save(_ limit: TimeInterval) -> Bool {
-        guard limit > 0, limit != currentLimit else { return false }
+        guard limit.isFinite, limit > 0 else { return false }
+        let normalizedLimit = AppConfiguration.DailyLimit.normalizedLimit(limit)
+        guard normalizedLimit != currentLimit else { return false }
 
         sharedDefaults.set(
-            limit,
+            normalizedLimit,
             forKey: AppConfiguration.DefaultsKey.dailyLimit
         )
         return true
     }
 
     func preview(minutes: Int) {
-        let safeMinutes = max(1, minutes)
+        let safeMinutes = AppConfiguration.DailyLimit.normalizedMinutes(minutes)
         let previewLimit = TimeInterval(safeMinutes * 60)
         let suiteName = previewSuiteName
         let key = AppConfiguration.DefaultsKey.previewDailyLimit

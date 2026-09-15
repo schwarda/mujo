@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct WidgetUsageSnapshot {
+struct UsageSnapshot: Equatable {
     let storedDailyLimit: TimeInterval
     let estimatedUsedTime: TimeInterval
     let estimateDay: TimeInterval
@@ -14,23 +14,27 @@ struct WidgetUsageSnapshot {
     let hasCheckpoint: Bool
 }
 
-struct WidgetUsageEstimate {
+struct UsageEstimate: Equatable {
     let remainingTime: TimeInterval
     let isAvailable: Bool
 }
 
-enum WidgetUsageEstimator {
+enum UsageEstimator {
     static func estimate(
-        from snapshot: WidgetUsageSnapshot,
+        from snapshot: UsageSnapshot,
+        dailyLimit overrideLimit: TimeInterval? = nil,
         at date: Date,
         calendar: Calendar = .autoupdatingCurrent
-    ) -> WidgetUsageEstimate {
-        let dailyLimit = snapshot.storedDailyLimit > 0
+    ) -> UsageEstimate {
+        let storedLimit = snapshot.storedDailyLimit > 0
             ? snapshot.storedDailyLimit
             : AppConfiguration.defaultDailyLimit
+        let dailyLimit = AppConfiguration.DailyLimit.normalizedLimit(
+            overrideLimit ?? storedLimit
+        )
         guard snapshot.checkpointTimeZoneIdentifier
             == calendar.timeZone.identifier else {
-            return WidgetUsageEstimate(
+            return UsageEstimate(
                 remainingTime: dailyLimit,
                 isAvailable: false
             )
@@ -46,19 +50,26 @@ enum WidgetUsageEstimator {
             && monitoringPredatesToday
 
         guard canUseStoredEstimate || canAssumeZeroUsage else {
-            return WidgetUsageEstimate(
+            return UsageEstimate(
                 remainingTime: dailyLimit,
                 isAvailable: false
             )
         }
 
         let usedTime = canUseStoredEstimate
-            ? snapshot.estimatedUsedTime
+            ? AppConfiguration.DailyLimit.normalizedUsage(
+                snapshot.estimatedUsedTime
+            )
             : 0
 
-        return WidgetUsageEstimate(
+        return UsageEstimate(
             remainingTime: max(0, dailyLimit - usedTime),
             isAvailable: true
         )
     }
 }
+
+// Compatibility names for the existing tests while the shared model is adopted.
+typealias WidgetUsageSnapshot = UsageSnapshot
+typealias WidgetUsageEstimate = UsageEstimate
+typealias WidgetUsageEstimator = UsageEstimator

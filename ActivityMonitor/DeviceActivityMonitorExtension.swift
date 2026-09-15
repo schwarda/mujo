@@ -24,6 +24,10 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     override func intervalDidStart(for activity: DeviceActivityName) {
         super.intervalDidStart(for: activity)
 
+        guard activity == .mujoUsage || activity == .mujoLimit else {
+            return
+        }
+
         guard let defaults = UserDefaults(
             suiteName: AppConfiguration.appGroupIdentifier
         ) else {
@@ -53,10 +57,15 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
             defaults: defaults
         ) else { return }
 
-        let previousSeconds = defaults.double(
-            forKey: AppConfiguration.DefaultsKey.estimatedUsedTime
+        let previousSeconds = AppConfiguration.DailyLimit.normalizedUsage(
+            defaults.double(
+                forKey: AppConfiguration.DefaultsKey.estimatedUsedTime
+            )
         )
-        let newestSeconds = max(previousSeconds, reachedSeconds)
+        let newestSeconds = max(
+            previousSeconds,
+            AppConfiguration.DailyLimit.normalizedUsage(reachedSeconds)
+        )
         defaults.set(
             newestSeconds,
             forKey: AppConfiguration.DefaultsKey.estimatedUsedTime
@@ -67,7 +76,7 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         )
 
         logger.notice(
-            "Reached \(event.rawValue, privacy: .public); stored \(newestSeconds, privacy: .public) seconds"
+            "Reached \(event.rawValue, privacy: .public); stored 15-minute threshold \(newestSeconds, privacy: .public) seconds"
         )
         WidgetCenter.shared.reloadTimelines(ofKind: AppConfiguration.widgetKind)
     }
@@ -134,7 +143,7 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
             return nil
         }
 
-        return seconds
+        return AppConfiguration.DailyLimit.normalizedUsage(seconds)
     }
 
     private func currentLimitSeconds(

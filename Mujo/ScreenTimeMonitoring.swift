@@ -17,8 +17,10 @@ private extension DeviceActivityName {
 }
 
 actor ScreenTimeMonitoring {
-    private static let checkpointIntervalMinutes = 15
-    private static let maximumTrackedUsageMinutes = 12 * 60
+    private static let checkpointIntervalMinutes =
+        AppConfiguration.DailyLimit.stepMinutes
+    private static let maximumTrackedUsageMinutes =
+        AppConfiguration.DailyLimit.maximumMinutes
 
     private let sharedDefaults: UserDefaults
 
@@ -101,12 +103,15 @@ actor ScreenTimeMonitoring {
         limit: TimeInterval,
         using center: DeviceActivityCenter
     ) throws {
+        let normalizedLimit = AppConfiguration.DailyLimit.normalizedLimit(limit)
         let eventName = DeviceActivityEvent.Name(
-            AppConfiguration.Monitoring.limitEventName(seconds: Int(limit))
+            AppConfiguration.Monitoring.limitEventName(
+                seconds: Int(normalizedLimit)
+            )
         )
         let events = [
             eventName: DeviceActivityEvent(
-                threshold: durationComponents(for: limit),
+                threshold: durationComponents(for: normalizedLimit),
                 includesPastActivity: true
             )
         ]

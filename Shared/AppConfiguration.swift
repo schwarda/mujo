@@ -12,6 +12,44 @@ enum AppConfiguration {
     nonisolated static let defaultDailyLimit: TimeInterval = 2 * 60 * 60
     nonisolated static let widgetKind = "CountdownWidget"
 
+    enum DailyLimit {
+        nonisolated static let stepMinutes = 15
+        nonisolated static let minimumMinutes = 15
+        nonisolated static let maximumMinutes = 12 * 60
+
+        nonisolated static func normalizedMinutes(_ minutes: Int) -> Int {
+            let clamped = min(maximumMinutes, max(minimumMinutes, minutes))
+            let roundedSteps = (clamped + stepMinutes / 2) / stepMinutes
+            return min(
+                maximumMinutes,
+                max(minimumMinutes, roundedSteps * stepMinutes)
+            )
+        }
+
+        nonisolated static func normalizedLimit(
+            _ limit: TimeInterval
+        ) -> TimeInterval {
+            guard limit.isFinite, limit > 0 else {
+                return AppConfiguration.defaultDailyLimit
+            }
+
+            let minutes = Int(limit / 60)
+            let remainingSeconds = limit.truncatingRemainder(dividingBy: 60)
+            let roundedMinutes = remainingSeconds >= 30
+                ? minutes + 1
+                : minutes
+            return TimeInterval(normalizedMinutes(roundedMinutes) * 60)
+        }
+
+        nonisolated static func normalizedUsage(
+            _ usage: TimeInterval
+        ) -> TimeInterval {
+            guard usage.isFinite, usage > 0 else { return 0 }
+            let stepSeconds = TimeInterval(stepMinutes * 60)
+            return floor(usage / stepSeconds) * stepSeconds
+        }
+    }
+
     enum Reporting {
         nonisolated static let todayContextName = "mujo.today"
     }

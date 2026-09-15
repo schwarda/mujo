@@ -4,25 +4,27 @@
 //
 
 import Combine
-import DeviceActivity
 import FamilyControls
 import Foundation
+import OSLog
 import SwiftUI
 import WidgetKit
 
-extension DeviceActivityReport.Context {
-    static let mujoToday = Self(AppConfiguration.Reporting.todayContextName)
-}
+private let usageLogger = Logger(
+    subsystem: "AikariStudio.Mujo",
+    category: "UsageEstimate"
+)
 
 @MainActor
 final class ScreenTimeManager: ObservableObject {
     @Published private(set) var authorizationStatus = AuthorizationCenter.shared.authorizationStatus
     @Published private(set) var errorMessage: String?
     @Published private(set) var dailyLimitMinutes: Int
+    @Published private(set) var usageSnapshot: UsageSnapshot
 
     private let limitStore: DailyLimitStore
     private let monitoring: ScreenTimeMonitoring
-    private let activityReportLoader: ActivityReportLoadCoordinator
+    private let usageSnapshotLoader: UsageSnapshotLoader
     private var authorizationStatusSubscription: AnyCancellable?
 
     init() {
@@ -31,13 +33,17 @@ final class ScreenTimeManager: ObservableObject {
         ) ?? .standard
         let limitStore = DailyLimitStore(sharedDefaults: defaults)
         self.limitStore = limitStore
-        activityReportLoader = ActivityReportLoadCoordinator(
-            sharedDefaults: defaults
-        )
+        usageSnapshotLoader = UsageSnapshotLoader(defaults: defaults)
         monitoring = ScreenTimeMonitoring(
             suiteName: AppConfiguration.appGroupIdentifier
         )
-        dailyLimitMinutes = max(1, Int(limitStore.currentLimit / 60))
+        dailyLimitMinutes = Int(limitStore.currentLimit / 60)
+        usageSnapshot = usageSnapshotLoader.load()
+        if limitStore.migratedLimit != nil {
+            WidgetCenter.shared.reloadTimelines(
+                ofKind: AppConfiguration.widgetKind
+            )
+        }
         authorizationStatusSubscription = AuthorizationCenter.shared
             .$authorizationStatus
             .removeDuplicates()
@@ -57,12 +63,6 @@ final class ScreenTimeManager: ObservableObject {
         }
     }
 
-    func reportFilter(for interval: DateInterval) -> DeviceActivityFilter {
-        return DeviceActivityFilter(
-            segment: .hourly(during: interval)
-        )
-    }
-
     @discardableResult
     func refreshAuthorizationStatus() -> Bool {
         authorizationStatus = AuthorizationCenter.shared.authorizationStatus
@@ -74,17 +74,10 @@ final class ScreenTimeManager: ObservableObject {
 
         do {
             try await monitoring.restore(limit: limitStore.currentLimit)
+            refreshUsageSnapshot()
         } catch {
             errorMessage = error.localizedDescription
         }
-    }
-
-    func beginActivityReportLoad() -> String {
-        activityReportLoader.beginLoading()
-    }
-
-    func waitUntilActivityReportIsReady(requestID: String) async {
-        _ = await activityReportLoader.waitUntilReady(requestID: requestID)
     }
 
     func requestAuthorizationAndStart() async {
@@ -96,6 +89,7 @@ final class ScreenTimeManager: ObservableObject {
 
             guard isAuthorized else { return }
             try await monitoring.restore(limit: limitStore.currentLimit)
+            refreshUsageSnapshot()
         } catch {
             authorizationStatus = AuthorizationCenter.shared.authorizationStatus
             errorMessage = error.localizedDescription
@@ -108,6 +102,32 @@ final class ScreenTimeManager: ObservableObject {
 
     func previewDailyLimit(minutes: Int) {
         limitStore.preview(minutes: minutes)
+    }
+
+    func usageEstimate(forLimitMinutes minutes: Int) -> UsageEstimate {
+        UsageEstimator.estimate(
+            from: usageSnapshot,
+            dailyLimit: TimeInterval(
+                AppConfiguration.DailyLimit.normalizedMinutes(minutes) * 60
+            ),
+            at: .now
+        )
+    }
+
+    func refreshUsageSnapshot() {
+        let refreshedSnapshot = usageSnapshotLoader.load()
+        guard refreshedSnapshot != usageSnapshot else { return }
+
+        usageSnapshot = refreshedSnapshot
+#if DEBUG
+        let estimate = UsageEstimator.estimate(
+            from: refreshedSnapshot,
+            at: .now
+        )
+        usageLogger.debug(
+            "limit=\(refreshedSnapshot.storedDailyLimit) used=\(refreshedSnapshot.estimatedUsedTime) valid=\(estimate.isAvailable) remaining=\(estimate.remainingTime)"
+        )
+#endif
     }
 
     func setDailyLimit(minutes: Int) async {
@@ -129,9 +149,12 @@ final class ScreenTimeManager: ObservableObject {
 
         guard isAuthorized else { return }
 
-        let safeLimit = max(60, TimeInterval(minutes * 60))
+        let normalizedMinutes = AppConfiguration.DailyLimit
+            .normalizedMinutes(minutes)
+        let safeLimit = TimeInterval(normalizedMinutes * 60)
         if limitStore.save(safeLimit) {
-            dailyLimitMinutes = Int(safeLimit / 60)
+            dailyLimitMinutes = normalizedMinutes
+            refreshUsageSnapshot()
             WidgetCenter.shared.reloadTimelines(ofKind: AppConfiguration.widgetKind)
         }
 

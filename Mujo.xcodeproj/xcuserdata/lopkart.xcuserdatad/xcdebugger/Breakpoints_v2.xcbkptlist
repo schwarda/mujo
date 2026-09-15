@@ -16,8 +16,8 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "40"
             endingLineNumber = "40"
-            landmarkName = "eventDidReachThreshold(_:activity:)"
-            landmarkType = "7">
+            landmarkName = "DeviceActivityMonitorExtension"
+            landmarkType = "3">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy

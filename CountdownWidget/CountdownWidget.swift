@@ -42,7 +42,7 @@ struct CountdownProvider: TimelineProvider {
         let defaults = UserDefaults(
             suiteName: AppConfiguration.appGroupIdentifier
         )
-        let snapshot = WidgetUsageSnapshotLoader(defaults: defaults).load()
+        let snapshot = UsageSnapshotLoader(defaults: defaults).load()
 
         return WidgetTimelinePlanner.makePlan(from: snapshot, at: date)
     }

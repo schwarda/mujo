@@ -10,16 +10,19 @@ struct TimeDial: View {
     private struct Configuration {
         // Change these values to tune the dial.
         let diameter: CGFloat = 200
-        let stepsPerTurn = 60
-        let minutesPerStep = 5
-        let minimumMinutes = 5
-        let maximumMinutes = 12 * 60
+        let tickCount = 60
+        let valueStepsPerTurn = 20
+        let minutesPerStep = AppConfiguration.DailyLimit.stepMinutes
+        let minimumMinutes = AppConfiguration.DailyLimit.minimumMinutes
+        let maximumMinutes = AppConfiguration.DailyLimit.maximumMinutes
 
         // Everything below is derived from the values above.
         var radius: CGFloat { diameter / 2 }
         var center: CGPoint { CGPoint(x: radius, y: radius) }
-        var degreesPerStep: Double { 360 / Double(stepsPerTurn) }
-        var majorTickFrequency: Int { max(1, stepsPerTurn / 12) }
+        var degreesPerValueStep: Double {
+            360 / Double(valueStepsPerTurn)
+        }
+        var majorTickFrequency: Int { max(1, tickCount / 12) }
         var tickOffset: CGFloat { -diameter * 0.431 }
         var majorTickWidth: CGFloat { diameter * 0.0216 }
         var minorTickWidth: CGFloat { diameter * 0.0108 }
@@ -123,7 +126,7 @@ struct TimeDial: View {
 
     private var tickMarks: some View {
         ZStack {
-            ForEach(0..<configuration.stepsPerTurn, id: \.self) { index in
+            ForEach(0..<configuration.tickCount, id: \.self) { index in
                 let isMajorTick = index.isMultiple(
                     of: configuration.majorTickFrequency
                 )
@@ -140,7 +143,10 @@ struct TimeDial: View {
                     )
                     .offset(y: configuration.tickOffset)
                     .rotationEffect(
-                        .degrees(Double(index) * configuration.degreesPerStep)
+                        .degrees(
+                            Double(index) * 360
+                                / Double(configuration.tickCount)
+                        )
                     )
             }
         }
@@ -170,7 +176,8 @@ struct TimeDial: View {
                 visualRotation += delta
                 updateWindStrength(for: delta)
 
-                while abs(unconsumedRotation) >= configuration.degreesPerStep {
+                while abs(unconsumedRotation)
+                    >= configuration.degreesPerValueStep {
                     if !hasUsedTimeDial {
                         withAnimation(.easeOut(duration: 0.2)) {
                             hasUsedTimeDial = true
@@ -184,7 +191,7 @@ struct TimeDial: View {
                         didChangeDuringGesture = true
                     }
                     unconsumedRotation -= Double(direction)
-                        * configuration.degreesPerStep
+                        * configuration.degreesPerValueStep
                 }
             }
             .onEnded { _ in
@@ -210,9 +217,11 @@ struct TimeDial: View {
 
     @discardableResult
     private func changeMinutes(by amount: Int) -> Bool {
-        let newValue = min(
-            configuration.maximumMinutes,
-            max(configuration.minimumMinutes, minutes + amount)
+        let newValue = AppConfiguration.DailyLimit.normalizedMinutes(
+            min(
+                configuration.maximumMinutes,
+                max(configuration.minimumMinutes, minutes + amount)
+            )
         )
         guard newValue != minutes else { return false }
 

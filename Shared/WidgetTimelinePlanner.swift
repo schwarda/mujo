@@ -7,19 +7,19 @@ import Foundation
 
 struct WidgetTimelinePlan {
     let date: Date
-    let estimate: WidgetUsageEstimate
+    let estimate: UsageEstimate
     let reloadAfter: Date
 }
 
 enum WidgetTimelinePlanner {
     static func makePlan(
-        from snapshot: WidgetUsageSnapshot,
+        from snapshot: UsageSnapshot,
         at date: Date,
         calendar: Calendar = .autoupdatingCurrent
     ) -> WidgetTimelinePlan {
         WidgetTimelinePlan(
             date: date,
-            estimate: WidgetUsageEstimator.estimate(
+            estimate: UsageEstimator.estimate(
                 from: snapshot,
                 at: date,
                 calendar: calendar
