@@ -9,27 +9,19 @@
 /* Begin PBXBuildFile section */
 		1521AF673052002B00866109 /* CountdownWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 152EF0813051F9D400BB7370 /* CountdownWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		1521AF6B305202F100866109 /* GlassText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF693052015500866109 /* GlassText.swift */; };
-		1521AF6C3052030800866109 /* GlassText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF693052015500866109 /* GlassText.swift */; };
-		1521AF6E3052050900866109 /* TimeFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF6D3052050600866109 /* TimeFormatting.swift */; };
 		1521AF6F3052050900866109 /* TimeFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF6D3052050600866109 /* TimeFormatting.swift */; };
 		1521AF813052A00000866109 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* AppConfiguration.swift */; };
 		1521AF823052A00000866109 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* AppConfiguration.swift */; };
-		1521AF833052A00000866109 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* AppConfiguration.swift */; };
 		1521AF843052A00000866109 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* AppConfiguration.swift */; };
 		152EF0823051F9D400BB7370 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 152EF0643051F97400BB7370 /* WidgetKit.framework */; };
 		152EF0833051F9D400BB7370 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 152EF0663051F97400BB7370 /* SwiftUI.framework */; };
 		15FC877A304DE555001D7A9A /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 15FC8779304DE555001D7A9A /* DeviceActivity.framework */; };
 		15FC8782304DE555001D7A9A /* ActivityMonitor.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 15FC8777304DE555001D7A9A /* ActivityMonitor.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		15FC8798304DE57D001D7A9A /* ReportMonitor.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = 15FC878C304DE57C001D7A9A /* ReportMonitor.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A17E4E023060000000000001 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E013060000000000001 /* Theme.swift */; };
 		A17E4E033060000000000001 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E013060000000000001 /* Theme.swift */; };
-		A17E4E043060000000000001 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E013060000000000001 /* Theme.swift */; };
 		A17E4E053060000000000001 /* TimeFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF6D3052050600866109 /* TimeFormatting.swift */; };
 		A17E4E073060000000000001 /* WidgetUsageEstimate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E063060000000000001 /* WidgetUsageEstimate.swift */; };
 		A17E4E083060000000000001 /* WidgetUsageEstimate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E063060000000000001 /* WidgetUsageEstimate.swift */; };
-		A17E4E0B3060000000000001 /* ActivityReportModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E093060000000000001 /* ActivityReportModels.swift */; };
-		A17E4E0C3060000000000001 /* RemainingTimeCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E0A3060000000000001 /* RemainingTimeCalculator.swift */; };
-		A17E4E0D3060000000000001 /* RemainingTimeCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E0A3060000000000001 /* RemainingTimeCalculator.swift */; };
 		A17E4E123060000000000001 /* LocalDayInterval.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E113060000000000001 /* LocalDayInterval.swift */; };
 		A17E4E133060000000000001 /* LocalDayInterval.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E113060000000000001 /* LocalDayInterval.swift */; };
 		A17E4E163060000000000001 /* WidgetUsageSnapshotLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E143060000000000001 /* WidgetUsageSnapshotLoader.swift */; };
@@ -68,13 +60,6 @@
 			remoteGlobalIDString = 15FC8776304DE555001D7A9A;
 			remoteInfo = ActivityMonitor;
 		};
-		15FC8796304DE57D001D7A9A /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 15B4C67C304C87A6004F4DF5 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 15FC878B304DE57C001D7A9A;
-			remoteInfo = ReportMonitor;
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -88,17 +73,6 @@
 				15FC8782304DE555001D7A9A /* ActivityMonitor.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		15FC879D304DE57D001D7A9A /* Embed ExtensionKit Extensions */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "$(EXTENSIONS_FOLDER_PATH)";
-			dstSubfolderSpec = 16;
-			files = (
-				15FC8798304DE57D001D7A9A /* ReportMonitor.appex in Embed ExtensionKit Extensions */,
-			);
-			name = "Embed ExtensionKit Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -116,11 +90,8 @@
 		15B4C69B304C87A8004F4DF5 /* MujoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MujoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		15FC8777304DE555001D7A9A /* ActivityMonitor.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ActivityMonitor.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		15FC8779304DE555001D7A9A /* DeviceActivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DeviceActivity.framework; path = System/Library/Frameworks/DeviceActivity.framework; sourceTree = SDKROOT; };
-		15FC878C304DE57C001D7A9A /* ReportMonitor.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = ReportMonitor.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		A17E4E013060000000000001 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		A17E4E063060000000000001 /* WidgetUsageEstimate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetUsageEstimate.swift; sourceTree = "<group>"; };
-		A17E4E093060000000000001 /* ActivityReportModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityReportModels.swift; sourceTree = "<group>"; };
-		A17E4E0A3060000000000001 /* RemainingTimeCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemainingTimeCalculator.swift; sourceTree = "<group>"; };
 		A17E4E113060000000000001 /* LocalDayInterval.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalDayInterval.swift; sourceTree = "<group>"; };
 		A17E4E143060000000000001 /* WidgetUsageSnapshotLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetUsageSnapshotLoader.swift; sourceTree = "<group>"; };
 		A17E4E153060000000000001 /* WidgetTimelinePlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetTimelinePlanner.swift; sourceTree = "<group>"; };
@@ -147,13 +118,6 @@
 				Info.plist,
 			);
 			target = 15FC8776304DE555001D7A9A /* ActivityMonitor */;
-		};
-		15FC8799304DE57D001D7A9A /* Exceptions for "ReportMonitor" folder in "ReportMonitor" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 15FC878B304DE57C001D7A9A /* ReportMonitor */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -190,14 +154,6 @@
 				15FC8783304DE555001D7A9A /* Exceptions for "ActivityMonitor" folder in "ActivityMonitor" target */,
 			);
 			path = ActivityMonitor;
-			sourceTree = "<group>";
-		};
-		15FC878D304DE57C001D7A9A /* ReportMonitor */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				15FC8799304DE57D001D7A9A /* Exceptions for "ReportMonitor" folder in "ReportMonitor" target */,
-			);
-			path = ReportMonitor;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -241,24 +197,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		15FC8789304DE57C001D7A9A /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		1521AF683052013E00866109 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
-				A17E4E093060000000000001 /* ActivityReportModels.swift */,
 				1521AF803052A00000866109 /* AppConfiguration.swift */,
 				1521AF693052015500866109 /* GlassText.swift */,
 				A17E4E113060000000000001 /* LocalDayInterval.swift */,
-				A17E4E0A3060000000000001 /* RemainingTimeCalculator.swift */,
 				A17E4E013060000000000001 /* Theme.swift */,
 				1521AF6D3052050600866109 /* TimeFormatting.swift */,
 				A17E4E153060000000000001 /* WidgetTimelinePlanner.swift */,
@@ -277,7 +224,6 @@
 				15B4C694304C87A8004F4DF5 /* MujoTests */,
 				15B4C69E304C87A8004F4DF5 /* MujoUITests */,
 				15FC877B304DE555001D7A9A /* ActivityMonitor */,
-				15FC878D304DE57C001D7A9A /* ReportMonitor */,
 				152EF0843051F9D400BB7370 /* CountdownWidget */,
 				15FC8778304DE555001D7A9A /* Frameworks */,
 				15B4C685304C87A6004F4DF5 /* Products */,
@@ -291,7 +237,6 @@
 				15B4C691304C87A8004F4DF5 /* MujoTests.xctest */,
 				15B4C69B304C87A8004F4DF5 /* MujoUITests.xctest */,
 				15FC8777304DE555001D7A9A /* ActivityMonitor.appex */,
-				15FC878C304DE57C001D7A9A /* ReportMonitor.appex */,
 				152EF0813051F9D400BB7370 /* CountdownWidgetExtension.appex */,
 			);
 			name = Products;
@@ -340,13 +285,11 @@
 				15B4C681304C87A6004F4DF5 /* Frameworks */,
 				15B4C682304C87A6004F4DF5 /* Resources */,
 				15FC8787304DE555001D7A9A /* Embed Foundation Extensions */,
-				15FC879D304DE57D001D7A9A /* Embed ExtensionKit Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				15FC8781304DE555001D7A9A /* PBXTargetDependency */,
-				15FC8797304DE57D001D7A9A /* PBXTargetDependency */,
 				152EF0933051F9D600BB7370 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
@@ -427,28 +370,6 @@
 			productReference = 15FC8777304DE555001D7A9A /* ActivityMonitor.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
-		15FC878B304DE57C001D7A9A /* ReportMonitor */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 15FC879A304DE57D001D7A9A /* Build configuration list for PBXNativeTarget "ReportMonitor" */;
-			buildPhases = (
-				15FC8788304DE57C001D7A9A /* Sources */,
-				15FC8789304DE57C001D7A9A /* Frameworks */,
-				15FC878A304DE57C001D7A9A /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				15FC878D304DE57C001D7A9A /* ReportMonitor */,
-			);
-			name = ReportMonitor;
-			packageProductDependencies = (
-			);
-			productName = ReportMonitor;
-			productReference = 15FC878C304DE57C001D7A9A /* ReportMonitor.appex */;
-			productType = "com.apple.product-type.extensionkit-extension";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -476,9 +397,6 @@
 					15FC8776304DE555001D7A9A = {
 						CreatedOnToolsVersion = 26.6;
 					};
-					15FC878B304DE57C001D7A9A = {
-						CreatedOnToolsVersion = 26.6;
-					};
 				};
 			};
 			buildConfigurationList = 15B4C67F304C87A6004F4DF5 /* Build configuration list for PBXProject "Mujo" */;
@@ -499,7 +417,6 @@
 				15B4C690304C87A8004F4DF5 /* MujoTests */,
 				15B4C69A304C87A8004F4DF5 /* MujoUITests */,
 				15FC8776304DE555001D7A9A /* ActivityMonitor */,
-				15FC878B304DE57C001D7A9A /* ReportMonitor */,
 				152EF0803051F9D400BB7370 /* CountdownWidgetExtension */,
 			);
 		};
@@ -541,13 +458,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		15FC878A304DE57C001D7A9A /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -574,7 +484,6 @@
 				A17E4E023060000000000001 /* Theme.swift in Sources */,
 				A17E4E1A3060000000000001 /* GlassText.swift in Sources */,
 				A17E4E053060000000000001 /* TimeFormatting.swift in Sources */,
-				A17E4E0C3060000000000001 /* RemainingTimeCalculator.swift in Sources */,
 				A17E4E123060000000000001 /* LocalDayInterval.swift in Sources */,
 				A17E4E073060000000000001 /* WidgetUsageEstimate.swift in Sources */,
 				A17E4E163060000000000001 /* WidgetUsageSnapshotLoader.swift in Sources */,
@@ -604,19 +513,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		15FC8788304DE57C001D7A9A /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				1521AF833052A00000866109 /* AppConfiguration.swift in Sources */,
-				A17E4E043060000000000001 /* Theme.swift in Sources */,
-				1521AF6C3052030800866109 /* GlassText.swift in Sources */,
-				1521AF6E3052050900866109 /* TimeFormatting.swift in Sources */,
-				A17E4E0B3060000000000001 /* ActivityReportModels.swift in Sources */,
-				A17E4E0D3060000000000001 /* RemainingTimeCalculator.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -639,11 +535,6 @@
 			isa = PBXTargetDependency;
 			target = 15FC8776304DE555001D7A9A /* ActivityMonitor */;
 			targetProxy = 15FC8780304DE555001D7A9A /* PBXContainerItemProxy */;
-		};
-		15FC8797304DE57D001D7A9A /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 15FC878B304DE57C001D7A9A /* ReportMonitor */;
-			targetProxy = 15FC8796304DE57D001D7A9A /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1039,64 +930,6 @@
 			};
 			name = Release;
 		};
-		15FC879B304DE57D001D7A9A /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = ReportMonitor/ReportMonitor.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 2B2928XT22;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ReportMonitor/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = ReportMonitor;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = AikariStudio.Mujo.ReportMonitor;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		15FC879C304DE57D001D7A9A /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = ReportMonitor/ReportMonitor.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 2B2928XT22;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ReportMonitor/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = ReportMonitor;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = AikariStudio.Mujo.ReportMonitor;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1150,15 +983,6 @@
 			buildConfigurations = (
 				15FC8785304DE555001D7A9A /* Debug */,
 				15FC8786304DE555001D7A9A /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		15FC879A304DE57D001D7A9A /* Build configuration list for PBXNativeTarget "ReportMonitor" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				15FC879B304DE57D001D7A9A /* Debug */,
-				15FC879C304DE57D001D7A9A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

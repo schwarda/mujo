@@ -50,10 +50,6 @@ enum AppConfiguration {
         }
     }
 
-    enum Reporting {
-        nonisolated static let todayContextName = "mujo.today"
-    }
-
     enum DefaultsKey {
         nonisolated static let dailyLimit = "dailyLimitSeconds"
         nonisolated static let previewDailyLimit =
@@ -67,10 +63,6 @@ enum AppConfiguration {
         nonisolated static let hasUsageCheckpoint = "hasUsageCheckpoint"
         nonisolated static let usageMonitoringStartedAt =
             "usageMonitoringStartedAt"
-        nonisolated static let activityReportRequestID =
-            "activityReportRequestID"
-        nonisolated static let readyActivityReportRequestID =
-            "readyActivityReportRequestID"
     }
 
     enum Monitoring {
