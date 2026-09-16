@@ -10,10 +10,10 @@ import WidgetKit
 
 struct CountdownProvider: TimelineProvider {
     func placeholder(in context: Context) -> CountdownEntry {
-        CountdownEntry(
+        return CountdownEntry(
             date: Date(),
-            remainingTime: 3 * 60 * 60 + 42 * 60,
-            isEstimateAvailable: true
+            remainingTime: 3 * 60 * 60 + 45 * 60,
+            isEstimateAvailable: false
         )
     }
 
