@@ -73,27 +73,32 @@ struct CountdownEntry: TimelineEntry {
 }
 
 struct CountdownWidgetEntryView: View {
+    @Environment(\.widgetFamily) private var widgetFamily
+
     let entry: CountdownProvider.Entry
 
+    @ViewBuilder
     var body: some View {
-        VStack(spacing: 6) {
-            Text(
-                entry.isEstimateAvailable
-                    ? "Approx. remaining"
-                    : "Screen Time estimate"
-            )
-                .font(.caption2.weight(.semibold))
-                .textCase(.uppercase)
-                .foregroundStyle(.secondary)
+        switch widgetFamily {
+        case .systemSmall:
+            HomeScreenWidgetView(entry: entry)
+                .unredacted()
 
-            if entry.isEstimateAvailable {
-                GlassText(value: entry.remainingTime.formatted(), size: 48)
-            } else {
-                Text("Waiting for data")
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
+        case .accessoryRectangular:
+            LockScreenRectangularView(entry: entry)
+                .unredacted()
+
+        case .accessoryCircular:
+            LockScreenCircularView(entry: entry)
+                .unredacted()
+
+        case .accessoryInline:
+            LockScreenInlineView(entry: entry)
+                .unredacted()
+
+        default:
+            HomeScreenWidgetView(entry: entry)
+                .unredacted()
         }
     }
 }
@@ -109,10 +114,16 @@ struct CountdownWidget: Widget {
         }
         .configurationDisplayName("Mujø Remaining Time")
         .description("Shows your approximate Screen Time remaining today.")
+        .supportedFamilies([
+            .systemSmall,
+            .accessoryRectangular,
+            .accessoryCircular,
+            .accessoryInline
+        ])
     }
 }
 
-#Preview(as: .systemSmall) {
+#Preview(as: .accessoryRectangular) {
     CountdownWidget()
 } timeline: {
     CountdownEntry(
