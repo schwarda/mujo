@@ -13,6 +13,7 @@ import WidgetKit
 extension DeviceActivityName {
     static let mujoUsage = Self(AppConfiguration.Monitoring.usageActivityName)
     static let mujoLimit = Self(AppConfiguration.Monitoring.limitActivityName)
+    static let mujoNotifications = Self(AppConfiguration.Monitoring.notificationActivityName)
 }
 
 private let logger = Logger(
@@ -43,6 +44,15 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         activity: DeviceActivityName
     ) {
         super.eventDidReachThreshold(event, activity: activity)
+        
+        if activity == .mujoNotifications {
+            handleNotificationEvent(event)
+            return
+        }
+        
+        guard activity == .mujoUsage || activity == .mujoLimit else {
+            return
+        }
 
         guard let defaults = UserDefaults(
             suiteName: AppConfiguration.appGroupIdentifier
@@ -79,6 +89,98 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
             "Reached \(event.rawValue, privacy: .public); stored 15-minute threshold \(newestSeconds, privacy: .public) seconds"
         )
         WidgetCenter.shared.reloadTimelines(ofKind: AppConfiguration.widgetKind)
+        
+        if activity == .mujoUsage && newestSeconds > previousSeconds {
+            handleUsageNotificationCheckpoint(
+                reachedSeconds: reachedSeconds,
+                defaults: defaults
+            )
+        }
+    }
+    
+    private func handleUsageNotificationCheckpoint(
+        reachedSeconds: TimeInterval,
+        defaults: UserDefaults
+    ) {
+        guard let storedLimit = defaults.object(
+            forKey: AppConfiguration.DefaultsKey.dailyLimit
+        ) as? TimeInterval,
+              storedLimit.isFinite,
+              storedLimit > 0
+        else { return }
+
+        let limitMinutes = Int(
+            AppConfiguration.DailyLimit.normalizedLimit(storedLimit) / 60
+        )
+        let reachedMinutes = Int(reachedSeconds / 60)
+
+        guard let milestone = NotificationMilestone
+            .forLimit(minutes: limitMinutes)
+            .first(where: { $0.usedMinutes == reachedMinutes })
+        else { return }
+
+        NotificationDelivery.send(
+            milestone,
+            limitMinutes: limitMinutes,
+            defaults: defaults
+        )
+    }
+    
+    private func handleNotificationEvent(_ event: DeviceActivityEvent.Name) {
+        guard let defaults = UserDefaults(
+            suiteName: AppConfiguration.appGroupIdentifier
+        ),
+              let storedLimit = defaults.object(
+                  forKey: AppConfiguration.DefaultsKey.dailyLimit
+              ) as? TimeInterval,
+              storedLimit.isFinite,
+              storedLimit > 0
+        else {
+            logger.error("Cannot validate notification event: daily limit unavailable")
+            return
+        }
+
+        let limitMinutes = Int(
+            AppConfiguration.DailyLimit.normalizedLimit(storedLimit) / 60
+        )
+
+        guard let milestone = NotificationMilestone
+            .forLimit(minutes: limitMinutes)
+            .first(where: {
+                $0.eventName(forLimitMinutes: limitMinutes) == event.rawValue
+            })
+        else {
+            logger.notice(
+                "Ignored notification event for an outdated limit: \(event.rawValue, privacy: .public)"
+            )
+            return
+        }
+        
+        let calendar = Calendar.current
+        let checkpointIsFromToday =
+            defaults.double(
+                forKey: AppConfiguration.DefaultsKey.lastCheckpointResetDay
+            ) == calendar.startOfDay(for: .now).timeIntervalSince1970
+            && defaults.string(
+                forKey: AppConfiguration.DefaultsKey.lastCheckpointTimeZoneIdentifier
+            ) == calendar.timeZone.identifier
+
+        let knownUsage = AppConfiguration.DailyLimit.normalizedUsage(
+            defaults.double(forKey: AppConfiguration.DefaultsKey.estimatedUsedTime)
+        )
+
+        guard !(checkpointIsFromToday
+                && defaults.bool(forKey: AppConfiguration.DefaultsKey.hasUsageCheckpoint)
+                && knownUsage >= TimeInterval(limitMinutes * 60)) else {
+            logger.notice("Skipped invitation: daily limit already reached")
+            return
+        }
+
+        NotificationDelivery.send(
+            milestone,
+            limitMinutes: limitMinutes,
+            defaults: defaults
+        )
     }
 
     private func resetEstimateForNewDayIfNeeded(_ defaults: UserDefaults) {

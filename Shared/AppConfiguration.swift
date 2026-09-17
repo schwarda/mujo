@@ -7,8 +7,7 @@ import Foundation
 
 /// Values shared by the app and its extension processes.
 enum AppConfiguration {
-    nonisolated static let appGroupIdentifier =
-        "group.AikariStudio.Mujo.shared"
+    nonisolated static let appGroupIdentifier = "group.AikariStudio.Mujo.shared"
     nonisolated static let defaultDailyLimit: TimeInterval = 2 * 60 * 60
     nonisolated static let widgetKind = "CountdownWidget"
 
@@ -52,17 +51,12 @@ enum AppConfiguration {
 
     enum DefaultsKey {
         nonisolated static let dailyLimit = "dailyLimitSeconds"
-        nonisolated static let previewDailyLimit =
-            "previewDailyLimitSeconds"
-        nonisolated static let estimatedUsedTime =
-            "estimatedUsedTimeSeconds"
-        nonisolated static let lastCheckpointResetDay =
-            "lastCheckpointResetDay"
-        nonisolated static let lastCheckpointTimeZoneIdentifier =
-            "lastCheckpointTimeZoneIdentifier"
+        nonisolated static let previewDailyLimit = "previewDailyLimitSeconds"
+        nonisolated static let estimatedUsedTime = "estimatedUsedTimeSeconds"
+        nonisolated static let lastCheckpointResetDay = "lastCheckpointResetDay"
+        nonisolated static let lastCheckpointTimeZoneIdentifier = "lastCheckpointTimeZoneIdentifier"
         nonisolated static let hasUsageCheckpoint = "hasUsageCheckpoint"
-        nonisolated static let usageMonitoringStartedAt =
-            "usageMonitoringStartedAt"
+        nonisolated static let usageMonitoringStartedAt = "usageMonitoringStartedAt"
     }
 
     enum Monitoring {
@@ -70,6 +64,7 @@ enum AppConfiguration {
         nonisolated static let limitActivityName = "mujo.limit"
         nonisolated static let usageEventPrefix = usageActivityName + "."
         nonisolated static let limitEventPrefix = limitActivityName + "."
+        nonisolated static let notificationActivityName = "mujo.notifications"
 
         nonisolated static func usageEventName(minutes: Int) -> String {
             usageEventPrefix + String(minutes)

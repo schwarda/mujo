@@ -9,6 +9,9 @@ import SwiftUI
 
 @main
 struct MujoApp: App {
+    @UIApplicationDelegateAdaptor(NotificationAppDelegate.self)
+    private var notificationAppDelegate
+
     var body: some Scene {
         WindowGroup {
             ContentView()

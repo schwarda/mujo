@@ -10,12 +10,19 @@ import SwiftUI
 struct HomeScreen: View {
     @Environment(\.scenePhase) private var scenePhase
     @ObservedObject var screenTime: ScreenTimeManager
+
     @Binding var windStrength: Double
     @Binding var petalSimulationTime: Double
     let petalsStartFilled: Bool
+
     @State private var selectedMinutes = Int(
         AppConfiguration.defaultDailyLimit / 60
     )
+
+    @AppStorage("wasNotificationPromptShown")
+    private var wasNotificationPromptShown = false
+    @State private var isShowingNotificationPrompt = false
+    @StateObject private var notificationAuthorization = NotificationAuthorization()
 
     var body: some View {
         ZStack {
@@ -55,9 +62,18 @@ struct HomeScreen: View {
                 ) { minutes in
                     Task {
                         await screenTime.setDailyLimit(minutes: minutes)
+                        
+                        guard screenTime.isAuthorized,
+                              screenTime.errorMessage == nil,
+                              !wasNotificationPromptShown
+                        else { return }
+
+                        wasNotificationPromptShown = true
+                        isShowingNotificationPrompt = true
                     }
                 }
                 .padding(.bottom, 80)
+                
             }
         }
         .task {
@@ -74,6 +90,16 @@ struct HomeScreen: View {
             )
         ) { _ in
             screenTime.refreshUsageSnapshot()
+        }
+        .alert("Stay on track?", isPresented: $isShowingNotificationPrompt) {
+            Button("Not now", role: .cancel) {}
+            Button("Enable reminders") {
+                Task {
+                    await notificationAuthorization.requestAuthorization()
+                }
+            }
+        } message: {
+            Text("Get reminders at 50%, 75%, and when 30 minutes remain.")
         }
     }
 

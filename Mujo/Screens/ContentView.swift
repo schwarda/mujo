@@ -40,6 +40,7 @@ struct ContentView: View {
             guard newPhase == .active else { return }
             Task {
                 await screenTime.restoreMonitoringIfPossible()
+                await NotificationAppDelegate.processPendingInvitationIfActive()
             }
         }
         .alert(

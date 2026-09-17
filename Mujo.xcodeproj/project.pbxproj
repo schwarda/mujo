@@ -13,6 +13,10 @@
 		1521AF813052A00000866109 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* AppConfiguration.swift */; };
 		1521AF823052A00000866109 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* AppConfiguration.swift */; };
 		1521AF843052A00000866109 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* AppConfiguration.swift */; };
+		1521BA04305B013D00866109 /* NotificationMilestone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521BA02305B013300866109 /* NotificationMilestone.swift */; };
+		1521BA05305B046700866109 /* NotificationMilestone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521BA02305B013300866109 /* NotificationMilestone.swift */; };
+		1521BA09305B397600866109 /* RemainingTimeActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521BA08305B395F00866109 /* RemainingTimeActivityAttributes.swift */; };
+		1521BA0A305B397600866109 /* RemainingTimeActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521BA08305B395F00866109 /* RemainingTimeActivityAttributes.swift */; };
 		152EF0823051F9D400BB7370 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 152EF0643051F97400BB7370 /* WidgetKit.framework */; };
 		152EF0833051F9D400BB7370 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 152EF0663051F97400BB7370 /* SwiftUI.framework */; };
 		15FC877A304DE555001D7A9A /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 15FC8779304DE555001D7A9A /* DeviceActivity.framework */; };
@@ -82,6 +86,8 @@
 		1521AF6D3052050600866109 /* TimeFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeFormatting.swift; sourceTree = "<group>"; };
 		1521AF723052908200866109 /* CountdownWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CountdownWidgetExtension.entitlements; sourceTree = "<group>"; };
 		1521AF803052A00000866109 /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
+		1521BA02305B013300866109 /* NotificationMilestone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationMilestone.swift; sourceTree = "<group>"; };
+		1521BA08305B395F00866109 /* RemainingTimeActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemainingTimeActivityAttributes.swift; sourceTree = "<group>"; };
 		152EF0643051F97400BB7370 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		152EF0663051F97400BB7370 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		152EF0813051F9D400BB7370 /* CountdownWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CountdownWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -203,6 +209,8 @@
 		1521AF683052013E00866109 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				1521BA08305B395F00866109 /* RemainingTimeActivityAttributes.swift */,
+				1521BA02305B013300866109 /* NotificationMilestone.swift */,
 				1521AF803052A00000866109 /* AppConfiguration.swift */,
 				1521AF693052015500866109 /* GlassText.swift */,
 				A17E4E113060000000000001 /* LocalDayInterval.swift */,
@@ -471,6 +479,7 @@
 				1521AF6B305202F100866109 /* GlassText.swift in Sources */,
 				A17E4E133060000000000001 /* LocalDayInterval.swift in Sources */,
 				A17E4E083060000000000001 /* WidgetUsageEstimate.swift in Sources */,
+				1521BA0A305B397600866109 /* RemainingTimeActivityAttributes.swift in Sources */,
 				A17E4E173060000000000001 /* WidgetUsageSnapshotLoader.swift in Sources */,
 				A17E4E193060000000000001 /* WidgetTimelinePlanner.swift in Sources */,
 			);
@@ -481,11 +490,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				1521AF813052A00000866109 /* AppConfiguration.swift in Sources */,
+				1521BA04305B013D00866109 /* NotificationMilestone.swift in Sources */,
 				A17E4E023060000000000001 /* Theme.swift in Sources */,
 				A17E4E1A3060000000000001 /* GlassText.swift in Sources */,
 				A17E4E053060000000000001 /* TimeFormatting.swift in Sources */,
 				A17E4E123060000000000001 /* LocalDayInterval.swift in Sources */,
 				A17E4E073060000000000001 /* WidgetUsageEstimate.swift in Sources */,
+				1521BA09305B397600866109 /* RemainingTimeActivityAttributes.swift in Sources */,
 				A17E4E163060000000000001 /* WidgetUsageSnapshotLoader.swift in Sources */,
 				A17E4E183060000000000001 /* WidgetTimelinePlanner.swift in Sources */,
 			);
@@ -509,6 +520,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1521BA05305B046700866109 /* NotificationMilestone.swift in Sources */,
 				1521AF823052A00000866109 /* AppConfiguration.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
