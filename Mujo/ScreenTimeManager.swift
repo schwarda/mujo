@@ -75,6 +75,9 @@ final class ScreenTimeManager: ObservableObject {
         do {
             try await monitoring.restore(limit: limitStore.currentLimit)
             refreshUsageSnapshot()
+            await RemainingTimeLiveActivityController.reconcile(
+                with: usageSnapshot
+            )
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -90,6 +93,9 @@ final class ScreenTimeManager: ObservableObject {
             guard isAuthorized else { return }
             try await monitoring.restore(limit: limitStore.currentLimit)
             refreshUsageSnapshot()
+            await RemainingTimeLiveActivityController.reconcile(
+                with: usageSnapshot
+            )
         } catch {
             authorizationStatus = AuthorizationCenter.shared.authorizationStatus
             errorMessage = error.localizedDescription
@@ -119,6 +125,11 @@ final class ScreenTimeManager: ObservableObject {
         guard refreshedSnapshot != usageSnapshot else { return }
 
         usageSnapshot = refreshedSnapshot
+        Task {
+            await RemainingTimeLiveActivityController.reconcile(
+                with: refreshedSnapshot
+            )
+        }
 #if DEBUG
         let estimate = UsageEstimator.estimate(
             from: refreshedSnapshot,
@@ -152,7 +163,8 @@ final class ScreenTimeManager: ObservableObject {
         let normalizedMinutes = AppConfiguration.DailyLimit
             .normalizedMinutes(minutes)
         let safeLimit = TimeInterval(normalizedMinutes * 60)
-        if limitStore.save(safeLimit) {
+        let didChangeLimit = limitStore.save(safeLimit)
+        if didChangeLimit {
             dailyLimitMinutes = normalizedMinutes
             refreshUsageSnapshot()
             WidgetCenter.shared.reloadTimelines(ofKind: AppConfiguration.widgetKind)
@@ -160,6 +172,10 @@ final class ScreenTimeManager: ObservableObject {
 
         do {
             try await monitoring.updateLimit(to: safeLimit)
+            await RemainingTimeLiveActivityController.reconcile(
+                with: usageSnapshot,
+                resumeAfterLimitChange: didChangeLimit
+            )
         } catch {
             errorMessage = error.localizedDescription
         }

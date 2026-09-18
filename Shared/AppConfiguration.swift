@@ -44,8 +44,13 @@ enum AppConfiguration {
             _ usage: TimeInterval
         ) -> TimeInterval {
             guard usage.isFinite, usage > 0 else { return 0 }
-            let stepSeconds = TimeInterval(stepMinutes * 60)
-            return floor(usage / stepSeconds) * stepSeconds
+            return floor(usage / 60) * 60
+        }
+
+        nonisolated static func liveActivityWindowMinutes(
+            forLimitMinutes minutes: Int
+        ) -> Int {
+            normalizedMinutes(minutes) >= 4 * 60 ? 30 : 15
         }
     }
 
@@ -61,17 +66,37 @@ enum AppConfiguration {
 
     enum Monitoring {
         nonisolated static let usageActivityName = "mujo.usage"
-        nonisolated static let limitActivityName = "mujo.limit"
+        nonisolated static let legacyLimitActivityName = "mujo.limit"
         nonisolated static let usageEventPrefix = usageActivityName + "."
-        nonisolated static let limitEventPrefix = limitActivityName + "."
-        nonisolated static let notificationActivityName = "mujo.notifications"
+        nonisolated static let legacyNotificationActivityName = "mujo.notifications"
 
         nonisolated static func usageEventName(minutes: Int) -> String {
             usageEventPrefix + String(minutes)
         }
 
-        nonisolated static func limitEventName(seconds: Int) -> String {
-            limitEventPrefix + String(seconds)
+        nonisolated static func usageThresholdMinutes(
+            forLimitMinutes minutes: Int
+        ) -> [Int] {
+            let limit = DailyLimit.normalizedMinutes(minutes)
+            let invitation = max(
+                1,
+                limit - DailyLimit.liveActivityWindowMinutes(
+                    forLimitMinutes: limit
+                )
+            )
+            var thresholds = Set(stride(
+                from: DailyLimit.stepMinutes,
+                through: DailyLimit.maximumMinutes,
+                by: DailyLimit.stepMinutes
+            ))
+            // Confirm the first usage checkpoint soon after monitoring starts.
+            thresholds.insert(1)
+
+            for usedMinutes in invitation...limit {
+                thresholds.insert(usedMinutes)
+            }
+
+            return thresholds.sorted()
         }
 
         nonisolated static func usageCheckpointSeconds(
@@ -85,19 +110,6 @@ enum AppConfiguration {
             }
 
             return TimeInterval(minutes) * 60
-        }
-
-        nonisolated static func limitSeconds(
-            from eventName: String
-        ) -> TimeInterval? {
-            guard let seconds = positiveIntegerSuffix(
-                in: eventName,
-                after: limitEventPrefix
-            ) else {
-                return nil
-            }
-
-            return TimeInterval(seconds)
         }
 
         private nonisolated static func positiveIntegerSuffix(

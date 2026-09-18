@@ -5,6 +5,55 @@
 
 import SwiftUI
 
+struct SakuraPetalFlowState {
+    struct Stream: Identifiable {
+        let id: Int
+        let startTime: TimeInterval?
+        var stopTime: TimeInterval?
+    }
+
+    static let initiallyEmitting = Self(
+        isEmitting: true,
+        streams: [Stream(id: 0, startTime: nil, stopTime: nil)],
+        nextStreamID: 1
+    )
+
+    private(set) var isEmitting: Bool?
+    private(set) var streams: [Stream] = []
+    private var nextStreamID = 0
+
+    mutating func reconcile(emitsPetals: Bool, at time: TimeInterval) {
+        guard let wasEmitting = isEmitting else {
+            isEmitting = emitsPetals
+            if emitsPetals {
+                streams = [Stream(id: nextStreamID, startTime: nil, stopTime: nil)]
+                nextStreamID += 1
+            }
+            return
+        }
+        guard wasEmitting != emitsPetals else { return }
+
+        isEmitting = emitsPetals
+        streams.removeAll { stream in
+            guard let stopTime = stream.stopTime else { return false }
+            return time - stopTime >= 20
+        }
+
+        if emitsPetals {
+            streams.append(Stream(
+                id: nextStreamID,
+                startTime: time,
+                stopTime: nil
+            ))
+            nextStreamID += 1
+        } else {
+            for index in streams.indices where streams[index].stopTime == nil {
+                streams[index].stopTime = time
+            }
+        }
+    }
+}
+
 struct SakuraPetalField: View {
     private struct Configuration {
         let petalCount = 22
@@ -58,7 +107,9 @@ struct SakuraPetalField: View {
 
     let windStrength: Double
     let startsFilled: Bool
+    let emitsPetals: Bool
     @Binding private var simulationTime: Double
+    @Binding private var flowState: SakuraPetalFlowState
 
     private let configuration = Configuration()
     private let petals: [Petal]
@@ -69,11 +120,15 @@ struct SakuraPetalField: View {
     init(
         windStrength: Double,
         startsFilled: Bool = true,
-        simulationTime: Binding<Double>
+        simulationTime: Binding<Double>,
+        emitsPetals: Bool = true,
+        flowState: Binding<SakuraPetalFlowState> = .constant(.initiallyEmitting)
     ) {
         self.windStrength = windStrength
         self.startsFilled = startsFilled
+        self.emitsPetals = emitsPetals
         _simulationTime = simulationTime
+        _flowState = flowState
         _clock = State(
             initialValue: SimulationClock(time: simulationTime.wrappedValue)
         )
@@ -113,12 +168,15 @@ struct SakuraPetalField: View {
 
             GeometryReader { proxy in
                 ZStack {
-                    ForEach(petals) { petal in
-                        petalView(
-                            petal,
-                            canvasSize: proxy.size,
-                            time: currentTime
-                        )
+                    ForEach(flowState.streams) { stream in
+                        ForEach(petals) { petal in
+                            petalView(
+                                petal,
+                                canvasSize: proxy.size,
+                                time: currentTime,
+                                stream: stream
+                            )
+                        }
                     }
                 }
             }
@@ -126,6 +184,12 @@ struct SakuraPetalField: View {
         .ignoresSafeArea()
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+        .onAppear {
+            flowState.reconcile(emitsPetals: emitsPetals, at: clock.time)
+        }
+        .onChange(of: emitsPetals) { _, isEmitting in
+            flowState.reconcile(emitsPetals: isEmitting, at: clock.time)
+        }
         .onDisappear {
             simulationTime = clock.time
         }
@@ -134,18 +198,32 @@ struct SakuraPetalField: View {
     private func petalView(
         _ petal: Petal,
         canvasSize: CGSize,
-        time: TimeInterval
+        time: TimeInterval,
+        stream: SakuraPetalFlowState.Stream
     ) -> some View {
-        let entryDelay = startsFilled
+        let startsWithPetals = startsFilled && stream.startTime == nil
+        let elapsedTime = time - (stream.startTime ?? 0)
+        let entryDelay = startsWithPetals
             ? 0
             : petal.phase * configuration.initialArrivalSpread
-        let rawProgress = startsFilled
-            ? time / petal.cycleDuration + petal.phase
-            : (time - entryDelay) / petal.cycleDuration
+        let rawProgress = startsWithPetals
+            ? elapsedTime / petal.cycleDuration + petal.phase
+            : (elapsedTime - entryDelay) / petal.cycleDuration
         let hasEntered = rawProgress >= 0
         let progress = hasEntered
             ? rawProgress - floor(rawProgress)
             : 0
+        let wasInFlightAtStop: Bool
+        if let stopTime = stream.stopTime {
+            let stopElapsedTime = stopTime - (stream.startTime ?? 0)
+            let stopProgress = startsWithPetals
+                ? stopElapsedTime / petal.cycleDuration + petal.phase
+                : (stopElapsedTime - entryDelay) / petal.cycleDuration
+            wasInFlightAtStop = stopProgress >= 0
+                && floor(rawProgress) == floor(stopProgress)
+        } else {
+            wasInFlightAtStop = true
+        }
         let petalSize = configuration.minimumPetalSize
             + (configuration.maximumPetalSize - configuration.minimumPetalSize)
             * petal.sizeFactor
@@ -154,7 +232,7 @@ struct SakuraPetalField: View {
         let x = canvasSize.width + petalSize
             - progress * horizontalDistance
 
-        let startingAreaHeight = startsFilled
+        let startingAreaHeight = startsWithPetals
             ? canvasSize.height * 0.62
             : canvasSize.height * 0.50
         let startY = -petalSize
@@ -180,7 +258,7 @@ struct SakuraPetalField: View {
                         + petal.swayPhase * 30
                 )
             )
-            .opacity(hasEntered ? edgeFade * 0.82 : 0)
+            .opacity(hasEntered && wasInFlightAtStop ? edgeFade * 0.82 : 0)
             .position(x: x, y: y)
     }
 
@@ -188,8 +266,4 @@ struct SakuraPetalField: View {
         let value = sin(Double(index * 97 + salt * 53)) * 43_758.5453
         return value - floor(value)
     }
-}
-
-#Preview {
-    ContentView()
 }

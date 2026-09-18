@@ -13,11 +13,10 @@ struct HomeScreen: View {
 
     @Binding var windStrength: Double
     @Binding var petalSimulationTime: Double
+    @Binding var petalFlow: SakuraPetalFlowState
     let petalsStartFilled: Bool
 
-    @State private var selectedMinutes = Int(
-        AppConfiguration.defaultDailyLimit / 60
-    )
+    @State private var previewMinutes: Int?
 
     @AppStorage("wasNotificationPromptShown")
     private var wasNotificationPromptShown = false
@@ -37,7 +36,9 @@ struct HomeScreen: View {
             SakuraPetalField(
                 windStrength: windStrength,
                 startsFilled: petalsStartFilled,
-                simulationTime: $petalSimulationTime
+                simulationTime: $petalSimulationTime,
+                emitsPetals: shouldEmitPetals,
+                flowState: $petalFlow
             )
 
             VStack {
@@ -56,12 +57,18 @@ struct HomeScreen: View {
                     .padding(.bottom, 16)
 
                 TimeDial(
-                    minutes: $selectedMinutes,
+                    minutes: Binding(
+                        get: { selectedMinutes },
+                        set: { previewMinutes = $0 }
+                    ),
                     windStrength: $windStrength,
                     onValueChange: screenTime.previewDailyLimit
                 ) { minutes in
                     Task {
                         await screenTime.setDailyLimit(minutes: minutes)
+                        if previewMinutes == minutes {
+                            previewMinutes = nil
+                        }
                         
                         guard screenTime.isAuthorized,
                               screenTime.errorMessage == nil,
@@ -77,7 +84,6 @@ struct HomeScreen: View {
             }
         }
         .task {
-            selectedMinutes = screenTime.dailyLimitMinutes
             await refreshUsageWhileVisible()
         }
         .onChange(of: scenePhase) { _, newPhase in
@@ -101,6 +107,17 @@ struct HomeScreen: View {
         } message: {
             Text("Get reminders at 50%, 75%, and when 30 minutes remain.")
         }
+    }
+
+    private var selectedMinutes: Int {
+        previewMinutes ?? screenTime.dailyLimitMinutes
+    }
+
+    private var shouldEmitPetals: Bool {
+        let estimate = screenTime.usageEstimate(
+            forLimitMinutes: selectedMinutes
+        )
+        return !estimate.isAvailable || estimate.remainingTime > 0
     }
 
     @ViewBuilder

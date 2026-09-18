@@ -15,6 +15,7 @@ struct ContentView: View {
     @State private var isRequestingAuthorization = false
     @State private var sharedWindStrength = 0.0
     @State private var petalSimulationTime = 0.0
+    @State private var petalFlow = SakuraPetalFlowState()
     @State private var petalsStartedDuringOnboarding = false
     @State private var hasResolvedInitialAuthorization = false
     @State private var isShowingLaunchOverlay = true
@@ -107,11 +108,14 @@ struct ContentView: View {
                 screenTime: screenTime,
                 windStrength: $sharedWindStrength,
                 petalSimulationTime: $petalSimulationTime,
+                petalFlow: $petalFlow,
                 petalsStartFilled: !petalsStartedDuringOnboarding
             )
         case .history:
             HistoryScreen(
+                screenTime: screenTime,
                 petalSimulationTime: $petalSimulationTime,
+                petalFlow: $petalFlow,
                 petalsStartFilled: !petalsStartedDuringOnboarding
             )
         }

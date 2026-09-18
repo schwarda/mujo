@@ -28,7 +28,9 @@ enum NotificationDelivery {
 
         let dayID = String(day)
         let kindID = milestone.kind.rawValue
-        let sentKey = "mujo.notification.sent.\(kindID)"
+        // A new limit has its own future milestones, even if the same kind
+        // was already delivered earlier today for the previous limit.
+        let sentKey = "mujo.notification.sent.\(limitMinutes).\(kindID)"
 
         guard defaults.string(forKey: sentKey) != dayID else { return }
 
@@ -61,7 +63,7 @@ enum NotificationDelivery {
         }
 
         let request = UNNotificationRequest(
-            identifier: "mujo.notification.\(dayID).\(kindID)",
+            identifier: "mujo.notification.\(dayID).\(limitMinutes).\(kindID)",
             content: content,
             trigger: nil
         )

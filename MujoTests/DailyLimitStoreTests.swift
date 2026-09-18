@@ -15,6 +15,9 @@ struct DailyLimitStoreTests {
         withStore { store, defaults in
             #expect(AppConfiguration.defaultDailyLimit == 2 * 60 * 60)
             #expect(store.currentLimit == AppConfiguration.defaultDailyLimit)
+            #expect(defaults.double(
+                forKey: AppConfiguration.DefaultsKey.dailyLimit
+            ) == AppConfiguration.defaultDailyLimit)
 
             defaults.set(
                 -60,
@@ -44,10 +47,10 @@ struct DailyLimitStoreTests {
         withStore { store, defaults in
             #expect(!store.save(0))
             #expect(!store.save(-60))
-            #expect(
-                defaults.object(forKey: AppConfiguration.DefaultsKey.dailyLimit)
-                    == nil
-            )
+            #expect(store.currentLimit == AppConfiguration.defaultDailyLimit)
+            #expect(defaults.double(
+                forKey: AppConfiguration.DefaultsKey.dailyLimit
+            ) == AppConfiguration.defaultDailyLimit)
         }
     }
 
@@ -87,8 +90,8 @@ struct DailyLimitStoreTests {
         }
     }
 
-    @Test("Preview values are clamped to at least one minute")
-    func clampsPreviewToOneMinute() async {
+    @Test("Preview values are clamped to the minimum selectable limit")
+    func clampsPreviewToMinimumLimit() async {
         await withSuspendedPreviewQueue { store, defaults in
             store.preview(minutes: 0)
 
@@ -96,7 +99,9 @@ struct DailyLimitStoreTests {
                 #expect(
                     defaults.double(
                         forKey: AppConfiguration.DefaultsKey.previewDailyLimit
-                    ) == 60
+                    ) == TimeInterval(
+                        AppConfiguration.DailyLimit.minimumMinutes * 60
+                    )
                 )
             }
         }

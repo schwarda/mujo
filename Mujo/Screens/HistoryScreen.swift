@@ -8,7 +8,10 @@
 import SwiftUI
 
 struct HistoryScreen: View {
+    @Environment(\.scenePhase) private var scenePhase
+    @ObservedObject var screenTime: ScreenTimeManager
     @Binding var petalSimulationTime: Double
+    @Binding var petalFlow: SakuraPetalFlowState
     let petalsStartFilled: Bool
 
     var body: some View {
@@ -16,7 +19,9 @@ struct HistoryScreen: View {
             SakuraPetalField(
                 windStrength: 0,
                 startsFilled: petalsStartFilled,
-                simulationTime: $petalSimulationTime
+                simulationTime: $petalSimulationTime,
+                emitsPetals: shouldEmitPetals,
+                flowState: $petalFlow
             )
 
             VStack(spacing: 12) {
@@ -28,12 +33,29 @@ struct HistoryScreen: View {
                     .font(.title2.weight(.semibold))
             }
         }
+        .task {
+            while !Task.isCancelled {
+                if scenePhase == .active {
+                    screenTime.refreshUsageSnapshot()
+                }
+                try? await Task.sleep(for: .seconds(1))
+            }
+        }
+    }
+
+    private var shouldEmitPetals: Bool {
+        let estimate = screenTime.usageEstimate(
+            forLimitMinutes: screenTime.dailyLimitMinutes
+        )
+        return !estimate.isAvailable || estimate.remainingTime > 0
     }
 }
 
 #Preview {
     HistoryScreen(
+        screenTime: ScreenTimeManager(),
         petalSimulationTime: .constant(0),
+        petalFlow: .constant(.initiallyEmitting),
         petalsStartFilled: true
     )
 }

@@ -12,26 +12,23 @@ import WidgetKit
 struct RemainingTimeLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: RemainingTimeActivityAttributes.self) { context in
-            HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Mujø · remaining")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    Text(timeText(context.state.remainingMinutes))
-                        .font(.system(size: 38, weight: .semibold, design: .rounded))
-                        .monospacedDigit()
+            ZStack() {
+                HStack(alignment: .center) {
+                    VStack(spacing: 4) {
+                        Text("Mujø · remaining")
+                            .font(MujoTheme.italicFont(
+                                size: 14,
+                                relativeTo: .body
+                            ))
+                            .foregroundStyle(.secondary)
+                        
+                        GlassText(value: timeText(context.state.remainingMinutes))
+                            .monospacedDigit()
+                    }
                 }
-
-                Spacer()
-
-                Text(context.state.updatedAt, style: .time)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                .padding()
+                .activityBackgroundTint(.pink.opacity(0.1))
             }
-            .padding()
-            .activityBackgroundTint(.pink.opacity(0.12))
-            .activitySystemActionForegroundColor(.pink)
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.center) {
@@ -61,4 +58,38 @@ struct RemainingTimeLiveActivity: Widget {
     private func timeText(_ minutes: Int) -> String {
         TimeInterval(max(0, minutes) * 60).formatted()
     }
+}
+
+#Preview(
+    "Lock Screen",
+    as: .content,
+    using: RemainingTimeActivityAttributes(limitMinutes: 120)
+) {
+    RemainingTimeLiveActivity()
+} contentStates: {
+    RemainingTimeActivityAttributes.ContentState(
+        remainingMinutes: 15,
+        updatedAt: .now
+    )
+    RemainingTimeActivityAttributes.ContentState(
+        remainingMinutes: 7,
+        updatedAt: .now
+    )
+    RemainingTimeActivityAttributes.ContentState(
+        remainingMinutes: 0,
+        updatedAt: .now
+    )
+}
+
+#Preview(
+    "Dynamic Island Compact",
+    as: .dynamicIsland(.compact),
+    using: RemainingTimeActivityAttributes(limitMinutes: 120)
+) {
+    RemainingTimeLiveActivity()
+} contentStates: {
+    RemainingTimeActivityAttributes.ContentState(
+        remainingMinutes: 15,
+        updatedAt: .now
+    )
 }

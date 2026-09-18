@@ -33,5 +33,5 @@ struct SakuraBackground: View {
 }
 
 #Preview {
-    ContentView()
+    SakuraBackground()
 }

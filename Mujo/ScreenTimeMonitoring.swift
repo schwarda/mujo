@@ -10,21 +10,16 @@ private extension DeviceActivityName {
     nonisolated static let mujoUsage = Self(
         AppConfiguration.Monitoring.usageActivityName
     )
-    nonisolated static let mujoLimit = Self(
-        AppConfiguration.Monitoring.limitActivityName
+    nonisolated static let legacyMujoLimit = Self(
+        AppConfiguration.Monitoring.legacyLimitActivityName
     )
     nonisolated static let legacyMujoDaily = Self("mujo.daily")
-    nonisolated static let mujoNotifications = Self(
-        AppConfiguration.Monitoring.notificationActivityName
+    nonisolated static let legacyMujoNotifications = Self(
+        AppConfiguration.Monitoring.legacyNotificationActivityName
     )
 }
 
 actor ScreenTimeMonitoring {
-    private static let checkpointIntervalMinutes =
-    AppConfiguration.DailyLimit.stepMinutes
-    private static let maximumTrackedUsageMinutes =
-    AppConfiguration.DailyLimit.maximumMinutes
-    
     private let sharedDefaults: UserDefaults
     
     private lazy var dailySchedule = DeviceActivitySchedule(
@@ -33,53 +28,27 @@ actor ScreenTimeMonitoring {
         repeats: true
     )
     
-    private lazy var usageEvents: [
-        DeviceActivityEvent.Name: DeviceActivityEvent
-    ] = {
-        var events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
-        
-        for usedMinutes in stride(
-            from: Self.checkpointIntervalMinutes,
-            through: Self.maximumTrackedUsageMinutes,
-            by: Self.checkpointIntervalMinutes
-        ) {
-            let name = DeviceActivityEvent.Name(
-                AppConfiguration.Monitoring.usageEventName(minutes: usedMinutes)
-            )
-            events[name] = DeviceActivityEvent(
-                threshold: durationComponents(
-                    for: TimeInterval(usedMinutes * 60)
-                ),
-                includesPastActivity: true
-            )
-        }
-        
-        return events
-    }()
-    
     init(suiteName: String) {
         sharedDefaults = UserDefaults(suiteName: suiteName) ?? .standard
     }
     
     func restore(limit: TimeInterval) throws {
         let center = DeviceActivityCenter()
+        try ensureUsageMonitoring(limit: limit, using: center)
         removeLegacyMonitoring(from: center)
-        try ensureUsageMonitoring(using: center)
-        try ensureLimitMonitoring(limit: limit, using: center)
-        try ensureNotificationMonitoring(limit: limit, using: center)
     }
     
     func updateLimit(to limit: TimeInterval) throws {
         let center = DeviceActivityCenter()
-        try ensureUsageMonitoring(using: center)
-        try ensureLimitMonitoring(limit: limit, using: center)
-        try ensureNotificationMonitoring(limit: limit, using: center)
+        try ensureUsageMonitoring(limit: limit, using: center)
+        removeLegacyMonitoring(from: center)
     }
     
     private func ensureUsageMonitoring(
+        limit: TimeInterval,
         using center: DeviceActivityCenter
     ) throws {
-        let events = usageEvents
+        let events = usageEvents(for: limit)
         let isCurrentConfiguration = center.schedule(for: .mujoUsage)
         == dailySchedule
         && center.events(for: .mujoUsage) == events
@@ -89,87 +58,26 @@ actor ScreenTimeMonitoring {
             return
         }
         
-        if center.activities.contains(.mujoUsage) {
-            center.stopMonitoring([.mujoUsage])
-        }
-        
+        // startMonitoring replaces this activity's configuration. Keep the old
+        // one running if registration fails, and never reset today's estimate.
         try center.startMonitoring(
             .mujoUsage,
             during: dailySchedule,
             events: events
         )
-        sharedDefaults.set(
-            Date.now.timeIntervalSince1970,
-            forKey: AppConfiguration.DefaultsKey.usageMonitoringStartedAt
-        )
+        recordUsageMonitoringStartIfNeeded()
     }
-    
-    private func ensureNotificationMonitoring(
-        limit: TimeInterval,
-        using center: DeviceActivityCenter
-    ) throws {
-        let events = notificationEvents(for: limit)
 
-        if events.isEmpty {
-            if center.activities.contains(.mujoNotifications) {
-                center.stopMonitoring([.mujoNotifications])
-            }
-            return
-        }
-
-        let isCurrentConfiguration = center.schedule(for: .mujoNotifications)
-            == dailySchedule
-            && center.events(for: .mujoNotifications) == events
-
-        guard !isCurrentConfiguration else { return }
-
-        if center.activities.contains(.mujoNotifications) {
-            center.stopMonitoring([.mujoNotifications])
-        }
-
-        try center.startMonitoring(
-            .mujoNotifications,
-            during: dailySchedule,
-            events: events
-        )
-    }
-    
-    private func ensureLimitMonitoring(
-        limit: TimeInterval,
-        using center: DeviceActivityCenter
-    ) throws {
-        let normalizedLimit = AppConfiguration.DailyLimit.normalizedLimit(limit)
-        let eventName = DeviceActivityEvent.Name(
-            AppConfiguration.Monitoring.limitEventName(
-                seconds: Int(normalizedLimit)
-            )
-        )
-        let events = [
-            eventName: DeviceActivityEvent(
-                threshold: durationComponents(for: normalizedLimit),
-                includesPastActivity: true
-            )
-        ]
-        let isCurrentConfiguration = center.schedule(for: .mujoLimit)
-        == dailySchedule
-        && center.events(for: .mujoLimit) == events
-        
-        guard !isCurrentConfiguration else { return }
-        
-        if center.activities.contains(.mujoLimit) {
-            center.stopMonitoring([.mujoLimit])
-        }
-        
-        try center.startMonitoring(
-            .mujoLimit,
-            during: dailySchedule,
-            events: events
-        )
-    }
-    
     private func removeLegacyMonitoring(from center: DeviceActivityCenter) {
-        guard center.activities.contains(.legacyMujoDaily) else { return }
-        center.stopMonitoring([.legacyMujoDaily])
+        let legacy: [DeviceActivityName] = [
+            .legacyMujoDaily,
+            .legacyMujoLimit,
+            .legacyMujoNotifications
+        ]
+        let running = legacy.filter { center.activities.contains($0) }
+        if !running.isEmpty {
+            center.stopMonitoring(running)
+        }
     }
     
     private func recordUsageMonitoringStartIfNeeded() {
@@ -195,32 +103,25 @@ actor ScreenTimeMonitoring {
         )
     }
     
-    private func notificationEvents(
+    private func usageEvents(
         for limit: TimeInterval
     ) -> [DeviceActivityEvent.Name: DeviceActivityEvent] {
         let minutes = Int(
             AppConfiguration.DailyLimit.normalizedLimit(limit) / 60
         )
-        
-        guard minutes == 15,
-              let invitation = NotificationMilestone
-            .forLimit(minutes: minutes)
-            .first(where: { $0.kind == .liveActivityInvitation })
-        else {
-            return [:]
-        }
-        
-        let name = DeviceActivityEvent.Name(
-            invitation.eventName(forLimitMinutes: minutes)
-        )
-        
-        return [
-            name: DeviceActivityEvent(
+        var events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
+        for usedMinutes in AppConfiguration.Monitoring
+            .usageThresholdMinutes(forLimitMinutes: minutes) {
+            let name = DeviceActivityEvent.Name(
+                AppConfiguration.Monitoring.usageEventName(minutes: usedMinutes)
+            )
+            events[name] = DeviceActivityEvent(
                 threshold: durationComponents(
-                    for: TimeInterval(invitation.usedMinutes * 60)
+                    for: TimeInterval(usedMinutes * 60)
                 ),
                 includesPastActivity: true
             )
-        ]
+        }
+        return events
     }
 }

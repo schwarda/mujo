@@ -17,8 +17,13 @@
 		1521BA05305B046700866109 /* NotificationMilestone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521BA02305B013300866109 /* NotificationMilestone.swift */; };
 		1521BA09305B397600866109 /* RemainingTimeActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521BA08305B395F00866109 /* RemainingTimeActivityAttributes.swift */; };
 		1521BA0A305B397600866109 /* RemainingTimeActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521BA08305B395F00866109 /* RemainingTimeActivityAttributes.swift */; };
+		1521BA0B305B397600866109 /* RemainingTimeActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521BA08305B395F00866109 /* RemainingTimeActivityAttributes.swift */; };
 		152EF0823051F9D400BB7370 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 152EF0643051F97400BB7370 /* WidgetKit.framework */; };
 		152EF0833051F9D400BB7370 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 152EF0663051F97400BB7370 /* SwiftUI.framework */; };
+		15730238305C939000B6E3FC /* SakuraBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15730228305C939000B6E3FC /* SakuraBackground.swift */; };
+		15730239305C939000B6E3FC /* SakuraPetalField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15730229305C939000B6E3FC /* SakuraPetalField.swift */; };
+		1573026A305D2D6500B6E3FC /* SakuraBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15730228305C939000B6E3FC /* SakuraBackground.swift */; };
+		1573026C305D328A00B6E3FC /* SakuraPetalField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15730229305C939000B6E3FC /* SakuraPetalField.swift */; };
 		15FC877A304DE555001D7A9A /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 15FC8779304DE555001D7A9A /* DeviceActivity.framework */; };
 		15FC8782304DE555001D7A9A /* ActivityMonitor.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 15FC8777304DE555001D7A9A /* ActivityMonitor.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A17E4E023060000000000001 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E013060000000000001 /* Theme.swift */; };
@@ -91,6 +96,8 @@
 		152EF0643051F97400BB7370 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		152EF0663051F97400BB7370 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		152EF0813051F9D400BB7370 /* CountdownWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CountdownWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		15730228305C939000B6E3FC /* SakuraBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SakuraBackground.swift; sourceTree = "<group>"; };
+		15730229305C939000B6E3FC /* SakuraPetalField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SakuraPetalField.swift; sourceTree = "<group>"; };
 		15B4C684304C87A6004F4DF5 /* Mujo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Mujo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		15B4C691304C87A8004F4DF5 /* MujoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MujoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		15B4C69B304C87A8004F4DF5 /* MujoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MujoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -213,6 +220,8 @@
 				1521BA02305B013300866109 /* NotificationMilestone.swift */,
 				1521AF803052A00000866109 /* AppConfiguration.swift */,
 				1521AF693052015500866109 /* GlassText.swift */,
+				15730229305C939000B6E3FC /* SakuraPetalField.swift */,
+				15730228305C939000B6E3FC /* SakuraBackground.swift */,
 				A17E4E113060000000000001 /* LocalDayInterval.swift */,
 				A17E4E013060000000000001 /* Theme.swift */,
 				1521AF6D3052050600866109 /* TimeFormatting.swift */,
@@ -477,8 +486,10 @@
 				A17E4E033060000000000001 /* Theme.swift in Sources */,
 				1521AF6F3052050900866109 /* TimeFormatting.swift in Sources */,
 				1521AF6B305202F100866109 /* GlassText.swift in Sources */,
+				1573026A305D2D6500B6E3FC /* SakuraBackground.swift in Sources */,
 				A17E4E133060000000000001 /* LocalDayInterval.swift in Sources */,
 				A17E4E083060000000000001 /* WidgetUsageEstimate.swift in Sources */,
+				1573026C305D328A00B6E3FC /* SakuraPetalField.swift in Sources */,
 				1521BA0A305B397600866109 /* RemainingTimeActivityAttributes.swift in Sources */,
 				A17E4E173060000000000001 /* WidgetUsageSnapshotLoader.swift in Sources */,
 				A17E4E193060000000000001 /* WidgetTimelinePlanner.swift in Sources */,
@@ -499,6 +510,8 @@
 				1521BA09305B397600866109 /* RemainingTimeActivityAttributes.swift in Sources */,
 				A17E4E163060000000000001 /* WidgetUsageSnapshotLoader.swift in Sources */,
 				A17E4E183060000000000001 /* WidgetTimelinePlanner.swift in Sources */,
+				15730238305C939000B6E3FC /* SakuraBackground.swift in Sources */,
+				15730239305C939000B6E3FC /* SakuraPetalField.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -522,6 +535,7 @@
 			files = (
 				1521BA05305B046700866109 /* NotificationMilestone.swift in Sources */,
 				1521AF823052A00000866109 /* AppConfiguration.swift in Sources */,
+				1521BA0B305B397600866109 /* RemainingTimeActivityAttributes.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

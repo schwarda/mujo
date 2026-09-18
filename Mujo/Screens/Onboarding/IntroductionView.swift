@@ -30,9 +30,10 @@ struct IntroductionView: View {
 
     private let cherryBlossomIndex = 8
     private let minimumTextDuration = 2.1
-    private let maximumTextDuration = 5.8
-    private let secondsPerWord = 0.38
-    private let pausePerExtraLine = 0.45
+    private let maximumTextDuration = 5.0
+    private let secondsPerWord = 0.24
+    private let pausePerExtraLine = 0.18
+    private let continueRevealDuration = 0.4
 
     let isRequestingPermission: Bool
     @Binding var petalSimulationTime: Double
@@ -40,6 +41,7 @@ struct IntroductionView: View {
     let onContinue: () -> Void
 
     @State private var currentIndex = 0
+    @State private var progressStartedAt: Date?
     @State private var showsContinueButton = false
 
     init(
@@ -62,6 +64,30 @@ struct IntroductionView: View {
                     startsFilled: false,
                     simulationTime: $petalSimulationTime
                 )
+            }
+
+            VStack {
+                TimelineView(.animation(minimumInterval: 1 / 60)) { timeline in
+                    GeometryReader { geometry in
+                        let progress = introductionProgress(at: timeline.date)
+
+                        Capsule()
+                            .fill(Color.accentColor.opacity(0.18))
+                            .overlay(alignment: .leading) {
+                                Capsule()
+                                    .fill(Color.accentColor)
+                                    .frame(width: geometry.size.width * progress)
+                            }
+                    }
+                    .frame(height: 4)
+                    .accessibilityLabel("Introduction progress")
+                    .accessibilityValue(
+                        "\(Int(introductionProgress(at: timeline.date) * 100)) percent"
+                    )
+                    .padding(.horizontal, 28)
+                    .padding(.top, 16)
+                }
+                Spacer()
             }
 
             VStack(spacing: 28) {
@@ -106,32 +132,44 @@ struct IntroductionView: View {
     }
 
     private func playIntroduction() async {
-        guard currentIndex == 0, !showsContinueButton else { return }
+        guard !showsContinueButton else { return }
+        if progressStartedAt == nil {
+            progressStartedAt = .now
+        }
 
-        for nextIndex in texts.indices.dropFirst() {
-            try? await Task.sleep(for: duration(for: texts[currentIndex]))
+        for index in currentIndex..<texts.count {
+            let displayDuration = duration(for: texts[index])
+            try? await Task.sleep(for: .seconds(displayDuration))
             guard !Task.isCancelled else { return }
 
-            withAnimation(.easeInOut(duration: 0.8)) {
-                currentIndex = nextIndex
-            }
+            if index + 1 < texts.count {
+                withAnimation(.easeInOut(duration: 0.45)) {
+                    currentIndex = index + 1
+                }
 
-            if nextIndex == cherryBlossomIndex {
-                onCherryBlossomsStarted()
+                if index + 1 == cherryBlossomIndex {
+                    onCherryBlossomsStarted()
+                }
             }
         }
 
-        // The final sentence remains alone for its full reading time before
-        // the action appears beneath it.
-        try? await Task.sleep(for: duration(for: texts[currentIndex]))
-        guard !Task.isCancelled else { return }
-
-        withAnimation(.easeOut(duration: 0.4)) {
+        withAnimation(.easeOut(duration: continueRevealDuration)) {
             showsContinueButton = true
         }
     }
 
-    private func duration(for text: String) -> Duration {
+    private func introductionProgress(at date: Date) -> CGFloat {
+        guard let progressStartedAt else { return 0 }
+        let totalDuration = texts.reduce(0.0) {
+            $0 + duration(for: $1)
+        } + continueRevealDuration
+        guard totalDuration > 0 else { return 1 }
+        return CGFloat(min(1, max(0,
+            date.timeIntervalSince(progressStartedAt) / totalDuration
+        )))
+    }
+
+    private func duration(for text: String) -> TimeInterval {
         let wordCount = text.split { $0.isWhitespace }.count
         let extraLineCount = max(0, text.components(separatedBy: "\n").count - 1)
         let readingTime = 1.0
@@ -142,7 +180,7 @@ struct IntroductionView: View {
             max(minimumTextDuration, readingTime)
         )
 
-        return .seconds(clampedTime)
+        return clampedTime
     }
 }
 

@@ -7,6 +7,9 @@ import SwiftUI
 
 enum MujoTheme {
     static let secondaryTextOpacity = 0.72
+    static let fontMedium = "AvenirNext-Medium"
+    static let fontBold = "AvenirNext-Bold"
+    static let fontItalic = "AvenirNext-Italic"
     static let glassAccent = Color(
         red: 0.96,
         green: 0.62,
@@ -18,9 +21,9 @@ enum MujoTheme {
         relativeTo textStyle: Font.TextStyle
     ) -> Font {
         .custom(
-            "AvenirNext-Medium",
+            fontMedium,
             size: size,
-            relativeTo: textStyle
+            relativeTo: textStyle,
         )
     }
 
@@ -29,7 +32,7 @@ enum MujoTheme {
         relativeTo textStyle: Font.TextStyle
     ) -> Font {
         .custom(
-            "AvenirNext-Italic",
+            fontItalic,
             size: size,
             relativeTo: textStyle
         )

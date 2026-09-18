@@ -43,6 +43,66 @@ struct WidgetUsageEstimateTests {
         #expect(estimate.remainingTime == 3 * 60 * 60 + 45 * 60)
     }
 
+    @Test("A minute checkpoint is shown precisely in the final window")
+    func preservesMinuteCheckpointInFinalWindow() {
+        let estimate = estimate(snapshot: snapshot(
+            storedDailyLimit: 2 * 60 * 60,
+            estimatedUsedTime: 106 * 60,
+            estimateDay: dayStart.timeIntervalSince1970,
+            hasCheckpoint: true
+        ))
+
+        #expect(estimate.isAvailable)
+        #expect(estimate.remainingTime == 14 * 60)
+    }
+
+    @Test("Changing the limit uses 15-minute display steps outside its final window")
+    func roundsOutsideFinalWindowAfterLimitChange() {
+        let usageSnapshot = snapshot(
+            storedDailyLimit: 2 * 60 * 60,
+            estimatedUsedTime: 113 * 60,
+            estimateDay: dayStart.timeIntervalSince1970,
+            hasCheckpoint: true
+        )
+
+        #expect(estimate(snapshot: usageSnapshot).remainingTime == 7 * 60)
+        #expect(UsageEstimator.estimate(
+            from: usageSnapshot,
+            dailyLimit: 135 * 60,
+            at: dayStart.addingTimeInterval(12 * 60 * 60),
+            calendar: calendar
+        ).remainingTime == 30 * 60)
+        #expect(estimate(snapshot: usageSnapshot).remainingTime == 7 * 60)
+        #expect(usageSnapshot.estimatedUsedTime == 113 * 60)
+
+        let earlierMinuteCheckpoint = snapshot(
+            storedDailyLimit: 2 * 60 * 60,
+            estimatedUsedTime: 61 * 60,
+            estimateDay: dayStart.timeIntervalSince1970,
+            hasCheckpoint: true
+        )
+        #expect(estimate(snapshot: earlierMinuteCheckpoint).remainingTime == 60 * 60)
+    }
+
+    @Test("Four-hour limits use a 30-minute final window")
+    func fourHourFinalWindow() {
+        let outside = estimate(snapshot: snapshot(
+            storedDailyLimit: 4 * 60 * 60,
+            estimatedUsedTime: 209 * 60,
+            estimateDay: dayStart.timeIntervalSince1970,
+            hasCheckpoint: true
+        ))
+        let inside = estimate(snapshot: snapshot(
+            storedDailyLimit: 4 * 60 * 60,
+            estimatedUsedTime: 211 * 60,
+            estimateDay: dayStart.timeIntervalSince1970,
+            hasCheckpoint: true
+        ))
+
+        #expect(outside.remainingTime == 45 * 60)
+        #expect(inside.remainingTime == 29 * 60)
+    }
+
     @Test("An old estimate is reset when monitoring predates today")
     func resetsEstimateAtMidnight() {
         let estimate = estimate(snapshot: snapshot(

@@ -33,7 +33,12 @@ final class DailyLimitStore {
         let normalizedLimit = AppConfiguration.DailyLimit.normalizedLimit(
             storedLimit
         )
-        if storedObject != nil, storedLimit != normalizedLimit {
+        if storedObject == nil {
+            // The monitor extension needs the selected limit even before the
+            // person changes the default value on the dial.
+            sharedDefaults.set(normalizedLimit, forKey: key)
+            migratedLimit = nil
+        } else if storedLimit != normalizedLimit {
             sharedDefaults.set(normalizedLimit, forKey: key)
             migratedLimit = normalizedLimit
         } else {

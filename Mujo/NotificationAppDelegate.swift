@@ -67,17 +67,15 @@ final class NotificationAppDelegate: NSObject,
         let snapshot = UsageSnapshotLoader(defaults: defaults).load()
         let estimate = UsageEstimator.estimate(from: snapshot, at: .now)
 
-        let remainingMinutes = estimate.isAvailable
-            ? min(invitation.remainingMinutes, Int(estimate.remainingTime / 60))
-            : invitation.remainingMinutes
-
+        guard estimate.isAvailable else { return }
+        let remainingMinutes = Int(estimate.remainingTime / 60)
         guard remainingMinutes > 0 else { return }
 
         do {
             _ = try await RemainingTimeLiveActivityController.start(
                 remainingMinutes: remainingMinutes,
                 limitMinutes: limitMinutes,
-                updatedAt: invitation.receivedAt
+                updatedAt: .now
             )
         } catch {
             Logger(
