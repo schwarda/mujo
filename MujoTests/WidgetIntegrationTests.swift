@@ -49,6 +49,7 @@ struct WidgetIntegrationTests {
 
             #expect(plan.estimate.isAvailable)
             #expect(plan.estimate.remainingTime == 2 * 60 * 60 + 15 * 60)
+            #expect(plan.dailyLimit == 3 * 60 * 60)
             #expect(plan.reloadAfter == dayStart.addingTimeInterval(86_400))
         }
     }
@@ -66,6 +67,7 @@ struct WidgetIntegrationTests {
 
             #expect(plan.estimate.isAvailable)
             #expect(plan.estimate.remainingTime == 90 * 60)
+            #expect(plan.dailyLimit == 90 * 60)
         }
     }
 
@@ -75,6 +77,7 @@ struct WidgetIntegrationTests {
             let plan = makePlan(defaults: defaults)
 
             #expect(!plan.estimate.isAvailable)
+            #expect(plan.dailyLimit == AppConfiguration.defaultDailyLimit)
             #expect(
                 plan.estimate.remainingTime
                     == AppConfiguration.defaultDailyLimit

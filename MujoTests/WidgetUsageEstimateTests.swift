@@ -103,6 +103,16 @@ struct WidgetUsageEstimateTests {
         #expect(inside.remainingTime == 29 * 60)
     }
 
+    @Test("Display resolution changes at the shared final-window boundary")
+    func displayResolutionAtFinalWindow() {
+        let resolution = AppConfiguration.DailyLimit.displayResolutionMinutes
+
+        #expect(resolution(30 * 60, 120 * 60) == 15)
+        #expect(resolution(15 * 60, 120 * 60) == 1)
+        #expect(resolution(45 * 60, 240 * 60) == 15)
+        #expect(resolution(30 * 60, 240 * 60) == 1)
+    }
+
     @Test("An old estimate is reset when monitoring predates today")
     func resetsEstimateAtMidnight() {
         let estimate = estimate(snapshot: snapshot(

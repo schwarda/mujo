@@ -61,19 +61,19 @@ enum UsageEstimator {
                 snapshot.estimatedUsedTime
             )
             : 0
-        let finalWindow = TimeInterval(
-            AppConfiguration.DailyLimit.liveActivityWindowMinutes(
-                forLimitMinutes: Int(dailyLimit / 60)
-            ) * 60
-        )
         let confirmedRemaining = max(0, dailyLimit - confirmedUsedTime)
+        let displayResolutionMinutes = AppConfiguration.DailyLimit
+            .displayResolutionMinutes(
+                remainingTime: confirmedRemaining,
+                dailyLimit: dailyLimit
+            )
         let coarseInterval = TimeInterval(
             AppConfiguration.DailyLimit.stepMinutes * 60
         )
 
         // A minute checkpoint from an earlier limit remains stored, but it
         // affects the display only inside the current limit's final window.
-        let displayedUsedTime = confirmedRemaining <= finalWindow
+        let displayedUsedTime = displayResolutionMinutes == 1
             ? confirmedUsedTime
             : floor(confirmedUsedTime / coarseInterval) * coarseInterval
 

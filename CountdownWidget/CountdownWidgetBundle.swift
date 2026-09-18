@@ -12,6 +12,7 @@ import WidgetKit
 struct CountdownWidgetBundle: WidgetBundle {
     var body: some Widget {
         CountdownWidget()
+        GradientWidget()
         RemainingTimeLiveActivity()
     }
 }

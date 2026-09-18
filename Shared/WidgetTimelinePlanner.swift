@@ -8,6 +8,7 @@ import Foundation
 struct WidgetTimelinePlan {
     let date: Date
     let estimate: UsageEstimate
+    let dailyLimit: TimeInterval
     let reloadAfter: Date
 }
 
@@ -23,6 +24,9 @@ enum WidgetTimelinePlanner {
                 from: snapshot,
                 at: date,
                 calendar: calendar
+            ),
+            dailyLimit: AppConfiguration.DailyLimit.normalizedLimit(
+                snapshot.storedDailyLimit
             ),
             reloadAfter: LocalDayInterval.containing(
                 date,

@@ -40,9 +40,7 @@ final class ScreenTimeManager: ObservableObject {
         dailyLimitMinutes = Int(limitStore.currentLimit / 60)
         usageSnapshot = usageSnapshotLoader.load()
         if limitStore.migratedLimit != nil {
-            WidgetCenter.shared.reloadTimelines(
-                ofKind: AppConfiguration.widgetKind
-            )
+            WidgetCenter.shared.reloadAllTimelines()
         }
         authorizationStatusSubscription = AuthorizationCenter.shared
             .$authorizationStatus
@@ -167,7 +165,7 @@ final class ScreenTimeManager: ObservableObject {
         if didChangeLimit {
             dailyLimitMinutes = normalizedMinutes
             refreshUsageSnapshot()
-            WidgetCenter.shared.reloadTimelines(ofKind: AppConfiguration.widgetKind)
+            WidgetCenter.shared.reloadAllTimelines()
         }
 
         do {

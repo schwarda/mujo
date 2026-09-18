@@ -51,15 +51,18 @@ struct CountdownProvider: TimelineProvider {
 struct CountdownEntry: TimelineEntry {
     let date: Date
     let remainingTime: TimeInterval
+    let dailyLimit: TimeInterval
     let isEstimateAvailable: Bool
 
     init(
         date: Date,
         remainingTime: TimeInterval,
+        dailyLimit: TimeInterval = AppConfiguration.defaultDailyLimit,
         isEstimateAvailable: Bool
     ) {
         self.date = date
         self.remainingTime = remainingTime
+        self.dailyLimit = dailyLimit
         self.isEstimateAvailable = isEstimateAvailable
     }
 
@@ -67,68 +70,8 @@ struct CountdownEntry: TimelineEntry {
         self.init(
             date: plan.date,
             remainingTime: plan.estimate.remainingTime,
+            dailyLimit: plan.dailyLimit,
             isEstimateAvailable: plan.estimate.isAvailable
         )
     }
-}
-
-struct CountdownWidgetEntryView: View {
-    @Environment(\.widgetFamily) private var widgetFamily
-
-    let entry: CountdownProvider.Entry
-
-    @ViewBuilder
-    var body: some View {
-        switch widgetFamily {
-        case .systemSmall:
-            HomeScreenWidgetView(entry: entry)
-                .unredacted()
-
-        case .accessoryRectangular:
-            LockScreenRectangularView(entry: entry)
-                .unredacted()
-
-        case .accessoryCircular:
-            LockScreenCircularView(entry: entry)
-                .unredacted()
-
-        case .accessoryInline:
-            LockScreenInlineView(entry: entry)
-                .unredacted()
-
-        default:
-            HomeScreenWidgetView(entry: entry)
-                .unredacted()
-        }
-    }
-}
-
-struct CountdownWidget: Widget {
-    var body: some WidgetConfiguration {
-        StaticConfiguration(
-            kind: AppConfiguration.widgetKind,
-            provider: CountdownProvider()
-        ) { entry in
-            CountdownWidgetEntryView(entry: entry)
-                .containerBackground(.fill.tertiary, for: .widget)
-        }
-        .configurationDisplayName("Mujø Remaining Time")
-        .description("Shows your approximate Screen Time remaining today.")
-        .supportedFamilies([
-            .systemSmall,
-            .accessoryRectangular,
-            .accessoryCircular,
-            .accessoryInline
-        ])
-    }
-}
-
-#Preview(as: .accessoryRectangular) {
-    CountdownWidget()
-} timeline: {
-    CountdownEntry(
-        date: .now,
-        remainingTime: 3 * 60 * 60 + 42 * 60,
-        isEstimateAvailable: true
-    )
 }

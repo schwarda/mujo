@@ -10,6 +10,7 @@ enum AppConfiguration {
     nonisolated static let appGroupIdentifier = "group.AikariStudio.Mujo.shared"
     nonisolated static let defaultDailyLimit: TimeInterval = 2 * 60 * 60
     nonisolated static let widgetKind = "CountdownWidget"
+    nonisolated static let gradientWidgetKind = "GradientWidget"
 
     enum DailyLimit {
         nonisolated static let stepMinutes = 15
@@ -51,6 +52,18 @@ enum AppConfiguration {
             forLimitMinutes minutes: Int
         ) -> Int {
             normalizedMinutes(minutes) >= 4 * 60 ? 30 : 15
+        }
+
+        nonisolated static func displayResolutionMinutes(
+            remainingTime: TimeInterval,
+            dailyLimit: TimeInterval
+        ) -> Int {
+            let finalWindowMinutes = liveActivityWindowMinutes(
+                forLimitMinutes: Int(dailyLimit / 60)
+            )
+            return remainingTime <= TimeInterval(finalWindowMinutes * 60)
+                ? 1
+                : stepMinutes
         }
     }
 
