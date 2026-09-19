@@ -15,6 +15,11 @@ private let usageLogger = Logger(
     category: "UsageEstimate"
 )
 
+private let updateRecoveryLogger = Logger(
+    subsystem: "AikariStudio.Mujo",
+    category: "AppUpdateRecovery"
+)
+
 @MainActor
 final class ScreenTimeManager: ObservableObject {
     @Published private(set) var authorizationStatus = AuthorizationCenter.shared.authorizationStatus
@@ -25,7 +30,9 @@ final class ScreenTimeManager: ObservableObject {
     private let limitStore: DailyLimitStore
     private let monitoring: ScreenTimeMonitoring
     private let usageSnapshotLoader: UsageSnapshotLoader
+    private let appUpdateRecovery: AppUpdateRecovery
     private var authorizationStatusSubscription: AnyCancellable?
+    private var isRecoveringAppUpdate = false
 
     init() {
         let defaults = UserDefaults(
@@ -33,6 +40,7 @@ final class ScreenTimeManager: ObservableObject {
         ) ?? .standard
         let limitStore = DailyLimitStore(sharedDefaults: defaults)
         self.limitStore = limitStore
+        appUpdateRecovery = AppUpdateRecovery()
         usageSnapshotLoader = UsageSnapshotLoader(defaults: defaults)
         monitoring = ScreenTimeMonitoring(
             suiteName: AppConfiguration.appGroupIdentifier
@@ -102,6 +110,27 @@ final class ScreenTimeManager: ObservableObject {
 
     func clearError() {
         errorMessage = nil
+    }
+
+    func recoverAfterAppUpdateIfNeeded() async {
+        guard appUpdateRecovery.isRequired,
+              !isRecoveringAppUpdate
+        else { return }
+
+        isRecoveringAppUpdate = true
+        defer { isRecoveringAppUpdate = false }
+
+        WidgetCenter.shared.reloadAllTimelines()
+
+        do {
+            try await RemainingTimeLiveActivityController
+                .restartActiveAfterAppUpdate(with: usageSnapshot)
+            appUpdateRecovery.markCompleted()
+        } catch {
+            updateRecoveryLogger.error(
+                "Live Activity recovery failed: \(error.localizedDescription, privacy: .public)"
+            )
+        }
     }
 
     func previewDailyLimit(minutes: Int) {

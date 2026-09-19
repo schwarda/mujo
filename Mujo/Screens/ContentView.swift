@@ -41,6 +41,7 @@ struct ContentView: View {
             guard newPhase == .active else { return }
             Task {
                 await screenTime.restoreMonitoringIfPossible()
+                await screenTime.recoverAfterAppUpdateIfNeeded()
                 await NotificationAppDelegate.processPendingInvitationIfActive()
             }
         }
@@ -182,6 +183,9 @@ struct ContentView: View {
         } else {
             hasResolvedInitialAuthorization = true
             isShowingLaunchOverlay = false
+            Task {
+                await screenTime.recoverAfterAppUpdateIfNeeded()
+            }
         }
     }
 
@@ -192,6 +196,7 @@ struct ContentView: View {
         }
 
         await screenTime.restoreMonitoringIfPossible()
+        await screenTime.recoverAfterAppUpdateIfNeeded()
     }
 
     private func requestScreenTimeAuthorization() {

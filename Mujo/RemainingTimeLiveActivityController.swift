@@ -110,6 +110,38 @@ enum RemainingTimeLiveActivityController {
         )
     }
 
+    static func restartActiveAfterAppUpdate(
+        with snapshot: UsageSnapshot
+    ) async throws {
+        let activities = runningActivities
+        guard !activities.isEmpty else { return }
+
+        for activity in activities {
+            await activity.end(nil, dismissalPolicy: .immediate)
+        }
+
+        let estimate = UsageEstimator.estimate(from: snapshot, at: .now)
+        let limit = Int(
+            AppConfiguration.DailyLimit.normalizedLimit(
+                snapshot.storedDailyLimit
+            ) / 60
+        )
+        let remaining = Int(estimate.remainingTime / 60)
+        let window = AppConfiguration.DailyLimit.liveActivityWindowMinutes(
+            forLimitMinutes: limit
+        )
+
+        guard estimate.isAvailable,
+              (1...window).contains(remaining)
+        else { return }
+
+        _ = try await start(
+            remainingMinutes: remaining,
+            limitMinutes: limit,
+            updatedAt: .now
+        )
+    }
+
     private static var wasStartedToday: Bool {
         let today = Calendar.current.startOfDay(for: .now)
         return UserDefaults.standard.object(forKey: startedDayKey) as? Date
