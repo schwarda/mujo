@@ -8,32 +8,34 @@ import SwiftUI
 
 struct IntroductionView: View {
     private let texts: [String] = [
-        "Nothing remains",
-        "Time passes",
-        "Your time is finite.\nWhat you give your attention to\nis your choice",
-        "Your screen takes some of it",
-        "But not all screen time is wasted time",
-        "What matters is choosing\nhow much of today\nyou're willing to give to it",
-        "Mujø is inspired by\nthe Japanese idea of Mono no aware",
+        "Time passes.",
+        "And what passes\ndoesn't return.",
+        "Your time is finite.",
+        "In Japan, cherry blossoms\nare cherished for their fleeting beauty.",
+        "They bloom.",
+        "They fall.",
+        "They pass.",
         "an awareness that\nnothing lasts forever",
-        "Cherry blossoms remind us of this",
-        "Their beauty lies, in part,\nin knowing they will soon fall",
-        "So does time",
-        "Mujø won't tell you\nhow to spend yours",
-        "You choose",
-        "Mujø simply reminds you\nwhat remains",
-        "And to do that...",
-        "Mujø needs access to Screen Time\nto know how much of your time remains",
-        "It doesn't see what you do on your screen",
-        "It only keeps track of the time"
+        "Their beauty lies, in part,\nin knowing they won't last.",
+        "This awareness of impermanence is called\nmono no aware.",
+        "Our time is much the same.",
+        "Where your time goes\nis shaped by your attention.",
+        "And every day,\nsome of it goes to a screen.",
+        "That's not necessarily time wasted.",
+        "What matters is choosing\nhow much of today\nyou're willing to give to it.",
+        "Mujø won't decide for you.",
+        "You choose.",
+        "Mujø simply keeps you aware\nof what remains.",
+        "The choice of what remains is up to you."
     ]
 
-    private let cherryBlossomIndex = 8
+    private let cherryBlossomIndex = 3
     private let minimumTextDuration = 2.1
     private let maximumTextDuration = 5.0
     private let secondsPerWord = 0.24
     private let pausePerExtraLine = 0.18
     private let continueRevealDuration = 0.4
+    private let cherryBlossomEmissionDuration = 5.0
 
     let isRequestingPermission: Bool
     @Binding var petalSimulationTime: Double
@@ -43,6 +45,8 @@ struct IntroductionView: View {
     @State private var currentIndex = 0
     @State private var progressStartedAt: Date?
     @State private var showsContinueButton = false
+    @State private var emitsCherryBlossoms = true
+    @State private var petalFlow = SakuraPetalFlowState()
 
     init(
         isRequestingPermission: Bool = false,
@@ -62,8 +66,17 @@ struct IntroductionView: View {
                 SakuraPetalField(
                     windStrength: 0,
                     startsFilled: false,
-                    simulationTime: $petalSimulationTime
+                    simulationTime: $petalSimulationTime,
+                    emitsPetals: emitsCherryBlossoms,
+                    flowState: $petalFlow
                 )
+                .task {
+                    try? await Task.sleep(
+                        for: .seconds(cherryBlossomEmissionDuration)
+                    )
+                    guard !Task.isCancelled else { return }
+                    emitsCherryBlossoms = false
+                }
             }
 
             VStack {
@@ -80,7 +93,9 @@ struct IntroductionView: View {
                             }
                     }
                     .frame(height: 4)
-                    .accessibilityLabel("Introduction progress")
+                    .accessibilityLabel(
+                        "To know what remains, Mujø will need access to Screen Time."
+                    )
                     .accessibilityValue(
                         "\(Int(introductionProgress(at: timeline.date) * 100)) percent"
                     )
@@ -93,7 +108,7 @@ struct IntroductionView: View {
             VStack(spacing: 28) {
                 Spacer()
 
-                Text(texts[currentIndex])
+                introductionText
                     .id(currentIndex)
                     .font(MujoTheme.italicFont(
                         size: 22,
@@ -110,6 +125,7 @@ struct IntroductionView: View {
 
                 if showsContinueButton {
                     Button("Continue", action: onContinue)
+                        .font(.system(.body, design: .rounded))
                         .buttonStyle(.glass)
                         .disabled(isRequestingPermission)
                         .overlay {
@@ -128,6 +144,20 @@ struct IntroductionView: View {
         }
         .task {
             await playIntroduction()
+        }
+    }
+
+    @ViewBuilder
+    private var introductionText: some View {
+        if currentIndex == 9 {
+            let name = Text("mono no aware.")
+                .font(MujoTheme.semiboldFont(
+                    size: 22,
+                    relativeTo: .title3
+                ))
+            Text("This awareness of impermanence is called\n\(name)")
+        } else {
+            Text(texts[currentIndex])
         }
     }
 

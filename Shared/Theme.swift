@@ -8,13 +8,24 @@ import SwiftUI
 enum MujoTheme {
     static let secondaryTextOpacity = 0.72
     static let fontMedium = "AvenirNext-Medium"
-    static let fontBold = "AvenirNext-Bold"
     static let fontItalic = "AvenirNext-Italic"
+    static let fontSemibold = "AvenirNext-DemiBold"
     static let glassAccent = Color(
         red: 0.96,
         green: 0.62,
         blue: 0.72
     )
+
+    static func regularFont(
+        size: CGFloat,
+        relativeTo _: Font.TextStyle
+    ) -> Font {
+        .system(
+            size: size,
+            weight: .regular,
+            design: .rounded
+        )
+    }
 
     static func mediumFont(
         size: CGFloat,
@@ -23,7 +34,7 @@ enum MujoTheme {
         .custom(
             fontMedium,
             size: size,
-            relativeTo: textStyle,
+            relativeTo: textStyle
         )
     }
 
@@ -35,6 +46,28 @@ enum MujoTheme {
             fontItalic,
             size: size,
             relativeTo: textStyle
+        )
+    }
+
+    static func semiboldFont(
+        size: CGFloat,
+        relativeTo textStyle: Font.TextStyle
+    ) -> Font {
+        .custom(
+            fontSemibold,
+            size: size,
+            relativeTo: textStyle
+        )
+    }
+
+    static func boldFont(
+        size: CGFloat,
+        relativeTo _: Font.TextStyle
+    ) -> Font {
+        .system(
+            size: size,
+            weight: .bold,
+            design: .rounded
         )
     }
 

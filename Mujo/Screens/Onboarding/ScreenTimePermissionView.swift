@@ -6,46 +6,40 @@
 import SwiftUI
 
 struct ScreenTimePermissionView: View {
-    @Binding var petalSimulationTime: Double
-    let petalsStartFilled: Bool
     let retry: () -> Void
 
     var body: some View {
-        ZStack {
-            SakuraPetalField(
-                windStrength: 0,
-                startsFilled: petalsStartFilled,
-                simulationTime: $petalSimulationTime
+        VStack(spacing: 18) {
+            Image(systemName: "hourglass")
+                .font(.system(size: 46, weight: .medium))
+                .foregroundStyle(.tint)
+
+            Text("To know what remains")
+                .font(.system(
+                    .title3,
+                    design: .rounded,
+                    weight: .semibold
+                ))
+
+            Text(
+                "Mujø needs access to your Screen Time. It won't be able "
+                    + "to see what you're doing on the screen. It will only "
+                    + "use your Screen Time to keep track of what remains."
             )
+            .font(.system(.subheadline, design: .rounded))
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
 
-            VStack(spacing: 18) {
-                Image(systemName: "hourglass")
-                    .font(.system(size: 46, weight: .medium))
-                    .foregroundStyle(.tint)
-
-                Text("Screen Time access is required")
-                    .font(.title3.weight(.semibold))
-
-                Text(
-                    "Mujø needs permission to calculate how much time "
-                        + "remains today."
-                )
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
-                Button("Allow Access", action: retry)
-                    .buttonStyle(.glass)
-            }
-            .padding(32)
+            Button("Allow Access", action: retry)
+                .font(.system(.body, design: .rounded))
+                .buttonStyle(.glass)
         }
+        .padding(32)
     }
 }
 
 #Preview {
     ScreenTimePermissionView(
-        petalSimulationTime: .constant(0),
-        petalsStartFilled: true,
         retry: {}
     )
 }

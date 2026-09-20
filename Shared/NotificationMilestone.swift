@@ -68,6 +68,7 @@ struct NotificationMilestone {
         case percent50
         case percent75
         case liveActivityInvitation
+        case timeExpired
     }
 
     let kind: Kind
@@ -103,6 +104,7 @@ struct NotificationMilestone {
                 usedMinutes: max(1, limit - liveRemaining)
             )
         )
+        milestones.append(Self(kind: .timeExpired, usedMinutes: limit))
 
         return milestones
     }

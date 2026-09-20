@@ -78,7 +78,7 @@ struct TimeDial: View {
             trigger: minutes
         )
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Denný čas")
+        .accessibilityLabel("Denný limit")
         .accessibilityValue(formattedTime)
         .accessibilityAdjustableAction { direction in
             hasUsedTimeDial = true
@@ -244,6 +244,7 @@ struct TimeDial: View {
         self.previousSampleTime = now
         windStrength = max(newStrength, windStrength * 0.82)
     }
+
 }
 
 #Preview {

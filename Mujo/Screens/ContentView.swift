@@ -10,8 +10,7 @@ import FamilyControls
 
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
-    @StateObject private var screenTime = ScreenTimeManager()
-    @State private var selectedTab: AppTab = .home
+    @StateObject private var screenTime: ScreenTimeManager
     @State private var isRequestingAuthorization = false
     @State private var sharedWindStrength = 0.0
     @State private var petalSimulationTime = 0.0
@@ -23,6 +22,14 @@ struct ContentView: View {
     private var hasReachedScreenTimePermission = false
     @AppStorage("hasCompletedOnboarding")
     private var hasCompletedOnboarding = false
+
+    init() {
+        _screenTime = StateObject(wrappedValue: ScreenTimeManager())
+    }
+
+    init(screenTime: ScreenTimeManager) {
+        _screenTime = StateObject(wrappedValue: screenTime)
+    }
 
     var body: some View {
         ZStack {
@@ -69,11 +76,16 @@ struct ContentView: View {
         if !hasResolvedInitialAuthorization {
             Color.clear
         } else if screenTime.isAuthorized {
-            authorizedTabs
+            HomeScreen(
+                screenTime: screenTime,
+                windStrength: $sharedWindStrength,
+                petalSimulationTime: $petalSimulationTime,
+                petalFlow: $petalFlow,
+                petalsStartFilled: !petalsStartedDuringOnboarding,
+                showsPetals: screenTime.errorMessage == nil
+            )
         } else if shouldShowPermissionExplanation {
             ScreenTimePermissionView(
-                petalSimulationTime: $petalSimulationTime,
-                petalsStartFilled: !petalsStartedDuringOnboarding,
                 retry: requestScreenTimeAuthorization
             )
         } else {
@@ -88,46 +100,11 @@ struct ContentView: View {
         }
     }
 
-    private var authorizedTabs: some View {
-        TabView(selection: $selectedTab) {
-            ForEach(AppTab.allCases) { tab in
-                tabContent(for: tab)
-                    .tabItem {
-                        Label(tab.title, systemImage: tab.systemImage)
-                    }
-                    .tag(tab)
-            }
-        }
-        .tint(.accentColor)
-    }
-
-    @ViewBuilder
-    private func tabContent(for tab: AppTab) -> some View {
-        switch tab {
-        case .home:
-            HomeScreen(
-                screenTime: screenTime,
-                windStrength: $sharedWindStrength,
-                petalSimulationTime: $petalSimulationTime,
-                petalFlow: $petalFlow,
-                petalsStartFilled: !petalsStartedDuringOnboarding
-            )
-        case .history:
-            HistoryScreen(
-                screenTime: screenTime,
-                petalSimulationTime: $petalSimulationTime,
-                petalFlow: $petalFlow,
-                petalsStartFilled: !petalsStartedDuringOnboarding
-            )
-        }
-    }
-
     @ViewBuilder
     private var launchOverlay: some View {
         if isShowingLaunchOverlay {
             ZStack {
-                Color("LaunchBackground")
-                    .ignoresSafeArea()
+                SakuraBackground()
 
                 Image("LaunchLogo")
                     .frame(width: 160, height: 160)
@@ -216,4 +193,14 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+}
+
+#Preview("Screen Time Error") {
+    let screenTime = ScreenTimeManager()
+    ContentView(screenTime: screenTime)
+        .onAppear {
+            screenTime.showPreviewError(
+                "Screen Time access could not be configured. Please try again."
+            )
+        }
 }

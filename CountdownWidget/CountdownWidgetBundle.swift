@@ -11,8 +11,9 @@ import WidgetKit
 @main
 struct CountdownWidgetBundle: WidgetBundle {
     var body: some Widget {
-        CountdownWidget()
+        DigitalWidget()
         GradientWidget()
+        GradientDigitalWidget()
         RemainingTimeLiveActivity()
     }
 }

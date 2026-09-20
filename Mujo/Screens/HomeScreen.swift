@@ -15,6 +15,7 @@ struct HomeScreen: View {
     @Binding var petalSimulationTime: Double
     @Binding var petalFlow: SakuraPetalFlowState
     let petalsStartFilled: Bool
+    let showsPetals: Bool
 
     @State private var previewMinutes: Int?
 
@@ -33,22 +34,26 @@ struct HomeScreen: View {
                 Spacer()
             }
 
-            SakuraPetalField(
-                windStrength: windStrength,
-                startsFilled: petalsStartFilled,
-                simulationTime: $petalSimulationTime,
-                emitsPetals: shouldEmitPetals,
-                flowState: $petalFlow
-            )
+            if showsPetals {
+                SakuraPetalField(
+                    windStrength: windStrength,
+                    startsFilled: petalsStartFilled,
+                    simulationTime: $petalSimulationTime,
+                    emitsPetals: shouldEmitPetals,
+                    flowState: $petalFlow
+                )
+            }
 
             VStack {
                 Spacer()
 
                 Text("How much of today\nbelongs to a screen?")
-                    .font(MujoTheme.mediumFont(
-                        size: 22,
+                    .font(MujoTheme.italicFont(
+                        size: 21,
                         relativeTo: .title3
                     ))
+                    .tracking(0.4)
+                    .lineSpacing(5)
                     .foregroundStyle(
                         .accent.opacity(MujoTheme.secondaryTextOpacity)
                     )
@@ -97,7 +102,7 @@ struct HomeScreen: View {
         ) { _ in
             screenTime.refreshUsageSnapshot()
         }
-        .alert("Stay on track?", isPresented: $isShowingNotificationPrompt) {
+        .alert("Let Mujø keep track", isPresented: $isShowingNotificationPrompt) {
             Button("Not now", role: .cancel) {}
             Button("Enable reminders") {
                 Task {
@@ -105,7 +110,11 @@ struct HomeScreen: View {
                 }
             }
         } message: {
-            Text("Get reminders at 50%, 75%, and when 30 minutes remain.")
+            Text(
+                "You don't need to watch the clock. Mujø will remind you at "
+                    + "meaningful moments, so you can stay aware without "
+                    + "checking it yourself."
+            )
         }
     }
 
@@ -127,7 +136,7 @@ struct HomeScreen: View {
         )
 
         VStack {
-            Text("Remaining")
+            Text("R e m a i n i n g")
                 .font(MujoTheme.mediumFont(
                     size: 12,
                     relativeTo: .caption2
@@ -143,7 +152,7 @@ struct HomeScreen: View {
                 GlassText(value: estimate.remainingTime.formatted())
             } else {
                 Text("Waiting for data")
-                    .font(.headline)
+                    .font(.system(.headline, design: .rounded))
                     .foregroundStyle(
                         MujoTheme.glassAccent.opacity(
                             MujoTheme.secondaryTextOpacity
@@ -165,6 +174,66 @@ struct HomeScreen: View {
     }
 }
 
-#Preview {
-    ContentView()
+private struct HomeScreenPreview: View {
+    @StateObject private var screenTime: ScreenTimeManager
+    @State private var windStrength = 0.25
+    @State private var petalSimulationTime = 0.0
+    @State private var petalFlow = SakuraPetalFlowState()
+
+    init() {
+        let suiteName = "HomeScreenPreview"
+        let defaults = UserDefaults(suiteName: suiteName) ?? .standard
+        let calendar = Calendar.autoupdatingCurrent
+        let today = calendar.startOfDay(for: .now)
+
+        defaults.removePersistentDomain(forName: suiteName)
+        defaults.set(
+            2 * 60 * 60,
+            forKey: AppConfiguration.DefaultsKey.dailyLimit
+        )
+        defaults.set(
+            45 * 60,
+            forKey: AppConfiguration.DefaultsKey.estimatedUsedTime
+        )
+        defaults.set(
+            today.timeIntervalSince1970,
+            forKey: AppConfiguration.DefaultsKey.lastCheckpointResetDay
+        )
+        defaults.set(
+            calendar.timeZone.identifier,
+            forKey: AppConfiguration.DefaultsKey
+                .lastCheckpointTimeZoneIdentifier
+        )
+        defaults.set(
+            today.addingTimeInterval(-60).timeIntervalSince1970,
+            forKey: AppConfiguration.DefaultsKey.usageMonitoringStartedAt
+        )
+        defaults.set(
+            true,
+            forKey: AppConfiguration.DefaultsKey.hasUsageCheckpoint
+        )
+
+        _screenTime = StateObject(
+            wrappedValue: ScreenTimeManager(defaults: defaults)
+        )
+    }
+
+    var body: some View {
+        ZStack {
+            SakuraBackground()
+
+            HomeScreen(
+                screenTime: screenTime,
+                windStrength: $windStrength,
+                petalSimulationTime: $petalSimulationTime,
+                petalFlow: $petalFlow,
+                petalsStartFilled: true,
+                showsPetals: true
+            )
+        }
+    }
+}
+
+#Preview("Home") {
+    HomeScreenPreview()
 }

@@ -10,6 +10,8 @@ import SwiftUI
 import WidgetKit
 
 struct RemainingTimeLiveActivity: Widget {
+    private let dynamicIslandColor = Color("RemainingColor")
+
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: RemainingTimeActivityAttributes.self) { context in
             ZStack() {
@@ -22,7 +24,11 @@ struct RemainingTimeLiveActivity: Widget {
                             ))
                             .foregroundStyle(.secondary)
                         
-                        GlassText(value: timeText(context.state.remainingMinutes))
+                        GlassText(
+                            value: remainingTimeText(
+                                context.state.remainingMinutes
+                            )
+                        )
                             .monospacedDigit()
                     }
                 }
@@ -34,29 +40,142 @@ struct RemainingTimeLiveActivity: Widget {
                 DynamicIslandExpandedRegion(.center) {
                     VStack(spacing: 4) {
                         Text("Mujø · remaining")
-                            .font(.caption)
+                            .font(.system(.caption, design: .rounded))
+                            .foregroundStyle(dynamicIslandColor)
 
-                        Text(timeText(context.state.remainingMinutes))
-                            .font(.title.bold())
+                        Text(remainingTimeText(context.state.remainingMinutes))
+                            .font(.system(
+                                .title,
+                                design: .rounded,
+                                weight: .bold
+                            ))
                             .monospacedDigit()
+                            .foregroundStyle(dynamicIslandColor)
                     }
                 }
             } compactLeading: {
-                Text("Ø")
+                DynamicIslandProgressRing(
+                    remainingMinutes: context.state.remainingMinutes,
+                    limitMinutes: context.attributes.limitMinutes,
+                    color: dynamicIslandColor
+                )
+                .frame(width: 18, height: 18)
+                .padding(.trailing, 4)
             } compactTrailing: {
-                Text(timeText(context.state.remainingMinutes))
-                    .font(.caption2)
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                dynamicIslandMinutes(context.state.remainingMinutes)
             } minimal: {
-                Text("Ø")
+                ZStack {
+                    DynamicIslandProgressStroke(
+                        remainingMinutes: context.state.remainingMinutes,
+                        limitMinutes: context.attributes.limitMinutes,
+                        color: dynamicIslandColor
+                    )
+
+                    dynamicIslandMinutes(context.state.remainingMinutes)
+                        .padding(6)
+                }
             }
+            .keylineTint(dynamicIslandColor)
         }
     }
 
-    private func timeText(_ minutes: Int) -> String {
-        TimeInterval(max(0, minutes) * 60).formatted()
+    private func minutesText(_ minutes: Int) -> String {
+        String(max(0, minutes))
+    }
+
+    private func remainingTimeText(_ minutes: Int) -> String {
+        let minutes = max(0, minutes)
+        guard minutes > 0 else { return "Ø" }
+        return "\(minutes) min"
+    }
+
+    private func dynamicIslandMinutes(_ minutes: Int) -> some View {
+        Text(minutesText(minutes))
+            .font(.system(.caption2, design: .rounded))
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .foregroundStyle(dynamicIslandColor)
+    }
+}
+
+private struct DynamicIslandProgressStroke: View {
+    let remainingMinutes: Int
+    let limitMinutes: Int
+    let color: Color
+
+    private var remainingFraction: Double {
+        min(
+            1,
+            max(0, Double(remainingMinutes) / Double(max(1, limitMinutes)))
+        )
+    }
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(
+                    color.opacity(0.3),
+                    style: StrokeStyle(lineWidth: 2, lineCap: .round)
+                )
+
+            Circle()
+                .trim(from: 0, to: remainingFraction)
+                .stroke(
+                    color,
+                    style: StrokeStyle(lineWidth: 2, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+        }
+    }
+}
+
+private struct DynamicIslandProgressRing: View {
+    let remainingMinutes: Int
+    let limitMinutes: Int
+    let color: Color
+
+    private var remainingFraction: Double {
+        min(
+            1,
+            max(0, Double(remainingMinutes) / Double(max(1, limitMinutes)))
+        )
+    }
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(color.opacity(0.3))
+                .stroke(
+                    color,
+                    style: StrokeStyle(lineWidth: 1, lineCap: .round)
+                )
+
+            DynamicIslandProgressSlice(fraction: remainingFraction)
+                .fill(color)
+        }
+    }
+}
+
+private struct DynamicIslandProgressSlice: Shape {
+    let fraction: Double
+
+    func path(in rect: CGRect) -> Path {
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let radius = min(rect.width, rect.height) / 2
+        var path = Path()
+
+        path.move(to: center)
+        path.addArc(
+            center: center,
+            radius: radius,
+            startAngle: .degrees(-90),
+            endAngle: .degrees(-90 + 360 * fraction),
+            clockwise: false
+        )
+        path.closeSubpath()
+
+        return path
     }
 }
 
@@ -83,7 +202,7 @@ struct RemainingTimeLiveActivity: Widget {
 
 #Preview(
     "Dynamic Island Compact",
-    as: .dynamicIsland(.compact),
+    as: .dynamicIsland(.minimal),
     using: RemainingTimeActivityAttributes(limitMinutes: 120)
 ) {
     RemainingTimeLiveActivity()

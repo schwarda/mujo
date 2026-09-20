@@ -34,8 +34,8 @@ final class ScreenTimeManager: ObservableObject {
     private var authorizationStatusSubscription: AnyCancellable?
     private var isRecoveringAppUpdate = false
 
-    init() {
-        let defaults = UserDefaults(
+    init(defaults: UserDefaults? = nil) {
+        let defaults = defaults ?? UserDefaults(
             suiteName: AppConfiguration.appGroupIdentifier
         ) ?? .standard
         let limitStore = DailyLimitStore(sharedDefaults: defaults)
@@ -111,6 +111,12 @@ final class ScreenTimeManager: ObservableObject {
     func clearError() {
         errorMessage = nil
     }
+
+#if DEBUG
+    func showPreviewError(_ message: String) {
+        errorMessage = message
+    }
+#endif
 
     func recoverAfterAppUpdateIfNeeded() async {
         guard appUpdateRecovery.isRequired,

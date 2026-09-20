@@ -8,7 +8,7 @@
 import SwiftUI
 import WidgetKit
 
-struct CountdownWidgetEntryView: View {
+struct DigitalWidgetEntryView: View {
     @Environment(\.widgetFamily) private var widgetFamily
 
     let entry: CountdownProvider.Entry
@@ -17,6 +17,8 @@ struct CountdownWidgetEntryView: View {
     var body: some View {
         Group {
             switch widgetFamily {
+            case .systemSmall:
+                DigitalHomeScreenView(entry: entry)
             case .accessoryRectangular:
                 LockScreenRectangularView(entry: entry)
             case .accessoryCircular:
@@ -31,17 +33,16 @@ struct CountdownWidgetEntryView: View {
     }
 }
 
-struct CountdownWidget: Widget {
+struct DigitalWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(
             kind: AppConfiguration.widgetKind,
             provider: CountdownProvider()
         ) { entry in
-            CountdownWidgetEntryView(entry: entry)
-                .containerBackground(.fill.tertiary, for: .widget)
+            DigitalWidgetEntryView(entry: entry)
         }
-        .configurationDisplayName("Mujø Remaining Time")
-        .description("Shows your approximate Screen Time remaining today.")
+        .configurationDisplayName("Mujø Time")
+        .description("See how much of today's chosen time remains.")
         .supportedFamilies([
             .systemSmall,
             .accessoryRectangular,
@@ -52,7 +53,7 @@ struct CountdownWidget: Widget {
 }
 
 #Preview(as: .accessoryRectangular) {
-    CountdownWidget()
+    DigitalWidget()
 } timeline: {
     CountdownEntry(
         date: .now,
@@ -62,7 +63,7 @@ struct CountdownWidget: Widget {
 }
 
 #Preview(as: .systemSmall) {
-    CountdownWidget()
+    DigitalWidget()
 } timeline: {
     CountdownEntry(
         date: .now,

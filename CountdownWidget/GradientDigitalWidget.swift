@@ -1,27 +1,25 @@
 //
-//  GradientWidgets.swift
+//  GradientDigitalWidget.swift
 //  Mujo
-//
-//  Created by Aikari Studio on 18/09/2026.
 //
 
 import SwiftUI
 import WidgetKit
 
-struct GradientWidget: Widget {
+struct GradientDigitalWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(
-            kind: AppConfiguration.gradientWidgetKind,
+            kind: AppConfiguration.gradientDigitalWidgetKind,
             provider: CountdownProvider()
         ) { entry in
-            GradientHomeScreenView(entry: entry)
+            GradientDigitalHomeScreenView(entry: entry)
                 .unredacted()
                 .containerBackground(.clear, for: .widget)
         }
-        .configurationDisplayName("Mujø Gradient")
+        .configurationDisplayName("Mujø Time & Gradient")
         .description(
-            "See your remaining time in style. As time passes, the remaining "
-                + "area becomes smaller."
+            "See what remains at a glance, with the remaining time shown in "
+                + "the center."
         )
         .supportedFamilies([.systemSmall])
         .contentMarginsDisabled()
@@ -29,7 +27,7 @@ struct GradientWidget: Widget {
 }
 
 #Preview(as: .systemSmall) {
-    GradientWidget()
+    GradientDigitalWidget()
 } timeline: {
     CountdownEntry(
         date: .now,

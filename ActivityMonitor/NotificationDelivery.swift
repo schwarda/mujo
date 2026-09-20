@@ -35,24 +35,20 @@ enum NotificationDelivery {
         guard defaults.string(forKey: sentKey) != dayID else { return }
 
         let remainingMinutes = limitMinutes - milestone.usedMinutes
-        let remaining = String(
-            format: "%d:%02d",
-            remainingMinutes / 60,
-            remainingMinutes % 60
-        )
-
         let content = UNMutableNotificationContent()
         content.sound = .default
-        content.title = "\(remaining) remains"
 
         switch milestone.kind {
         case .percent50:
+            content.title = remainingTitle(minutes: remainingMinutes)
             content.body = "Be mindful of what remains."
 
         case .percent75:
+            content.title = remainingTitle(minutes: remainingMinutes)
             content.body = "Your time is getting shorter. Spend it deliberately."
 
         case .liveActivityInvitation:
+            content.title = remainingTitle(minutes: remainingMinutes)
             content.body = "Keep it in sight with Live Activity."
             content.userInfo = [
                 "mujoAction": "startLiveActivity",
@@ -60,6 +56,10 @@ enum NotificationDelivery {
                 "remainingMinutes": remainingMinutes,
                 "receivedAt": Date.now.timeIntervalSince1970
             ]
+
+        case .timeExpired:
+            content.title = "Nothing remains."
+            content.body = "You've reached the time you chose for today."
         }
 
         let request = UNNotificationRequest(
@@ -85,5 +85,17 @@ enum NotificationDelivery {
 
             defaults.removeObject(forKey: sentKey)
         }
+    }
+
+    private static func remainingTitle(minutes totalMinutes: Int) -> String {
+        let hours = max(0, totalMinutes) / 60
+        let minutes = max(0, totalMinutes) % 60
+        let minuteUnit = "min"
+        guard hours > 0 else {
+            return "\(minutes) \(minuteUnit) remains"
+        }
+
+        let hourUnit = "h"
+        return "\(hours) \(hourUnit) \(minutes) \(minuteUnit) remains"
     }
 }
