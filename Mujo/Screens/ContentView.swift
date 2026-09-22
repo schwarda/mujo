@@ -123,7 +123,7 @@ struct ContentView: View {
         switch screenTime.authorizationStatus {
         case .denied:
             return true
-        case .notDetermined, .approved, .approvedWithDataAccess:
+        case .notDetermined, .approved:
             return false
         default:
             return true
@@ -195,6 +195,7 @@ struct ContentView: View {
     ContentView()
 }
 
+#if DEBUG
 #Preview("Screen Time Error") {
     let screenTime = ScreenTimeManager()
     ContentView(screenTime: screenTime)
@@ -204,3 +205,4 @@ struct ContentView: View {
             )
         }
 }
+#endif

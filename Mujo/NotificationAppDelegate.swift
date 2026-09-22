@@ -39,7 +39,7 @@ final class NotificationAppDelegate: NSObject,
         pendingInvitation = nil
 
         switch AuthorizationCenter.shared.authorizationStatus {
-        case .approved, .approvedWithDataAccess:
+        case .approved:
             break
         default:
             return

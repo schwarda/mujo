@@ -59,14 +59,7 @@ final class ScreenTimeManager: ObservableObject {
     }
 
     var isAuthorized: Bool {
-        switch authorizationStatus {
-        case .approved, .approvedWithDataAccess:
-            true
-        case .notDetermined, .denied:
-            false
-        @unknown default:
-            false
-        }
+        authorizationStatus == .approved
     }
 
     @discardableResult
