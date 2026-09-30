@@ -83,6 +83,9 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
             "Reached \(event.rawValue, privacy: .public); stored threshold \(newestSeconds, privacy: .public) seconds"
         )
         WidgetCenter.shared.reloadAllTimelines()
+        RemainingTimeBadge.update(
+            from: UsageSnapshotLoader(defaults: defaults).load()
+        )
 
         RemainingTimeLiveActivityUpdater.refresh(defaults: defaults)
 
@@ -154,6 +157,9 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
         logger.notice("Started a new daily monitoring interval")
         WidgetCenter.shared.reloadAllTimelines()
+        RemainingTimeBadge.update(
+            from: UsageSnapshotLoader(defaults: defaults).load()
+        )
         return true
     }
 

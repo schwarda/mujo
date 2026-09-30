@@ -34,6 +34,8 @@ struct TimeDial: View {
 
     @Binding var minutes: Int
     @Binding var windStrength: Double
+    let allowsEmptySelection: Bool
+    let showsValue: Bool
     let onValueChange: (Int) -> Void
     let onCommit: (Int) -> Void
 
@@ -48,6 +50,22 @@ struct TimeDial: View {
     @AppStorage("hasUsedCenteredTimeDialHint")
     private var hasUsedTimeDial = false
 
+    init(
+        minutes: Binding<Int>,
+        windStrength: Binding<Double>,
+        allowsEmptySelection: Bool = false,
+        showsValue: Bool = true,
+        onValueChange: @escaping (Int) -> Void,
+        onCommit: @escaping (Int) -> Void
+    ) {
+        _minutes = minutes
+        _windStrength = windStrength
+        self.allowsEmptySelection = allowsEmptySelection
+        self.showsValue = showsValue
+        self.onValueChange = onValueChange
+        self.onCommit = onCommit
+    }
+
     var body: some View {
         ZStack {
             tickMarks
@@ -57,14 +75,26 @@ struct TimeDial: View {
                 rotationHint
             }
 
-            Text(formattedTime)
-                .font(.system(
-                    size: configuration.timeFontSize,
-                    weight: .semibold,
-                    design: .rounded
-                ))
-                .monospacedDigit()
-                .foregroundStyle(.tint)
+            if showsValue {
+                Text(formattedTime)
+                    .font(.system(
+                        size: configuration.timeFontSize,
+                        weight: .semibold,
+                        design: .rounded
+                    ))
+                    .monospacedDigit()
+                    .foregroundStyle(.tint)
+            } else {
+                Circle()
+                    .fill(Color.accentColor)
+                    .frame(width: 14, height: 14)
+                    .shadow(
+                        color: Color.accentColor.opacity(0.34),
+                        radius: 4
+                    )
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
         }
         .frame(
             width: configuration.diameter,
@@ -210,6 +240,10 @@ struct TimeDial: View {
     }
 
     private var formattedTime: String {
+        if allowsEmptySelection, minutes == 0 {
+            return "–"
+        }
+
         let hours = minutes / 60
         let remainingMinutes = minutes % 60
         return String(format: "%d:%02d", hours, remainingMinutes)
@@ -217,6 +251,13 @@ struct TimeDial: View {
 
     @discardableResult
     private func changeMinutes(by amount: Int) -> Bool {
+        if allowsEmptySelection, minutes == 0 {
+            guard amount > 0 else { return false }
+            minutes = configuration.minimumMinutes
+            onValueChange(minutes)
+            return true
+        }
+
         let newValue = AppConfiguration.DailyLimit.normalizedMinutes(
             min(
                 configuration.maximumMinutes,
@@ -247,6 +288,8 @@ struct TimeDial: View {
 
 }
 
+#if DEBUG
 #Preview {
     ContentView()
 }
+#endif

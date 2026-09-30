@@ -32,6 +32,8 @@ struct SakuraBackground: View {
     }
 }
 
+#if DEBUG
 #Preview {
     SakuraBackground()
 }
+#endif

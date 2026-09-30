@@ -18,6 +18,8 @@ struct ContentView: View {
     @State private var petalsStartedDuringOnboarding = false
     @State private var hasResolvedInitialAuthorization = false
     @State private var isShowingLaunchOverlay = true
+    private let firstLaunchLogoDuration = 1.6
+    private let launchOverlayFadeDuration = 0.45
     @AppStorage("hasReachedScreenTimePermission")
     private var hasReachedScreenTimePermission = false
     @AppStorage("hasCompletedOnboarding")
@@ -55,7 +57,10 @@ struct ContentView: View {
         .alert(
             "Screen Time Error",
             isPresented: Binding(
-                get: { screenTime.errorMessage != nil },
+                get: {
+                    hasCompletedOnboarding
+                        && screenTime.errorMessage != nil
+                },
                 set: { isPresented in
                     if !isPresented {
                         screenTime.clearError()
@@ -73,9 +78,9 @@ struct ContentView: View {
 
     @ViewBuilder
     private var rootContent: some View {
-        if !hasResolvedInitialAuthorization {
+        if isShowingLaunchOverlay || !hasResolvedInitialAuthorization {
             Color.clear
-        } else if screenTime.isAuthorized {
+        } else if screenTime.isAuthorized && hasCompletedOnboarding {
             HomeScreen(
                 screenTime: screenTime,
                 windStrength: $sharedWindStrength,
@@ -84,8 +89,17 @@ struct ContentView: View {
                 petalsStartFilled: !petalsStartedDuringOnboarding,
                 showsPetals: screenTime.errorMessage == nil
             )
+        } else if screenTime.isAuthorized {
+            OnboardingLimitSetupView(
+                screenTime: screenTime,
+                windStrength: $sharedWindStrength,
+                onCompleted: {
+                    hasCompletedOnboarding = true
+                }
+            )
         } else if shouldShowPermissionExplanation {
             ScreenTimePermissionView(
+                isRequestingAccess: isRequestingAuthorization,
                 retry: requestScreenTimeAuthorization
             )
         } else {
@@ -151,7 +165,6 @@ struct ContentView: View {
         guard !hasResolvedInitialAuthorization else { return }
 
         if screenTime.isAuthorized {
-            hasCompletedOnboarding = true
             hasResolvedInitialAuthorization = true
 
             Task {
@@ -159,10 +172,19 @@ struct ContentView: View {
             }
         } else {
             hasResolvedInitialAuthorization = true
-            isShowingLaunchOverlay = false
             Task {
+                await finishOnboardingLaunch()
                 await screenTime.recoverAfterAppUpdateIfNeeded()
             }
+        }
+    }
+
+    private func finishOnboardingLaunch() async {
+        try? await Task.sleep(for: .seconds(firstLaunchLogoDuration))
+        guard !Task.isCancelled else { return }
+
+        withAnimation(.easeInOut(duration: launchOverlayFadeDuration)) {
+            isShowingLaunchOverlay = false
         }
     }
 
@@ -183,9 +205,6 @@ struct ContentView: View {
         Task {
             await screenTime.requestAuthorizationAndStart()
             hasReachedScreenTimePermission = true
-            if screenTime.isAuthorized {
-                hasCompletedOnboarding = true
-            }
             isRequestingAuthorization = false
         }
     }

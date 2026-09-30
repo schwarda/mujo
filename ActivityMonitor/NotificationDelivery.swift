@@ -90,12 +90,12 @@ enum NotificationDelivery {
     private static func remainingTitle(minutes totalMinutes: Int) -> String {
         let hours = max(0, totalMinutes) / 60
         let minutes = max(0, totalMinutes) % 60
-        let minuteUnit = "min"
+        let minuteUnit = "m"
         guard hours > 0 else {
             return "\(minutes) \(minuteUnit) remains"
         }
 
         let hourUnit = "h"
-        return "\(hours) \(hourUnit) \(minutes) \(minuteUnit) remains"
+        return "\(hours)\(hourUnit) \(minutes)\(minuteUnit) remains"
     }
 }

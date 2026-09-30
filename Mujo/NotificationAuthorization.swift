@@ -34,7 +34,9 @@ final class NotificationAuthorization: ObservableObject {
 
     func requestAuthorization() async {
         do {
-            try await center.requestAuthorization(options: [.alert, .sound])
+            try await center.requestAuthorization(
+                options: [.alert, .sound, .badge]
+            )
         } catch {
             // Neskôr sem napojíme používateľskú chybovú hlášku.
         }

@@ -8,7 +8,7 @@
 import ActivityKit
 import Foundation
 
-struct RemainingTimeActivityAttributes: ActivityAttributes {
+nonisolated struct RemainingTimeActivityAttributes: ActivityAttributes {
     struct ContentState: Codable, Hashable {
         let remainingMinutes: Int
         let updatedAt: Date

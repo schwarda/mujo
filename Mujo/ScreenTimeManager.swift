@@ -136,6 +136,10 @@ final class ScreenTimeManager: ObservableObject {
         limitStore.preview(minutes: minutes)
     }
 
+    func cancelDailyLimitPreview() {
+        limitStore.clearPreview()
+    }
+
     func usageEstimate(forLimitMinutes minutes: Int) -> UsageEstimate {
         UsageEstimator.estimate(
             from: usageSnapshot,
@@ -148,6 +152,7 @@ final class ScreenTimeManager: ObservableObject {
 
     func refreshUsageSnapshot() {
         let refreshedSnapshot = usageSnapshotLoader.load()
+        RemainingTimeBadge.update(from: refreshedSnapshot)
         guard refreshedSnapshot != usageSnapshot else { return }
 
         usageSnapshot = refreshedSnapshot

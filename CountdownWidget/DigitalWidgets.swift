@@ -62,12 +62,12 @@ struct DigitalWidget: Widget {
     )
 }
 
-#Preview(as: .systemSmall) {
+#Preview(as: .accessoryCircular) {
     DigitalWidget()
 } timeline: {
     CountdownEntry(
         date: .now,
-        remainingTime: 3 * 60 * 60 + 42 * 60,
+        remainingTime: 1 * 60 * 60 + 30 * 60,
         isEstimateAvailable: true
     )
 }

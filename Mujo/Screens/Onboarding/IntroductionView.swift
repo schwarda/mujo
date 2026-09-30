@@ -8,32 +8,27 @@ import SwiftUI
 
 struct IntroductionView: View {
     private let texts: [String] = [
-        "Time passes.",
-        "And what passes\ndoesn't return.",
+        "Time passes.\nAnd what passes\ndoesn't return.",
         "Your time is finite.",
         "In Japan, cherry blossoms\nare cherished for their fleeting beauty.",
-        "They bloom.",
-        "They fall.",
-        "They pass.",
-        "an awareness that\nnothing lasts forever",
+        "They bloom.\nThey fall.\nThey pass.",
         "Their beauty lies, in part,\nin knowing they won't last.",
-        "This awareness of impermanence is called\nmono no aware.",
+        "This feeling has a name:\nmono no aware.",
         "Our time is much the same.",
-        "Where your time goes\nis shaped by your attention.",
+        "Where your attention goes,\nyour time follows.",
         "And every day,\nsome of it goes to a screen.",
         "That's not necessarily time wasted.",
         "What matters is choosing\nhow much of today\nyou're willing to give to it.",
-        "Mujø won't decide for you.",
-        "You choose.",
-        "Mujø simply keeps you aware\nof what remains.",
-        "The choice of what remains is up to you."
+        "Mujø will simply keep you aware\nof what remains.",
+        "To do that, Mujø needs\naccess to Screen Time.",
+        "It won't see what you do.\nOnly the time you spend."
     ]
 
-    private let cherryBlossomIndex = 3
+    private let cherryBlossomIndex = 2
     private let minimumTextDuration = 2.1
-    private let maximumTextDuration = 5.0
-    private let secondsPerWord = 0.24
-    private let pausePerExtraLine = 0.18
+    private let maximumTextDuration = 5.8
+    private let secondsPerWord = 0.27
+    private let pausePerExtraLine = 0.24
     private let continueRevealDuration = 0.4
     private let cherryBlossomEmissionDuration = 5.0
 
@@ -105,7 +100,7 @@ struct IntroductionView: View {
                 Spacer()
             }
 
-            VStack(spacing: 28) {
+            VStack {
                 Spacer()
 
                 introductionText
@@ -114,33 +109,38 @@ struct IntroductionView: View {
                         size: 22,
                         relativeTo: .title3
                     ))
-                    .foregroundStyle(
-                        .accent.opacity(MujoTheme.secondaryTextOpacity)
-                    )
+                    .foregroundStyle(.tint)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                     .transition(
                         .opacity.combined(with: .scale(scale: 0.97))
                     )
 
-                if showsContinueButton {
-                    Button("Continue", action: onContinue)
-                        .font(.system(.body, design: .rounded))
-                        .buttonStyle(.glass)
-                        .disabled(isRequestingPermission)
-                        .overlay {
-                            if isRequestingPermission {
-                                ProgressView()
-                            }
-                        }
-                        .transition(
-                            .move(edge: .bottom).combined(with: .opacity)
-                        )
-                }
-
                 Spacer()
             }
             .padding(.horizontal, 28)
+
+            if showsContinueButton {
+                VStack {
+                    Spacer()
+
+                    OnboardingPrimaryButton(
+                        isDisabled: isRequestingPermission,
+                        action: onContinue
+                    ) {
+                        if isRequestingPermission {
+                            ProgressView()
+                        } else {
+                            Text("Continue")
+                        }
+                    }
+                    .transition(
+                        .move(edge: .bottom).combined(with: .opacity)
+                    )
+                }
+                .padding(.horizontal, 34)
+                .padding(.bottom, 34)
+            }
         }
         .task {
             await playIntroduction()
@@ -149,13 +149,13 @@ struct IntroductionView: View {
 
     @ViewBuilder
     private var introductionText: some View {
-        if currentIndex == 9 {
-            let name = Text("mono no aware.")
+        if currentIndex == 5 {
+            let name = Text("mono no aware")
                 .font(MujoTheme.semiboldFont(
                     size: 22,
                     relativeTo: .title3
                 ))
-            Text("This awareness of impermanence is called\n\(name)")
+            Text("This feeling has a name:\n\(name).")
         } else {
             Text(texts[currentIndex])
         }
@@ -212,8 +212,4 @@ struct IntroductionView: View {
 
         return clampedTime
     }
-}
-
-#Preview {
-    IntroductionView()
 }

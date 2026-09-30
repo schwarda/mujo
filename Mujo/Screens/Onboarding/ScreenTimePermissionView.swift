@@ -6,6 +6,7 @@
 import SwiftUI
 
 struct ScreenTimePermissionView: View {
+    let isRequestingAccess: Bool
     let retry: () -> Void
 
     var body: some View {
@@ -20,6 +21,7 @@ struct ScreenTimePermissionView: View {
                     design: .rounded,
                     weight: .semibold
                 ))
+                .foregroundStyle(.tint)
 
             Text(
                 "Mujø needs access to your Screen Time. It won't be able "
@@ -27,19 +29,20 @@ struct ScreenTimePermissionView: View {
                     + "use your Screen Time to keep track of what remains."
             )
             .font(.system(.subheadline, design: .rounded))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(.tint)
             .multilineTextAlignment(.center)
 
-            Button("Allow Access", action: retry)
-                .font(.system(.body, design: .rounded))
-                .buttonStyle(.glass)
+            OnboardingPrimaryButton(
+                isDisabled: isRequestingAccess,
+                action: retry
+            ) {
+                if isRequestingAccess {
+                    ProgressView()
+                } else {
+                    Text("Allow Access")
+                }
+            }
         }
         .padding(32)
     }
-}
-
-#Preview {
-    ScreenTimePermissionView(
-        retry: {}
-    )
 }

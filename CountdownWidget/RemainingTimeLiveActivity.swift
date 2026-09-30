@@ -33,7 +33,7 @@ struct RemainingTimeLiveActivity: Widget {
                     }
                 }
                 .padding()
-                .activityBackgroundTint(.pink.opacity(0.1))
+                .activityBackgroundTint(MujoTheme.brandAccent.opacity(0.1))
             }
         } dynamicIsland: { context in
             DynamicIsland {

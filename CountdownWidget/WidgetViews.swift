@@ -235,12 +235,12 @@ struct LockScreenInlineView: View {
 }
 
 #Preview(as: .systemSmall) {
-    GradientDigitalWidget()
+    DigitalWidget()
 } timeline: {
     CountdownEntry(
         date: .now,
-        remainingTime: 10 * 60,
-        dailyLimit: 2 * 60 * 60,
+        remainingTime: 1 * 60 * 60 + 30 * 60,
+        dailyLimit: 3 * 60 * 60,
         isEstimateAvailable: true
     )
 }
