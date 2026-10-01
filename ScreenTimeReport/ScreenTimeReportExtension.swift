@@ -45,14 +45,6 @@ struct ScreenTimeReportExtension: DeviceActivityReportExtension {
             )
         }
 
-        OnboardingSuggestionReport(context: .mujoTodayUsage) {
-            configuration in
-            OnboardingSuggestionView(
-                configuration: configuration,
-                presentation: .todayUsage
-            )
-        }
-
         OnboardingSuggestionReport(context: .mujoDailySavings) {
             configuration in
             OnboardingSuggestionView(

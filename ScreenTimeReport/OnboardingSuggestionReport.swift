@@ -88,7 +88,7 @@ struct OnboardingSuggestionReport: nonisolated DeviceActivityReportScene {
     }
 
     private var storedDailyLimitMinutes: Int? {
-        guard isSavingsContext || context == .mujoTodayUsage,
+        guard isSavingsContext,
               let defaults = UserDefaults(
                 suiteName: OnboardingReportStorage.appGroupIdentifier
               )

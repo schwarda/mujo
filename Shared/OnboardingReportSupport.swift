@@ -10,7 +10,6 @@ extension DeviceActivityReport.Context {
     nonisolated static let mujoLimitEditorDescription = Self(
         "Mujo Limit Editor Description"
     )
-    nonisolated static let mujoTodayUsage = Self("Mujo Today Usage")
     nonisolated static let mujoDailySavings = Self("Mujo Daily Savings")
     nonisolated static let mujoWeeklySavings = Self("Mujo Weekly Savings")
     nonisolated static let mujoAnnualSavings = Self("Mujo Annual Savings")

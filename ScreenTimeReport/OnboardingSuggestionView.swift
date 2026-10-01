@@ -7,7 +7,6 @@ enum OnboardingReportPresentation: Equatable {
     case yearlyTotal
     case limitPrompt
     case limitEditorDescription
-    case todayUsage
     case dailySavings
     case weeklySavings
     case annualSavings
@@ -125,18 +124,6 @@ struct OnboardingSuggestionView: View {
             .foregroundStyle(primaryColor)
             .padding(.horizontal, 12)
 
-        case .todayUsage:
-            let limitMinutes = configuration.dailyLimitMinutes ?? 0
-            Text(
-                "\(homeFormatted(totalMinutes)) used · "
-                    + "\(homeFormatted(limitMinutes)) limit"
-            )
-            .font(MujoTheme.italicFont(size: 18, relativeTo: .body))
-            .monospacedDigit()
-            .foregroundStyle(
-                primaryColor.opacity(MujoTheme.secondaryTextOpacity)
-            )
-
         case .dailySavings, .weeklySavings, .annualSavings:
             let dailyLimitMinutes = configuration.dailyLimitMinutes
                 ?? averageMinutes
@@ -174,8 +161,7 @@ struct OnboardingSuggestionView: View {
                     ))
                     .foregroundStyle(primaryColor)
                     .multilineTextAlignment(.center)
-            } else if presentation == .limitEditorDescription
-                        || presentation == .todayUsage {
+            } else if presentation == .limitEditorDescription {
                 EmptyView()
             } else {
                 OnboardingInsightCard(
@@ -229,15 +215,6 @@ struct OnboardingSuggestionView: View {
 
     private func cardFormatted(_ totalMinutes: Int) -> String {
         OnboardingCardDurationFormatter.string(minutes: totalMinutes)
-    }
-
-    private func homeFormatted(_ totalMinutes: Int) -> String {
-        let safeMinutes = max(0, totalMinutes)
-        return String(
-            format: "%d:%02d",
-            safeMinutes / 60,
-            safeMinutes % 60
-        )
     }
 
 }

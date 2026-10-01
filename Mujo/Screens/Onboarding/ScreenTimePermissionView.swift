@@ -10,39 +10,47 @@ struct ScreenTimePermissionView: View {
     let retry: () -> Void
 
     var body: some View {
-        VStack(spacing: 18) {
-            Image(systemName: "hourglass")
-                .font(.system(size: 46, weight: .medium))
+        ZStack {
+            VStack(spacing: 18) {
+                Image(systemName: "hourglass")
+                    .font(.system(size: 46, weight: .medium))
+                    .foregroundStyle(.tint)
+
+                Text("To know what remains")
+                    .font(.system(
+                        .title3,
+                        design: .rounded,
+                        weight: .semibold
+                    ))
+                    .foregroundStyle(.tint)
+
+                Text(
+                    "Mujø needs access to your Screen Time. It won't be able "
+                        + "to see what you're doing on the screen. It will only "
+                        + "use your Screen Time to keep track of what remains."
+                )
+                .font(.system(.subheadline, design: .rounded))
                 .foregroundStyle(.tint)
+                .multilineTextAlignment(.center)
+            }
+            .padding(.horizontal, 32)
 
-            Text("To know what remains")
-                .font(.system(
-                    .title3,
-                    design: .rounded,
-                    weight: .semibold
-                ))
-                .foregroundStyle(.tint)
+            VStack {
+                Spacer()
 
-            Text(
-                "Mujø needs access to your Screen Time. It won't be able "
-                    + "to see what you're doing on the screen. It will only "
-                    + "use your Screen Time to keep track of what remains."
-            )
-            .font(.system(.subheadline, design: .rounded))
-            .foregroundStyle(.tint)
-            .multilineTextAlignment(.center)
-
-            OnboardingPrimaryButton(
-                isDisabled: isRequestingAccess,
-                action: retry
-            ) {
-                if isRequestingAccess {
-                    ProgressView()
-                } else {
-                    Text("Allow Access")
+                OnboardingPrimaryButton(
+                    isDisabled: isRequestingAccess,
+                    action: retry
+                ) {
+                    if isRequestingAccess {
+                        ProgressView()
+                    } else {
+                        Text("Allow Access")
+                    }
                 }
             }
+            .padding(.horizontal, 34)
+            .padding(.bottom, 34)
         }
-        .padding(32)
     }
 }

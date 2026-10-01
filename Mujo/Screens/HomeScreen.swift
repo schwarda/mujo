@@ -152,15 +152,6 @@ struct HomeScreen: View {
         )
     }
 
-    private var todayReportFilter: DeviceActivityFilter {
-        let start = Calendar.autoupdatingCurrent.startOfDay(for: .now)
-        return DeviceActivityFilter(
-            segment: .daily(during: DateInterval(start: start, end: .now)),
-            users: .all,
-            devices: .all
-        )
-    }
-
     private var shouldEmitPetals: Bool {
         let estimate = screenTime.usageEstimate(
             forLimitMinutes: selectedMinutes
@@ -202,12 +193,19 @@ struct HomeScreen: View {
                 }
             }
 
-            DeviceActivityReport(
-                .mujoTodayUsage,
-                filter: todayReportFilter
-            )
-            .frame(height: 24)
-            .padding(.horizontal, 12)
+            if estimate.isAvailable {
+                Text(
+                    "\(roundedUsedTime.formatted()) used · "
+                        + "\(TimeInterval(selectedMinutes * 60).formatted()) limit"
+                )
+                .font(MujoTheme.italicFont(size: 22, relativeTo: .body))
+                .monospacedDigit()
+                .foregroundStyle(
+                    MujoTheme.glassAccent.opacity(
+                        MujoTheme.secondaryTextOpacity
+                    )
+                )
+            }
         }
         .padding()
     }
@@ -220,6 +218,11 @@ struct HomeScreen: View {
 
             try? await Task.sleep(for: .seconds(1))
         }
+    }
+
+    private var roundedUsedTime: TimeInterval {
+        let step = TimeInterval(AppConfiguration.DailyLimit.stepMinutes * 60)
+        return floor(screenTime.usageSnapshot.estimatedUsedTime / step) * step
     }
 
 }
