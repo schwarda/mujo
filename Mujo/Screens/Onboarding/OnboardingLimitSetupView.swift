@@ -295,13 +295,13 @@ private struct OnboardingNotificationBanner: View {
             .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("1h 30m remaining")
+                Text("Nothing remains.")
                     .font(.system(
                         size: OnboardingTypography.systemUI,
                         weight: .semibold
                     ))
 
-                Text("You’ve used half of your daily limit.")
+                Text("You've reached the time you chose for today.")
                     .font(.system(
                         size: OnboardingTypography.systemUI,
                         weight: .regular
@@ -491,6 +491,21 @@ private struct OnboardingSecondaryButton: View {
     }
 }
 
+private struct OnboardingLimitReachedMark: View {
+    var body: some View {
+        Image(OnboardingAssetName.launchLogo)
+            .resizable()
+            .scaledToFit()
+            .frame(width: 260, height: 260)
+            .shadow(
+                color: Color.accentColor.opacity(0.24),
+                radius: 18,
+                y: 10
+            )
+            .accessibilityLabel("Mujø")
+    }
+}
+
 private enum OnboardingWidgetHelp: String, Identifiable {
     case lockScreen
     case homeScreen
@@ -614,6 +629,7 @@ struct OnboardingLimitSetupView: View {
         case insights
         case chooseLimit
         case savings
+        case limitReached
         case notifications
         case lockScreenWidget
         case homeScreenWidget
@@ -631,6 +647,7 @@ struct OnboardingLimitSetupView: View {
     @State private var isSaving = false
     @State private var shouldLoadLimitReport = false
     @State private var isRequestingNotifications = false
+    @State private var isShowingNotificationOptOutAlert = false
     @State private var widgetHelp: OnboardingWidgetHelp?
     @StateObject private var notificationAuthorization = NotificationAuthorization()
     @State private var savingsPage: OnboardingSavingsPage = .day
@@ -722,6 +739,11 @@ struct OnboardingLimitSetupView: View {
                 .allowsHitTesting(step == .savings)
                 .accessibilityHidden(step != .savings)
 
+            limitReachedStep
+                .opacity(step == .limitReached ? 1 : 0)
+                .allowsHitTesting(step == .limitReached)
+                .accessibilityHidden(step != .limitReached)
+
             notificationsStep
                 .opacity(step == .notifications ? 1 : 0)
                 .allowsHitTesting(step == .notifications)
@@ -746,6 +768,21 @@ struct OnboardingLimitSetupView: View {
         )
         .task {
             await preloadLimitReport()
+        }
+        .alert(
+            "Are you sure you don’t want notifications?",
+            isPresented: $isShowingNotificationOptOutAlert
+        ) {
+            Button("Enable notifications") {
+                enableNotifications()
+            }
+            Button("Not now") {
+                finishNotificationStep()
+            }
+        } message: {
+            Text(
+                "Mujø won’t be able to notify you when you reach your daily screen time limit."
+            )
         }
         .sheet(item: $widgetHelp) { help in
             OnboardingWidgetHelpSheet(help: help)
@@ -1006,11 +1043,75 @@ struct OnboardingLimitSetupView: View {
                 .padding(.horizontal, 34)
 
                 OnboardingSecondaryButton(title: "Not now") {
-                    finishNotificationStep()
+                    isShowingNotificationOptOutAlert = true
                 }
                 .padding(.top, 5)
             }
             .padding(.bottom, 8)
+        }
+    }
+
+    private var limitReachedStep: some View {
+        AdaptiveOnboardingStep {
+            VStack(spacing: 0) {
+                Text("What happens\nwhen you reach\nyour limit?")
+                    .font(MujoTheme.boldFont(
+                        size: 40,
+                        relativeTo: .largeTitle
+                    ))
+                    .foregroundStyle(.tint)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, OnboardingLayoutMetrics.topHeadingPadding)
+
+                Spacer()
+
+                OnboardingLimitReachedMark()
+
+                Spacer()
+
+                Text(
+                    "Nothing gets locked. Mujø sends you a gentle reminder - then leaves the choice with you."
+                )
+                .font(MujoTheme.italicFont(
+                    size: OnboardingTypography.descriptive,
+                    relativeTo: .body
+                ))
+                .foregroundStyle(.tint)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 30)
+
+//                HStack(alignment: .center, spacing: 16) {
+//                    Image(systemName: "bell.badge")
+//                        .font(.system(size: 20, weight: .semibold))
+//                        .foregroundStyle(.tint)
+//
+//                    Text(
+//                        "Next, Mujø will ask to send notifications. Without them, it can’t tell you when you reach your limit."
+//                    )
+//                    .font(MujoTheme.mediumFont(
+//                        size: OnboardingTypography.supporting,
+//                        relativeTo: .subheadline
+//                    ))
+//                    .foregroundStyle(.tint)
+//                    .fixedSize(horizontal: false, vertical: true)
+//                }
+//                .padding(.horizontal, 18)
+//                .padding(.vertical, 16)
+//                .glassEffect(.clear, in: .rect(cornerRadius: 24))
+//                .padding(.horizontal, 28)
+//                .padding(.top, 28)
+
+                Spacer(minLength: 28)
+
+                OnboardingPrimaryButton(action: {
+                    step = .notifications
+                }) {
+                    Text("Got it")
+                }
+                .padding(.horizontal, 34)
+            }
+            .padding(.bottom, 16)
         }
     }
 
@@ -1292,7 +1393,7 @@ struct OnboardingLimitSetupView: View {
         guard let nextPage = OnboardingSavingsPage(
             rawValue: savingsPage.rawValue + 1
         ) else {
-            step = .notifications
+            step = .limitReached
             return
         }
 
@@ -1372,15 +1473,19 @@ private struct OnboardingScreenPreview: View {
     OnboardingScreenPreview(step: .savings)
 }
 
-#Preview("06 · Notifications") {
+#Preview("06 · Limit reached") {
+    OnboardingScreenPreview(step: .limitReached)
+}
+
+#Preview("07 · Notifications") {
     OnboardingScreenPreview(step: .notifications)
 }
 
-#Preview("07 · Lock Screen widget") {
+#Preview("08 · Lock Screen widget") {
     OnboardingScreenPreview(step: .lockScreenWidget)
 }
 
-#Preview("08 · Home Screen widget") {
+#Preview("09 · Home Screen widget") {
     OnboardingScreenPreview(step: .homeScreenWidget)
 }
 #endif
