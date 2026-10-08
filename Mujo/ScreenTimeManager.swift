@@ -33,15 +33,21 @@ final class ScreenTimeManager: ObservableObject {
     private let appUpdateRecovery: AppUpdateRecovery
     private var authorizationStatusSubscription: AnyCancellable?
     private var isRecoveringAppUpdate = false
+    private let sharedDefaults: UserDefaults?
 
     init(defaults: UserDefaults? = nil) {
-        let defaults = defaults ?? UserDefaults(
+#if DEBUG
+        let initializationStartedAt = PerformanceDiagnostics.now
+        PerformanceDiagnostics.log("screen-time", "ScreenTimeManager init started")
+#endif
+        let sharedDefaults = defaults ?? UserDefaults(
             suiteName: AppConfiguration.appGroupIdentifier
-        ) ?? .standard
-        let limitStore = DailyLimitStore(sharedDefaults: defaults)
+        )
+        self.sharedDefaults = sharedDefaults
+        let limitStore = DailyLimitStore(sharedDefaults: sharedDefaults)
         self.limitStore = limitStore
         appUpdateRecovery = AppUpdateRecovery()
-        usageSnapshotLoader = UsageSnapshotLoader(defaults: defaults)
+        usageSnapshotLoader = UsageSnapshotLoader(defaults: sharedDefaults)
         monitoring = ScreenTimeMonitoring(
             suiteName: AppConfiguration.appGroupIdentifier
         )
@@ -56,6 +62,19 @@ final class ScreenTimeManager: ObservableObject {
             .sink { [weak self] status in
                 self?.authorizationStatus = status
             }
+#if DEBUG
+        PerformanceDiagnostics.log(
+            "screen-time",
+            "ScreenTimeManager init finished in \(PerformanceDiagnostics.elapsedMilliseconds(since: initializationStartedAt)) ms; authorized=\(isAuthorized), limitMinutes=\(dailyLimitMinutes)"
+        )
+        DiagnosticsStore.record(
+            source: "app",
+            message: sharedDefaults == nil
+                ? "App Group unavailable"
+                : "App Group available",
+            defaults: sharedDefaults
+        )
+#endif
     }
 
     var isAuthorized: Bool {
@@ -64,7 +83,16 @@ final class ScreenTimeManager: ObservableObject {
 
     @discardableResult
     func refreshAuthorizationStatus() -> Bool {
+#if DEBUG
+        let startedAt = PerformanceDiagnostics.now
+#endif
         authorizationStatus = AuthorizationCenter.shared.authorizationStatus
+#if DEBUG
+        PerformanceDiagnostics.log(
+            "screen-time",
+            "refreshAuthorizationStatus finished in \(PerformanceDiagnostics.elapsedMilliseconds(since: startedAt)) ms; status=\(String(describing: authorizationStatus))"
+        )
+#endif
         return isAuthorized
     }
 
@@ -78,27 +106,30 @@ final class ScreenTimeManager: ObservableObject {
                 with: usageSnapshot
             )
         } catch {
-            errorMessage = error.localizedDescription
+            handleMonitoringError(error)
         }
     }
 
-    func requestAuthorizationAndStart() async {
+    func requestAuthorization() async {
+#if DEBUG
+        let startedAt = PerformanceDiagnostics.now
+        PerformanceDiagnostics.log("screen-time", "AuthorizationCenter request started")
+#endif
         errorMessage = nil
 
         do {
             try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
             authorizationStatus = AuthorizationCenter.shared.authorizationStatus
-
-            guard isAuthorized else { return }
-            try await monitoring.restore(limit: limitStore.currentLimit)
-            refreshUsageSnapshot()
-            await RemainingTimeLiveActivityController.reconcile(
-                with: usageSnapshot
-            )
         } catch {
             authorizationStatus = AuthorizationCenter.shared.authorizationStatus
-            errorMessage = error.localizedDescription
+            handleMonitoringError(error)
         }
+#if DEBUG
+        PerformanceDiagnostics.log(
+            "screen-time",
+            "AuthorizationCenter request finished in \(PerformanceDiagnostics.elapsedMilliseconds(since: startedAt)) ms; status=\(String(describing: authorizationStatus)); error=\(errorMessage ?? "none")"
+        )
+#endif
     }
 
     func clearError() {
@@ -108,6 +139,25 @@ final class ScreenTimeManager: ObservableObject {
 #if DEBUG
     func showPreviewError(_ message: String) {
         errorMessage = message
+    }
+
+    var diagnosticDefaults: UserDefaults? {
+        sharedDefaults
+    }
+
+    func resetMeasurementForDiagnostics() async {
+        await monitoring.resetForDiagnostics()
+        sharedDefaults?.set(
+            AppConfiguration.defaultDailyLimit,
+            forKey: AppConfiguration.DefaultsKey.dailyLimit
+        )
+        dailyLimitMinutes = Int(AppConfiguration.defaultDailyLimit / 60)
+        refreshUsageSnapshot()
+        requestWidgetReload()
+    }
+
+    func monitoringDiagnosticsSummary() async -> String {
+        await monitoring.diagnosticsSummary()
     }
 #endif
 
@@ -172,6 +222,21 @@ final class ScreenTimeManager: ObservableObject {
 #endif
     }
 
+    func requestWidgetReload() {
+        WidgetCenter.shared.reloadAllTimelines()
+#if DEBUG
+        sharedDefaults?.set(
+            Date.now.timeIntervalSince1970,
+            forKey: AppConfiguration.DefaultsKey.lastWidgetReloadRequestedAt
+        )
+        DiagnosticsStore.record(
+            source: "app",
+            message: "Widget reload requested",
+            defaults: sharedDefaults
+        )
+#endif
+    }
+
     func setDailyLimit(minutes: Int) async {
         errorMessage = nil
         defer {
@@ -208,7 +273,23 @@ final class ScreenTimeManager: ObservableObject {
                 resumeAfterLimitChange: didChangeLimit
             )
         } catch {
-            errorMessage = error.localizedDescription
+            handleMonitoringError(error)
         }
+    }
+
+    private func handleMonitoringError(_ error: Error) {
+        if let monitoringError = error as? ScreenTimeMonitoring.Error,
+           case .sharedStorageUnavailable = monitoringError {
+            usageLogger.fault("App Group storage is unavailable")
+#if DEBUG
+            DiagnosticsStore.record(
+                source: "app",
+                message: "Monitoring stopped: App Group unavailable",
+                defaults: sharedDefaults
+            )
+#endif
+            return
+        }
+        errorMessage = error.localizedDescription
     }
 }

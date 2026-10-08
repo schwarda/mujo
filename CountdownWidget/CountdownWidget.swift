@@ -42,6 +42,17 @@ struct CountdownProvider: TimelineProvider {
         let defaults = UserDefaults(
             suiteName: AppConfiguration.appGroupIdentifier
         )
+#if DEBUG
+        defaults?.set(
+            date.timeIntervalSince1970,
+            forKey: AppConfiguration.DefaultsKey.lastWidgetTimelineAt
+        )
+        DiagnosticsStore.record(
+            source: "widget",
+            message: "Timeline generated",
+            defaults: defaults
+        )
+#endif
         let snapshot = UsageSnapshotLoader(defaults: defaults).load()
 
         return WidgetTimelinePlanner.makePlan(from: snapshot, at: date)
@@ -53,17 +64,20 @@ struct CountdownEntry: TimelineEntry {
     let remainingTime: TimeInterval
     let dailyLimit: TimeInterval
     let isEstimateAvailable: Bool
+    let unavailableReason: UsageEstimate.UnavailableReason?
 
     init(
         date: Date,
         remainingTime: TimeInterval,
         dailyLimit: TimeInterval = AppConfiguration.defaultDailyLimit,
-        isEstimateAvailable: Bool
+        isEstimateAvailable: Bool,
+        unavailableReason: UsageEstimate.UnavailableReason? = nil
     ) {
         self.date = date
         self.remainingTime = remainingTime
         self.dailyLimit = dailyLimit
         self.isEstimateAvailable = isEstimateAvailable
+        self.unavailableReason = unavailableReason
     }
 
     fileprivate init(plan: WidgetTimelinePlan) {
@@ -71,7 +85,22 @@ struct CountdownEntry: TimelineEntry {
             date: plan.date,
             remainingTime: plan.estimate.remainingTime,
             dailyLimit: plan.dailyLimit,
-            isEstimateAvailable: plan.estimate.isAvailable
+            isEstimateAvailable: plan.estimate.isAvailable,
+            unavailableReason: plan.estimate.unavailableReason
         )
+    }
+
+    var unavailableMessage: String {
+        isAdjustingTimeZone
+            ? "Syncing time zone…"
+            : "Updating…"
+    }
+
+    var isAdjustingTimeZone: Bool {
+        unavailableReason == .timeZoneChanged
+    }
+
+    var isExhausted: Bool {
+        isEstimateAvailable && remainingTime <= 0
     }
 }

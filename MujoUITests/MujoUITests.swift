@@ -34,6 +34,49 @@ final class MujoUITests: XCTestCase {
     }
 
     @MainActor
+    func testLimitSheetCanDismissAfterCancelledDrag() {
+        let app = XCUIApplication()
+        app.launchArguments.append("--ui-test-home")
+        app.launch()
+
+        let openEditor = app.buttons["Change daily limit"]
+        XCTAssertTrue(openEditor.waitForExistence(timeout: 10))
+        openEditor.tap()
+        let heading = app.staticTexts["daily-limit-heading"]
+        XCTAssertTrue(heading.waitForExistence(timeout: 5))
+        let originalY = heading.frame.minY
+
+        for _ in 0..<3 {
+            let start = heading.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1))
+            // Move slightly downward, then hold so this is a cancelled dismissal,
+            // not a fast flick that would legitimately close the sheet.
+            start.press(
+                forDuration: 0.1,
+                thenDragTo: start.withOffset(CGVector(dx: 0, dy: 65)),
+                withVelocity: .slow,
+                thenHoldForDuration: 0.8
+            )
+            XCTAssertTrue(heading.exists)
+            let returned = NSPredicate { _, _ in
+                heading.exists && abs(heading.frame.minY - originalY) < 5
+            }
+            expectation(for: returned, evaluatedWith: nil)
+            waitForExpectations(timeout: 5)
+        }
+
+        let start = heading.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1))
+        start.press(
+            forDuration: 0.1,
+            thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.95)),
+            withVelocity: .fast,
+            thenHoldForDuration: 0
+        )
+        XCTAssertTrue(heading.waitForNonExistence(timeout: 5))
+        openEditor.tap()
+        XCTAssertTrue(heading.waitForExistence(timeout: 5))
+    }
+
+    @MainActor
     func testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.
         measure(metrics: [XCTApplicationLaunchMetric()]) {

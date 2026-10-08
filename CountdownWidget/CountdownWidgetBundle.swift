@@ -14,6 +14,8 @@ struct CountdownWidgetBundle: WidgetBundle {
         DigitalWidget()
         GradientWidget()
         GradientDigitalWidget()
+#if MUJO_LIVE_ACTIVITIES
         RemainingTimeLiveActivity()
+#endif
     }
 }

@@ -32,6 +32,15 @@ struct SakuraBackground: View {
     }
 }
 
+struct OnboardingBackground: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        MujoTheme.onboardingBackground(for: colorScheme)
+            .ignoresSafeArea()
+    }
+}
+
 #if DEBUG
 #Preview {
     SakuraBackground()

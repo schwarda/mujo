@@ -1,13 +1,9 @@
 import DeviceActivity
 import SwiftUI
+import UIKit
 
 private enum OnboardingInteractionMetrics {
-    static let pageAnimationDuration = 0.35
     static let stepAnimationDuration = 0.3
-    static let edgeDragResistance = 0.22
-    static let minimumDragDistance: CGFloat = 12
-    static let pageChangeThreshold: CGFloat = 60
-    static let reportPreloadDelay = Duration.milliseconds(350)
 }
 
 private enum OnboardingPreviewData {
@@ -25,9 +21,6 @@ private enum OnboardingAssetName {
 
 private enum OnboardingLayoutMetrics {
     static let topHeadingPadding: CGFloat = 34
-    static let insightContentVerticalOffset: CGFloat = -18
-    static let limitReportMinimumHeight: CGFloat = 150
-    static let limitReportMaximumHeight: CGFloat = 210
     static let savingsReportMinimumHeight: CGFloat = 420
     static let lockScreenAspectRatio: CGFloat = 1.2
     static let homeScreenWidgetMaximumWidth: CGFloat = 360
@@ -56,224 +49,10 @@ private struct AdaptiveOnboardingStep<Content: View>: View {
     }
 }
 
-private struct OnboardingInitialReport: View {
-    let context: DeviceActivityReport.Context
-    let filter: DeviceActivityFilter
-    @State private var showsLoader = true
-
-    var body: some View {
-        ZStack {
-            DeviceActivityReport(context, filter: filter)
-                .accessibilityElement(children: .contain)
-
-            if showsLoader {
-                ProgressView()
-                    .controlSize(.large)
-                    .tint(.accentColor)
-                    .accessibilityLabel("Loading Screen Time")
-                    .transition(.opacity)
-            }
-        }
-        .task {
-            try? await Task.sleep(for: .milliseconds(900))
-            guard !Task.isCancelled else { return }
-            withAnimation(.easeOut(duration: 0.2)) {
-                showsLoader = false
-            }
-        }
-    }
-}
-
 private enum OnboardingInsightPage: Int, CaseIterable {
     case day
     case week
     case year
-
-    var context: DeviceActivityReport.Context {
-        switch self {
-        case .day: .mujoDailyAverage
-        case .week: .mujoWeeklyTotal
-        case .year: .mujoYearlyTotal
-        }
-    }
-}
-
-private enum OnboardingSavingsPage: Int, CaseIterable {
-    case day
-    case week
-    case year
-
-    var context: DeviceActivityReport.Context {
-        switch self {
-        case .day: .mujoDailySavings
-        case .week: .mujoWeeklySavings
-        case .year: .mujoAnnualSavings
-        }
-    }
-}
-
-private struct OnboardingCardsPager<
-    Page: Hashable,
-    HeaderContent: View,
-    CardContent: View
->: View {
-    @Environment(\.colorScheme) private var colorScheme
-
-    @Binding var selection: Page
-    let pages: [Page]
-    let contentTopPadding: CGFloat
-    let buttonSpacing: CGFloat
-    let bottomPadding: CGFloat
-    let onContinue: () -> Void
-    let headerContent: () -> HeaderContent
-    let cardContent: (Page) -> CardContent
-    @State private var dragOffset: CGFloat = 0
-
-    init(
-        selection: Binding<Page>,
-        pages: [Page],
-        contentTopPadding: CGFloat,
-        buttonSpacing: CGFloat,
-        bottomPadding: CGFloat,
-        onContinue: @escaping () -> Void,
-        @ViewBuilder headerContent: @escaping () -> HeaderContent,
-        @ViewBuilder cardContent: @escaping (Page) -> CardContent
-    ) {
-        _selection = selection
-        self.pages = pages
-        self.contentTopPadding = contentTopPadding
-        self.buttonSpacing = buttonSpacing
-        self.bottomPadding = bottomPadding
-        self.onContinue = onContinue
-        self.headerContent = headerContent
-        self.cardContent = cardContent
-    }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            headerContent()
-
-            GeometryReader { geometry in
-                ZStack {
-                    HStack(spacing: 0) {
-                        ForEach(pages, id: \.self) { page in
-                            cardContent(page)
-                                .frame(width: geometry.size.width)
-                        }
-                    }
-                    .offset(
-                        x: -CGFloat(selectionIndex)
-                            * geometry.size.width
-                            + resistedDragOffset
-                    )
-                    .animation(
-                        .easeInOut(
-                            duration: OnboardingInteractionMetrics
-                                .pageAnimationDuration
-                        ),
-                        value: selection
-                    )
-
-                    Color.black.opacity(0.001)
-                        .contentShape(Rectangle())
-                        .gesture(pageDragGesture)
-                }
-            }
-            .frame(maxHeight: .infinity)
-            .layoutPriority(1)
-            .padding(.top, contentTopPadding)
-            .offset(y: OnboardingLayoutMetrics.insightContentVerticalOffset)
-
-            HStack(spacing: 16) {
-                ForEach(pages, id: \.self) { page in
-                    Circle()
-                        .fill(
-                            page == selection
-                                ? Color.accentColor
-                                : Color.accentColor.opacity(
-                                    colorScheme == .dark ? 0.30 : 0.36
-                                )
-                        )
-                        .frame(width: 10, height: 10)
-                }
-            }
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
-            .offset(y: OnboardingLayoutMetrics.insightContentVerticalOffset)
-
-            Spacer(minLength: buttonSpacing)
-
-            OnboardingPrimaryButton(action: onContinue) {
-                Text("Continue")
-            }
-            .padding(.horizontal, 34)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.bottom, bottomPadding)
-    }
-
-    private var selectionIndex: Int {
-        pages.firstIndex(of: selection) ?? 0
-    }
-
-    private var resistedDragOffset: CGFloat {
-        let isDraggingPastFirst = selection == pages.first && dragOffset > 0
-        let isDraggingPastLast = selection == pages.last && dragOffset < 0
-        return isDraggingPastFirst || isDraggingPastLast
-            ? dragOffset * OnboardingInteractionMetrics.edgeDragResistance
-            : dragOffset
-    }
-
-    private var pageDragGesture: some Gesture {
-        DragGesture(
-            minimumDistance: OnboardingInteractionMetrics.minimumDragDistance
-        )
-            .onChanged { value in
-                guard abs(value.translation.width)
-                    > abs(value.translation.height)
-                else { return }
-                dragOffset = value.translation.width
-            }
-            .onEnded { value in
-                guard abs(value.translation.width)
-                    > abs(value.translation.height)
-                else {
-                    withAnimation(.easeOut(duration: 0.2)) {
-                        dragOffset = 0
-                    }
-                    return
-                }
-
-                let projectedWidth = value.predictedEndTranslation.width
-                let pageOffset: Int
-
-                if projectedWidth
-                    < -OnboardingInteractionMetrics.pageChangeThreshold {
-                    pageOffset = 1
-                } else if projectedWidth
-                    > OnboardingInteractionMetrics.pageChangeThreshold {
-                    pageOffset = -1
-                } else {
-                    pageOffset = 0
-                }
-
-                completeDrag(pageOffset: pageOffset)
-            }
-    }
-
-    private func completeDrag(pageOffset: Int) {
-        let pageIndex = min(
-            pages.count - 1,
-            max(0, selectionIndex + pageOffset)
-        )
-
-        withAnimation(.easeInOut(
-            duration: OnboardingInteractionMetrics.pageAnimationDuration
-        )) {
-            selection = pages[pageIndex]
-            dragOffset = 0
-        }
-    }
 }
 
 private struct OnboardingNotificationBanner: View {
@@ -314,9 +93,9 @@ private struct OnboardingNotificationBanner: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(notificationBackground, in: .rect(cornerRadius: 20))
+        .background(notificationBackground, in: .rect(cornerRadius: 22))
         .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(notificationBorder, lineWidth: 1)
         }
         .overlay(alignment: .topTrailing) {
@@ -362,6 +141,49 @@ private struct OnboardingNotificationBanner: View {
 
     private var appIconBackground: Color {
         MujoTheme.raisedSurfaceBackground(for: colorScheme)
+    }
+}
+
+private struct NotificationRequestErrorOverlay: View {
+    let tryAgain: () -> Void
+    let continueWithoutNotifications: () -> Void
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.24)
+                .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                Text("Notifications couldn’t be enabled.")
+                    .font(MujoTheme.boldFont(
+                        size: 24,
+                        relativeTo: .title2
+                    ))
+
+                Text("Please try again.")
+                    .font(MujoTheme.mediumFont(size: 17, relativeTo: .body))
+                    .padding(.top, 8)
+
+                OnboardingPrimaryButton(action: tryAgain) {
+                    Text("Try again")
+                }
+                .padding(.top, 28)
+
+                OnboardingSecondaryButton(
+                    title: "Continue without notifications",
+                    action: continueWithoutNotifications
+                )
+                .padding(.top, 5)
+            }
+            .foregroundStyle(.tint)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 28)
+            .glassEffect(.regular, in: .rect(cornerRadius: 28))
+            .padding(.horizontal, 26)
+        }
+        .transition(.opacity)
+        .zIndex(10)
     }
 }
 
@@ -496,7 +318,7 @@ private struct OnboardingLimitReachedMark: View {
         Image(OnboardingAssetName.launchLogo)
             .resizable()
             .scaledToFit()
-            .frame(width: 260, height: 260)
+            .frame(width: 220, height: 220)
             .shadow(
                 color: Color.accentColor.opacity(0.24),
                 radius: 18,
@@ -526,19 +348,21 @@ private enum OnboardingWidgetHelp: String, Identifiable {
         }
     }
 
-    var steps: [String] {
+    var steps: [Text] {
         switch self {
         case .lockScreen:
             [
-                "Touch and hold your Lock Screen, then tap Customize.",
-                "Choose Lock Screen and tap the widget area below/above the clock.",
-                "Find Mujø in the widget list and tap the widget to add it."
+                Text("Touch and hold your Lock Screen, then tap Customize."),
+                Text("Choose Lock Screen and tap the widget area below/above the clock."),
+                Text("Find Mujø in the widget list and tap the widget to add it.")
             ]
         case .homeScreen:
             [
-                "Touch and hold an empty area of your Home Screen.",
-                "Tap Edit, then tap Add Widget.",
-                "Find Mujø, choose a widget, and tap Add Widget."
+                Text("Touch and hold an empty area of your Home Screen."),
+                Text(
+                    "Tap Edit \(Image(systemName: "paintbrush.fill")), then tap Add Widget."
+                ),
+                Text("Find Mujø, choose a widget, and tap Add Widget.")
             ]
         }
     }
@@ -596,7 +420,7 @@ private struct OnboardingWidgetHelpSheet: View {
                                         )
                                 }
 
-                            Text(step)
+                            step
                                 .font(MujoTheme.italicFont(
                                     size: OnboardingTypography.descriptive,
                                     relativeTo: .body
@@ -623,183 +447,58 @@ private struct OnboardingWidgetHelpSheet: View {
     }
 }
 
-struct OnboardingLimitSetupView: View {
-
-    fileprivate enum Step {
-        case insights
-        case chooseLimit
-        case savings
-        case limitReached
-        case notifications
-        case lockScreenWidget
-        case homeScreenWidget
-    }
-
-    @ObservedObject var screenTime: ScreenTimeManager
-    @Binding var windStrength: Double
-    @Environment(\.colorScheme) private var colorScheme
-    let onCompleted: () -> Void
-    private let usesPreviewData: Bool
-
-    @State private var step: Step = .insights
-    @State private var insightPage: OnboardingInsightPage = .day
-    @State private var selectedMinutes = 0
-    @State private var isSaving = false
-    @State private var shouldLoadLimitReport = false
-    @State private var isRequestingNotifications = false
-    @State private var isShowingNotificationOptOutAlert = false
-    @State private var widgetHelp: OnboardingWidgetHelp?
-    @StateObject private var notificationAuthorization = NotificationAuthorization()
-    @State private var savingsPage: OnboardingSavingsPage = .day
-    @AppStorage("wasNotificationPromptShown")
-    private var wasNotificationPromptShown = false
-
-    init(
-        screenTime: ScreenTimeManager,
-        windStrength: Binding<Double>,
-        usesPreviewData: Bool = false,
-        onCompleted: @escaping () -> Void
-    ) {
-        _screenTime = ObservedObject(wrappedValue: screenTime)
-        _windStrength = windStrength
-        _selectedMinutes = State(
-            initialValue: usesPreviewData
-                ? OnboardingPreviewData.initialLimitMinutes
-                : 0
-        )
-        self.usesPreviewData = usesPreviewData
-        self.onCompleted = onCompleted
-    }
+private struct OnboardingInsightsAndLimitReportSection<ReportContent: View>: View {
+    let isChoosingLimit: Bool
+    let showsHistoryReport: Bool
+    private let reportContent: () -> ReportContent
 
 #if DEBUG
-    fileprivate init(
-        previewStep: Step,
-        insightPage: OnboardingInsightPage = .day
-    ) {
-        _screenTime = ObservedObject(wrappedValue: ScreenTimeManager())
-        _windStrength = .constant(0)
-        _step = State(initialValue: previewStep)
-        _insightPage = State(initialValue: insightPage)
-        _selectedMinutes = State(
-            initialValue: OnboardingPreviewData.initialLimitMinutes
-        )
-        usesPreviewData = true
-        onCompleted = {}
-    }
+    // Temporary A/B diagnostic: keep the Set Limit layout intact while
+    // removing DeviceActivityReport from that step's view hierarchy entirely.
+    private let bypassesLimitPromptReportForPerformanceTest = true
+#else
+    private let bypassesLimitPromptReportForPerformanceTest = false
 #endif
 
-    private var sevenDayReportFilter: DeviceActivityFilter {
-        let calendar = Calendar.autoupdatingCurrent
-        let end = calendar.startOfDay(for: .now)
-        let start = calendar.date(
-            byAdding: .day,
-            value: -OnboardingProjectionRules.recentDayCount,
-            to: end
-        ) ?? end
-
-        return DeviceActivityFilter(
-            segment: .daily(
-                during: DateInterval(start: start, end: end)
-            ),
-            users: .all,
-            devices: .all
-        )
-    }
-
-    private var yearlyReportFilter: DeviceActivityFilter {
-        let calendar = Calendar.autoupdatingCurrent
-        let end = calendar.startOfDay(for: .now)
-        let start = calendar.date(
-            byAdding: .day,
-            value: -OnboardingProjectionRules.annualDayCount,
-            to: end
-        ) ?? end
-
-        return DeviceActivityFilter(
-            segment: .daily(during: DateInterval(start: start, end: end)),
-            users: .all,
-            devices: .all
-        )
+    init(
+        isChoosingLimit: Bool,
+        showsHistoryReport: Bool,
+        @ViewBuilder reportContent: @escaping () -> ReportContent
+    ) {
+        self.isChoosingLimit = isChoosingLimit
+        self.showsHistoryReport = showsHistoryReport
+        self.reportContent = reportContent
     }
 
     var body: some View {
-        ZStack {
-            insightsStep
-                .opacity(step == .insights ? 1 : 0)
-                .allowsHitTesting(step == .insights)
-                .accessibilityHidden(step != .insights)
-
-            chooseLimitStep
-                .opacity(step == .chooseLimit ? 1 : 0)
-                .allowsHitTesting(step == .chooseLimit)
-                .accessibilityHidden(step != .chooseLimit)
-
-            savingsStep
-                .opacity(step == .savings ? 1 : 0)
-                .allowsHitTesting(step == .savings)
-                .accessibilityHidden(step != .savings)
-
-            limitReachedStep
-                .opacity(step == .limitReached ? 1 : 0)
-                .allowsHitTesting(step == .limitReached)
-                .accessibilityHidden(step != .limitReached)
-
-            notificationsStep
-                .opacity(step == .notifications ? 1 : 0)
-                .allowsHitTesting(step == .notifications)
-                .accessibilityHidden(step != .notifications)
-
-            lockScreenWidgetStep
-                .opacity(step == .lockScreenWidget ? 1 : 0)
-                .allowsHitTesting(step == .lockScreenWidget)
-                .accessibilityHidden(step != .lockScreenWidget)
-
-            homeScreenWidgetStep
-                .opacity(step == .homeScreenWidget ? 1 : 0)
-                .allowsHitTesting(step == .homeScreenWidget)
-                .accessibilityHidden(step != .homeScreenWidget)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .animation(
-            .easeInOut(
-                duration: OnboardingInteractionMetrics.stepAnimationDuration
-            ),
-            value: step
+#if DEBUG
+        let _ = PerformanceDiagnostics.throttledLog(
+            key: "OnboardingInsightsAndLimitReportSection.body.\(isChoosingLimit)",
+            "swiftui-body",
+            "report section body; choosingLimit=\(isChoosingLimit), showsHistory=\(showsHistoryReport), bypass=\(bypassesLimitPromptReportForPerformanceTest)"
         )
-        .task {
-            await preloadLimitReport()
-        }
-        .alert(
-            "Are you sure you don’t want notifications?",
-            isPresented: $isShowingNotificationOptOutAlert
-        ) {
-            Button("Enable notifications") {
-                enableNotifications()
-            }
-            Button("Not now") {
-                finishNotificationStep()
-            }
-        } message: {
-            Text(
-                "Mujø won’t be able to notify you when you reach your daily screen time limit."
-            )
-        }
-        .sheet(item: $widgetHelp) { help in
-            OnboardingWidgetHelpSheet(help: help)
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-        }
-    }
+#endif
+        Group {
+            if isChoosingLimit {
+                Text("Take the first step")
+                    .font(MujoTheme.boldFont(size: 40, relativeTo: .largeTitle))
+                    .foregroundStyle(.tint)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
 
-    private var insightsStep: some View {
-        OnboardingCardsPager(
-            selection: $insightPage,
-            pages: OnboardingInsightPage.allCases,
-            contentTopPadding: 40,
-            buttonSpacing: 24,
-            bottomPadding: 34,
-            onContinue: advanceInsight,
-            headerContent: {
+                Text(
+                    "Set the amount of screen time\nyou want to give yourself each day."
+                )
+                .font(MujoTheme.italicFont(
+                    size: OnboardingTypography.descriptive,
+                    relativeTo: .body
+                ))
+                .foregroundStyle(.tint)
+                .multilineTextAlignment(.center)
+                .padding(.top, 12)
+
+                Spacer(minLength: 12)
+            } else {
                 Text("Before you\nchoose, know\nwhere you are")
                     .font(MujoTheme.boldFont(
                         size: 40,
@@ -807,60 +506,66 @@ struct OnboardingLimitSetupView: View {
                     ))
                     .foregroundStyle(.tint)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .layoutPriority(2)
                     .padding(
                         .top,
                         OnboardingLayoutMetrics.topHeadingPadding
                     )
+
+                Spacer(minLength: 32)
             }
-        ) { page in
-            report(
-                context: page.context,
-                filter: page == .year
-                    ? yearlyReportFilter
-                    : sevenDayReportFilter
-            )
+
+            if showsHistoryReport,
+               isChoosingLimit,
+               bypassesLimitPromptReportForPerformanceTest {
+                Color.clear
+                    .frame(height: 72)
+                    .padding(.horizontal, 32)
+                    .onAppear {
+#if DEBUG
+                        PerformanceDiagnostics.log(
+                            "onboarding",
+                            "Set Limit report host bypassed; diagnostic placeholder appeared"
+                        )
+#endif
+                    }
+            } else if showsHistoryReport {
+                reportContent()
+                    .frame(height: isChoosingLimit ? 72 : nil)
+                    .frame(maxHeight: isChoosingLimit ? nil : 460)
+                    .layoutPriority(1)
+                    .padding(.horizontal, isChoosingLimit ? 32 : 0)
+                    .allowsHitTesting(!isChoosingLimit)
+            }
         }
     }
+}
 
-    private func advanceInsight() {
-        guard let nextPage = OnboardingInsightPage(
-            rawValue: insightPage.rawValue + 1
-        ) else {
-            step = .chooseLimit
-            return
-        }
+private struct OnboardingLimitSelectionSection: View {
+    @State private var selectedMinutes: Int
+    @State private var isSaving = false
 
-        withAnimation(.easeInOut(
-            duration: OnboardingInteractionMetrics.pageAnimationDuration
-        )) {
-            insightPage = nextPage
-        }
+    let onSave: (Int) async -> Bool
+
+    init(
+        initialMinutes: Int,
+        onSave: @escaping (Int) async -> Bool
+    ) {
+        _selectedMinutes = State(initialValue: initialMinutes)
+        self.onSave = onSave
     }
 
-    private var chooseLimitStep: some View {
-        VStack(spacing: 0) {
-            ZStack {
-                if shouldLoadLimitReport {
-                    report(
-                        context: .mujoLimitPrompt,
-                        filter: sevenDayReportFilter
-                    )
-                }
-            }
-            .allowsHitTesting(false)
-            .frame(
-                minHeight: OnboardingLayoutMetrics.limitReportMinimumHeight,
-                maxHeight: OnboardingLayoutMetrics.limitReportMaximumHeight
-            )
-            .layoutPriority(1)
-            .padding(.horizontal, 26)
-            .padding(
-                .top,
-                OnboardingLayoutMetrics.topHeadingPadding
-            )
-
-            Spacer(minLength: 12)
-
+    var body: some View {
+#if DEBUG
+        let _ = PerformanceDiagnostics.throttledLog(
+            key: "OnboardingLimitSelectionSection.body",
+            minimumInterval: 0.10,
+            "swiftui-body",
+            "limit selection body; minutes=\(selectedMinutes), saving=\(isSaving)"
+        )
+#endif
+        Group {
             Text(selectedTime)
                 .font(MujoTheme.boldFont(
                     size: 88,
@@ -880,7 +585,7 @@ struct OnboardingLimitSetupView: View {
 
             TimeDial(
                 minutes: $selectedMinutes,
-                windStrength: $windStrength,
+                windStrength: .constant(0),
                 allowsEmptySelection: true,
                 showsValue: false,
                 onValueChange: { _ in },
@@ -894,12 +599,10 @@ struct OnboardingLimitSetupView: View {
                 isDisabled: selectedMinutes == 0 || isSaving,
                 action: saveLimit
             ) {
-                Group {
-                    if isSaving {
-                        ProgressView()
-                    } else {
-                        Text(buttonTitle)
-                    }
+                if isSaving {
+                    ProgressView()
+                } else {
+                    Text("Set limit")
                 }
             }
             .padding(.horizontal, 34)
@@ -914,46 +617,331 @@ struct OnboardingLimitSetupView: View {
                 .opacity(selectedMinutes == 0 ? 0 : 1)
                 .accessibilityHidden(selectedMinutes == 0)
         }
-        .padding(.bottom, 10)
+        .onAppear {
+#if DEBUG
+            PerformanceDiagnostics.markPhase("onboarding.chooseLimit.controls.appeared")
+            PerformanceDiagnostics.log(
+                "onboarding",
+                "limit controls appeared; minutes=\(selectedMinutes)"
+            )
+#endif
+        }
+        .onChange(of: selectedMinutes) { oldValue, newValue in
+#if DEBUG
+            PerformanceDiagnostics.log(
+                "onboarding",
+                "local selected minutes changed \(oldValue) -> \(newValue)"
+            )
+#endif
+        }
+    }
+
+    private var selectedTime: String {
+        OnboardingDurationFormatter.string(
+            minutes: selectedMinutes,
+            emptyPlaceholder: "–"
+        )
+    }
+
+    private func saveLimit() {
+        guard selectedMinutes > 0, !isSaving else { return }
+
+        isSaving = true
+        let minutes = selectedMinutes
+        Task {
+            if !(await onSave(minutes)) {
+                isSaving = false
+            }
+        }
+    }
+}
+
+struct OnboardingLimitSetupView: View {
+
+    fileprivate enum Step {
+        case insights
+        case chooseLimit
+        case savings
+        case limitReached
+        case notifications
+        case lockScreenWidget
+        case homeScreenWidget
+    }
+
+    @ObservedObject var screenTime: ScreenTimeManager
+    @Environment(\.colorScheme) private var colorScheme
+    let onCompleted: () -> Void
+    private let usesPreviewData: Bool
+
+    @State private var step: Step = .insights
+    @State private var insightPage: OnboardingInsightPage = .day
+    @State private var selectedMinutes = 0
+    @State private var showsHistoryReports = true
+    @State private var isRequestingNotifications = false
+    @State private var isShowingNotificationRequestError = false
+    @State private var isShowingNotificationDenialAlert = false
+    @State private var widgetHelp: OnboardingWidgetHelp?
+    @StateObject private var notificationAuthorization = NotificationAuthorization()
+    @AppStorage("wasNotificationPromptShown")
+    private var wasNotificationPromptShown = false
+
+    init(
+        screenTime: ScreenTimeManager,
+        usesPreviewData: Bool = false,
+        onCompleted: @escaping () -> Void
+    ) {
+#if DEBUG
+        let startedAt = PerformanceDiagnostics.now
+#endif
+        _screenTime = ObservedObject(wrappedValue: screenTime)
+        _selectedMinutes = State(
+            initialValue: usesPreviewData
+                ? OnboardingPreviewData.initialLimitMinutes
+                : 0
+        )
+        self.usesPreviewData = usesPreviewData
+        self.onCompleted = onCompleted
+#if DEBUG
+        PerformanceDiagnostics.log(
+            "onboarding",
+            "OnboardingLimitSetupView initialized in \(PerformanceDiagnostics.elapsedMilliseconds(since: startedAt)) ms; preview=\(usesPreviewData)"
+        )
+#endif
+    }
+
+#if DEBUG
+    fileprivate init(
+        previewStep: Step,
+        insightPage: OnboardingInsightPage = .day
+    ) {
+        _screenTime = ObservedObject(wrappedValue: ScreenTimeManager())
+        _step = State(initialValue: previewStep)
+        _insightPage = State(initialValue: insightPage)
+        _selectedMinutes = State(
+            initialValue: OnboardingPreviewData.initialLimitMinutes
+        )
+        usesPreviewData = true
+        onCompleted = {}
+    }
+#endif
+
+    private var sevenDayReportFilter: DeviceActivityFilter {
+#if DEBUG
+        let startedAt = PerformanceDiagnostics.now
+#endif
+        let calendar = Calendar.autoupdatingCurrent
+        let end = calendar.startOfDay(for: .now)
+        let start = calendar.date(
+            byAdding: .day,
+            value: -OnboardingProjectionRules.recentDayCount,
+            to: end
+        ) ?? end
+
+        let filter = DeviceActivityFilter(
+            segment: .daily(
+                during: DateInterval(start: start, end: end)
+            ),
+            users: .all,
+            devices: .all
+        )
+#if DEBUG
+        PerformanceDiagnostics.log(
+            "onboarding",
+            "seven-day report filter created in \(PerformanceDiagnostics.elapsedMilliseconds(since: startedAt)) ms; start=\(start), end=\(end)"
+        )
+#endif
+        return filter
+    }
+
+    var body: some View {
+#if DEBUG
+        let _ = PerformanceDiagnostics.throttledLog(
+            key: "OnboardingLimitSetupView.body.\(String(describing: step))",
+            minimumInterval: 0.10,
+            "swiftui-body",
+            "OnboardingLimitSetupView body; step=\(String(describing: step)), insightPage=\(String(describing: insightPage)), history=\(showsHistoryReports)"
+        )
+#endif
+        ZStack {
+            OnboardingBackground()
+
+            // Insights and limit selection share one persistent report so the
+            // already calculated average is not queried for a second time.
+            switch step {
+            case .insights, .chooseLimit:
+                insightsAndLimitStep.transition(.identity)
+            case .savings: savingsStep.transition(.identity)
+            case .limitReached: limitReachedStep
+            case .notifications: notificationsStep
+            case .lockScreenWidget: lockScreenWidgetStep
+            case .homeScreenWidget: homeScreenWidgetStep
+            }
+
+            if isShowingNotificationRequestError {
+                NotificationRequestErrorOverlay(
+                    tryAgain: {
+                        isShowingNotificationRequestError = false
+                        enableNotifications()
+                    },
+                    continueWithoutNotifications: {
+                        isShowingNotificationRequestError = false
+                        finishNotificationStep()
+                    }
+                )
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onChange(of: step) { oldStep, newStep in
+#if DEBUG
+            PerformanceDiagnostics.markPhase(
+                "onboarding.step.\(String(describing: newStep))"
+            )
+            PerformanceDiagnostics.log(
+                "onboarding",
+                "step changed \(String(describing: oldStep)) -> \(String(describing: newStep))"
+            )
+#endif
+        }
+        .onAppear {
+#if DEBUG
+            PerformanceDiagnostics.markPhase(
+                "onboarding.appeared.\(String(describing: step))"
+            )
+            PerformanceDiagnostics.log(
+                "onboarding",
+                "OnboardingLimitSetupView appeared; step=\(String(describing: step))"
+            )
+            if !usesPreviewData,
+               DiagnosticsScenarioStore.consumeNoHistoryOnboarding() {
+                showsHistoryReports = false
+                step = .chooseLimit
+            }
+#endif
+        }
+        .alert(
+            "Are you sure you don’t want notifications?",
+            isPresented: $isShowingNotificationDenialAlert
+        ) {
+            Button("Open Settings") {
+                openNotificationSettings()
+            }
+            Button("Continue without notifications", role: .cancel) {
+                finishNotificationStep()
+            }
+        } message: {
+            Text(
+                "You won’t receive notifications when you approach or reach your daily screen time limit."
+            )
+        }
+        .sheet(item: $widgetHelp) { help in
+            OnboardingWidgetHelpSheet(help: help)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
+    }
+
+    private var insightsAndLimitStep: some View {
+#if DEBUG
+        let _ = PerformanceDiagnostics.throttledLog(
+            key: "OnboardingLimitSetupView.insightsAndLimitStep.\(String(describing: step))",
+            minimumInterval: 0.10,
+            "swiftui-body",
+            "insightsAndLimitStep evaluated; step=\(String(describing: step))"
+        )
+#endif
+        return VStack(spacing: 0) {
+            OnboardingInsightsAndLimitReportSection(
+                isChoosingLimit: step == .chooseLimit,
+                showsHistoryReport: showsHistoryReports
+            ) {
+                report(
+                    context: .mujoInsightsCarousel,
+                    filter: sevenDayReportFilter,
+                    loadingMessage: step == .insights
+                        ? "Loading your insights…"
+                        : "Loading your average time…"
+                )
+            }
+
+            if step == .insights {
+                Spacer(minLength: 32)
+
+                OnboardingPrimaryButton(action: advanceInsight) {
+                    Text("Continue")
+                }
+                .padding(.horizontal, 34)
+            } else {
+                Spacer(minLength: 12)
+
+                OnboardingLimitSelectionSection(
+                    initialMinutes: selectedMinutes,
+                    onSave: saveLimit(minutes:)
+                )
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.top, step == .chooseLimit
+            ? OnboardingLayoutMetrics.topHeadingPadding
+            : 0)
+        .padding(.bottom, step == .insights ? 34 : 10)
+    }
+
+    private func advanceInsight() {
+#if DEBUG
+        let startedAt = PerformanceDiagnostics.now
+        PerformanceDiagnostics.markPhase("onboarding.insights.continue-tapped")
+        PerformanceDiagnostics.log(
+            "onboarding",
+            "Continue tapped; switching insights -> chooseLimit"
+        )
+#endif
+        step = .chooseLimit
+#if DEBUG
+        PerformanceDiagnostics.log(
+            "onboarding",
+            "step assignment finished in \(PerformanceDiagnostics.elapsedMilliseconds(since: startedAt)) ms"
+        )
+        PerformanceDiagnostics.mainQueueProbe(
+            "onboarding",
+            "after chooseLimit step assignment",
+            startedAt: startedAt
+        )
+#endif
     }
 
     private var savingsStep: some View {
         AdaptiveOnboardingStep {
             VStack(spacing: 0) {
-                OnboardingCardsPager(
-                    selection: $savingsPage,
-                    pages: OnboardingSavingsPage.allCases,
-                    contentTopPadding: 12,
-                    buttonSpacing: 8,
-                    bottomPadding: 0,
-                    onContinue: advanceSavings,
-                    headerContent: { savingsHeader }
-                ) { page in
-                    report(
-                        context: page.context,
-                        filter: yearlyReportFilter
-                    )
-                }
+                savingsHeader
 
-                OnboardingSecondaryButton(
-                    title: "Change limit",
-                    action: changeLimit
+                report(
+                    context: .mujoSavingsCarousel,
+                    filter: sevenDayReportFilter
                 )
-                .padding(.top, 5)
+                .frame(minHeight: OnboardingLayoutMetrics.savingsReportMinimumHeight)
+
+                Spacer(minLength: 32)
+
+                OnboardingPrimaryButton(action: advanceSavings) {
+                    Text("Continue")
+                }
+                .padding(.horizontal, 34)
+
             }
-            .padding(.bottom, 8)
+            .padding(.bottom, 34)
         }
     }
 
     private var savingsHeader: some View {
         VStack(spacing: 0) {
-            Text("Your new limit\nis set")
+            Text("Your new limit\nis set!")
                 .font(MujoTheme.boldFont(
                     size: 40,
                     relativeTo: .largeTitle
                 ))
                 .foregroundStyle(.tint)
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(
                     .top,
                     OnboardingLayoutMetrics.topHeadingPadding
@@ -970,7 +958,7 @@ struct OnboardingLimitSetupView: View {
                     size: OnboardingTypography.descriptive,
                     relativeTo: .body
                 ))
-                .padding(.top, 8)
+                .padding(.top, 16)
                 .foregroundStyle(.tint)
                 .multilineTextAlignment(.center)
         }
@@ -1037,17 +1025,12 @@ struct OnboardingLimitSetupView: View {
                     if isRequestingNotifications {
                         ProgressView()
                     } else {
-                        Text("Enable notifications")
+                        Text("Continue")
                     }
                 }
                 .padding(.horizontal, 34)
-
-                OnboardingSecondaryButton(title: "Not now") {
-                    isShowingNotificationOptOutAlert = true
-                }
-                .padding(.top, 5)
             }
-            .padding(.bottom, 8)
+            .padding(.bottom, 34)
         }
     }
 
@@ -1080,6 +1063,7 @@ struct OnboardingLimitSetupView: View {
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 30)
+                .padding(.bottom, 32)
 
 //                HStack(alignment: .center, spacing: 16) {
 //                    Image(systemName: "bell.badge")
@@ -1102,7 +1086,7 @@ struct OnboardingLimitSetupView: View {
 //                .padding(.horizontal, 28)
 //                .padding(.top, 28)
 
-                Spacer(minLength: 28)
+//                Spacer(minLength: 28)
 
                 OnboardingPrimaryButton(action: {
                     step = .notifications
@@ -1111,7 +1095,7 @@ struct OnboardingLimitSetupView: View {
                 }
                 .padding(.horizontal, 34)
             }
-            .padding(.bottom, 16)
+            .padding(.bottom, 34)
         }
     }
 
@@ -1128,7 +1112,7 @@ struct OnboardingLimitSetupView: View {
     private var homeScreenWidgetStep: some View {
         widgetStep(
             title: "Your time at a\nglance",
-            subtitle: "See what’s remaining\nwithout opening Mujø",
+            subtitle: "See what’s remaining right on your\nhome screen without opening Mujø",
             imageFirst: false,
             help: .homeScreen,
             onContinue: onCompleted
@@ -1230,9 +1214,33 @@ struct OnboardingLimitSetupView: View {
         isRequestingNotifications = true
 
         Task {
-            await notificationAuthorization.requestAuthorization()
+            let outcome = await notificationAuthorization
+                .requestAuthorization()
             isRequestingNotifications = false
-            finishNotificationStep()
+            switch outcome {
+            case .authorized:
+                finishNotificationStep()
+            case .denied:
+                isShowingNotificationDenialAlert = true
+            case .failed:
+                isShowingNotificationRequestError = true
+            }
+        }
+    }
+
+    private func openNotificationSettings() {
+        guard let url = URL(
+            string: UIApplication.openNotificationSettingsURLString
+        ) else {
+            isShowingNotificationRequestError = true
+            return
+        }
+
+        UIApplication.shared.open(url) { opened in
+            guard !opened else { return }
+            Task { @MainActor in
+                isShowingNotificationRequestError = true
+            }
         }
     }
 
@@ -1247,42 +1255,136 @@ struct OnboardingLimitSetupView: View {
         }
     }
 
-    private func preloadLimitReport() async {
-        if usesPreviewData {
-            shouldLoadLimitReport = true
-            return
-        }
-
-        try? await Task.sleep(
-            for: OnboardingInteractionMetrics.reportPreloadDelay
-        )
-        guard !Task.isCancelled else { return }
-        shouldLoadLimitReport = true
-    }
-
     @ViewBuilder
     private func report(
         context: DeviceActivityReport.Context,
-        filter: DeviceActivityFilter
+        filter: DeviceActivityFilter,
+        loadingMessage: String? = nil
     ) -> some View {
         if usesPreviewData {
             previewReport(context: context)
-        } else if context == .mujoDailyAverage {
-            OnboardingInitialReport(
-                context: context,
-                filter: filter
-            )
         } else {
-            DeviceActivityReport(context, filter: filter)
-                .accessibilityElement(children: .contain)
+            ZStack {
+                ScreenTimeReportLoadingView(
+                    message: loadingMessage
+                        ?? defaultLoadingMessage(for: context)
+                )
+
+                ScreenTimeReportView(context: context, filter: filter)
+                    .equatable()
+                    .id(context.rawValue)
+                    .accessibilityElement(children: .contain)
+            }
         }
+    }
+
+    private func defaultLoadingMessage(
+        for context: DeviceActivityReport.Context
+    ) -> String {
+        if context == .mujoInsightsCarousel {
+            return "Loading your insights…"
+        }
+        if context == .mujoSavingsCarousel {
+            return "Loading your savings…"
+        }
+        return "Loading your average time…"
     }
 
     @ViewBuilder
     private func previewReport(
         context: DeviceActivityReport.Context
     ) -> some View {
-        if context == .mujoDailyAverage {
+        if context == .mujoInsightsCarousel {
+            if step == .chooseLimit {
+                previewLimitPrompt
+            } else {
+                VStack(spacing: 0) {
+                    previewInsightCard(page: insightPage)
+                        .frame(maxHeight: .infinity)
+
+                    HStack(spacing: 16) {
+                        ForEach(
+                            OnboardingInsightPage.allCases,
+                            id: \.self
+                        ) { page in
+                            Circle()
+                                .fill(
+                                    page == insightPage
+                                        ? Color.accentColor
+                                        : Color.accentColor.opacity(
+                                            colorScheme == .dark ? 0.30 : 0.36
+                                        )
+                                )
+                                .frame(width: 10, height: 10)
+                        }
+                    }
+                    .accessibilityHidden(true)
+                }
+                .padding(.top, 22)
+            }
+        } else if context == .mujoDailyAverage {
+            previewInsightCard(page: .day)
+        } else if context == .mujoWeeklyTotal {
+            previewInsightCard(page: .week)
+        } else if context == .mujoYearlyTotal {
+            previewInsightCard(page: .year)
+        } else if context == .mujoSavingsCarousel {
+            VStack(spacing: 0) {
+                previewSavingsReport(page: 0)
+                    .frame(maxHeight: .infinity)
+
+                HStack(spacing: 16) {
+                    ForEach(0..<3, id: \.self) { page in
+                        Circle()
+                            .fill(
+                                page == 0
+                                    ? Color.accentColor
+                                    : Color.accentColor.opacity(
+                                        colorScheme == .dark ? 0.30 : 0.36
+                                    )
+                            )
+                            .frame(width: 10, height: 10)
+                    }
+                }
+                .accessibilityHidden(true)
+            }
+            .padding(.top, 22)
+        } else if context == .mujoDailySavings {
+            previewSavingsReport(page: 0)
+        } else if context == .mujoWeeklySavings {
+            previewSavingsReport(page: 1)
+        } else if context == .mujoAnnualSavings {
+            previewSavingsReport(page: 2)
+        }
+    }
+
+    private var previewLimitPrompt: some View {
+        let average = Text(verbatim: "3h 30m")
+            .font(MujoTheme.semiboldItalicFont(
+                size: OnboardingTypography.descriptive,
+                relativeTo: .body
+            ))
+        let suggestion = Text(verbatim: "2h 00m")
+            .font(MujoTheme.semiboldItalicFont(
+                size: OnboardingTypography.descriptive,
+                relativeTo: .body
+            ))
+
+        return Text(
+            "Your average \(average) a day.\nTry starting with \(suggestion)."
+        )
+        .font(MujoTheme.italicFont(
+            size: OnboardingTypography.descriptive,
+            relativeTo: .body
+        ))
+        .foregroundStyle(.tint)
+        .multilineTextAlignment(.center)
+    }
+
+    @ViewBuilder
+    private func previewInsightCard(page: OnboardingInsightPage) -> some View {
+        switch page {
+        case .day:
             OnboardingInsightCard(
                 value: "3h\n30m",
                 primaryCaption: .init("your ", emphasis: "daily average"),
@@ -1291,7 +1393,7 @@ struct OnboardingLimitSetupView: View {
                     emphasis: "last 7 days"
                 )
             )
-        } else if context == .mujoWeeklyTotal {
+        case .week:
             OnboardingInsightCard(
                 value: "24h\n30m",
                 primaryCaption: .init("your ", emphasis: "actual screen time"),
@@ -1300,46 +1402,12 @@ struct OnboardingLimitSetupView: View {
                     emphasis: "last 7 days"
                 )
             )
-        } else if context == .mujoYearlyTotal {
+        case .year:
             OnboardingInsightCard(
                 value: "53d\n5h",
                 primaryCaption: .init("at this pace,"),
                 secondaryCaption: .init("in one ", emphasis: "year")
             )
-        } else if context == .mujoLimitPrompt {
-            let average = Text(verbatim: "3h 30m")
-                .font(MujoTheme.semiboldItalicFont(
-                    size: OnboardingTypography.descriptive,
-                    relativeTo: .body
-                ))
-            let suggestion = Text(verbatim: "2h 00m")
-                .font(MujoTheme.semiboldItalicFont(
-                    size: OnboardingTypography.descriptive,
-                    relativeTo: .body
-                ))
-
-            VStack(spacing: 12) {
-                Text("Start with a\nsmall change")
-                    .font(.system(
-                        size: 40,
-                        weight: .bold,
-                        design: .rounded
-                    ))
-
-                Text("Your average \(average) a day.\nTry starting with \(suggestion).")
-                .font(MujoTheme.italicFont(
-                    size: OnboardingTypography.descriptive,
-                    relativeTo: .body
-                ))
-            }
-            .foregroundStyle(.tint)
-            .multilineTextAlignment(.center)
-        } else if context == .mujoDailySavings {
-            previewSavingsReport(page: 0)
-        } else if context == .mujoWeeklySavings {
-            previewSavingsReport(page: 1)
-        } else if context == .mujoAnnualSavings {
-            previewSavingsReport(page: 2)
         }
     }
 
@@ -1377,63 +1445,40 @@ struct OnboardingLimitSetupView: View {
         )
     }
 
-    private var buttonTitle: String {
-        "Set limit"
-    }
-
-    private func changeLimit() {
+    private func advanceSavings() {
         withAnimation(.easeInOut(
             duration: OnboardingInteractionMetrics.stepAnimationDuration
         )) {
-            step = .chooseLimit
-        }
-    }
-
-    private func advanceSavings() {
-        guard let nextPage = OnboardingSavingsPage(
-            rawValue: savingsPage.rawValue + 1
-        ) else {
             step = .limitReached
-            return
-        }
-
-        withAnimation(.easeInOut(
-            duration: OnboardingInteractionMetrics.pageAnimationDuration
-        )) {
-            savingsPage = nextPage
         }
     }
 
-    private func saveLimit() {
-        guard selectedMinutes > 0, !isSaving else { return }
+    private func saveLimit(minutes: Int) async -> Bool {
+        guard minutes > 0 else { return false }
 
         if usesPreviewData {
-            savingsPage = .day
+            selectedMinutes = minutes
             withAnimation(.easeInOut(
                 duration: OnboardingInteractionMetrics.stepAnimationDuration
             )) {
-                step = .savings
+                step = showsHistoryReports ? .savings : .limitReached
             }
-            return
+            return true
         }
 
-        isSaving = true
+        await screenTime.setDailyLimit(minutes: minutes)
 
-        Task {
-            await screenTime.setDailyLimit(minutes: selectedMinutes)
-            isSaving = false
+        guard screenTime.isAuthorized,
+              screenTime.errorMessage == nil
+        else { return false }
 
-            guard screenTime.isAuthorized,
-                  screenTime.errorMessage == nil
-            else { return }
-
-            savingsPage = .day
-            withAnimation(.easeInOut(
-                duration: OnboardingInteractionMetrics.stepAnimationDuration
-            )) {
-                step = .savings
-            }
+        selectedMinutes = minutes
+        withAnimation(.easeInOut(
+            duration: OnboardingInteractionMetrics.stepAnimationDuration
+        )) {
+            step = showsHistoryReports ? .savings : .limitReached
         }
+        return true
     }
 }
 
@@ -1444,7 +1489,7 @@ private struct OnboardingScreenPreview: View {
 
     var body: some View {
         ZStack {
-            SakuraBackground()
+            OnboardingBackground()
             OnboardingLimitSetupView(
                 previewStep: step,
                 insightPage: insightPage

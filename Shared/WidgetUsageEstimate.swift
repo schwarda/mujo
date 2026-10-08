@@ -15,8 +15,24 @@ struct UsageSnapshot: Equatable {
 }
 
 struct UsageEstimate: Equatable {
+    nonisolated enum UnavailableReason: Equatable, Sendable {
+        case missingData
+        case timeZoneChanged
+    }
+
     let remainingTime: TimeInterval
     let isAvailable: Bool
+    let unavailableReason: UnavailableReason?
+
+    init(
+        remainingTime: TimeInterval,
+        isAvailable: Bool,
+        unavailableReason: UnavailableReason? = nil
+    ) {
+        self.remainingTime = remainingTime
+        self.isAvailable = isAvailable
+        self.unavailableReason = unavailableReason
+    }
 }
 
 enum UsageEstimator {
@@ -32,27 +48,57 @@ enum UsageEstimator {
         let dailyLimit = AppConfiguration.DailyLimit.normalizedLimit(
             overrideLimit ?? storedLimit
         )
-        guard snapshot.checkpointTimeZoneIdentifier
-            == calendar.timeZone.identifier else {
+        guard let checkpointTimeZoneIdentifier = snapshot
+            .checkpointTimeZoneIdentifier,
+              let checkpointTimeZone = TimeZone(
+                identifier: checkpointTimeZoneIdentifier
+              )
+        else {
             return UsageEstimate(
                 remainingTime: dailyLimit,
-                isAvailable: false
+                isAvailable: false,
+                unavailableReason: .missingData
             )
         }
 
         let today = calendar.startOfDay(for: date).timeIntervalSince1970
+        var checkpointCalendar = calendar
+        checkpointCalendar.timeZone = checkpointTimeZone
+        let checkpointTimeZoneDay = checkpointCalendar
+            .startOfDay(for: date)
+            .timeIntervalSince1970
+        guard checkpointTimeZoneDay == today,
+              localDateComponents(
+                for: date,
+                calendar: checkpointCalendar
+              ) == localDateComponents(for: date, calendar: calendar)
+        else {
+            return UsageEstimate(
+                remainingTime: dailyLimit,
+                isAvailable: false,
+                unavailableReason: .timeZoneChanged
+            )
+        }
+
         let monitoringPredatesToday = snapshot.monitoringStartedAt > 0
             && snapshot.monitoringStartedAt <= today
         let estimateWasResetToday = snapshot.estimateDay == today
+        let monitoringStartedToday = snapshot.monitoringStartedAt >= today
+            && snapshot.monitoringStartedAt <= date.timeIntervalSince1970
         let canUseStoredEstimate = estimateWasResetToday
-            && (snapshot.hasCheckpoint || monitoringPredatesToday)
+            && (
+                snapshot.hasCheckpoint
+                    || monitoringPredatesToday
+                    || monitoringStartedToday
+            )
         let canAssumeZeroUsage = !estimateWasResetToday
             && monitoringPredatesToday
 
         guard canUseStoredEstimate || canAssumeZeroUsage else {
             return UsageEstimate(
                 remainingTime: dailyLimit,
-                isAvailable: false
+                isAvailable: false,
+                unavailableReason: .missingData
             )
         }
 
@@ -61,6 +107,19 @@ enum UsageEstimator {
                 snapshot.estimatedUsedTime
             )
             : 0
+        if confirmedUsedTime > 0,
+           UsageCheckpointValidator.decision(
+               reachedSeconds: confirmedUsedTime,
+               monitoringStartedAt: snapshot.monitoringStartedAt,
+               now: date,
+               calendar: calendar
+           ) != .accept {
+            return UsageEstimate(
+                remainingTime: dailyLimit,
+                isAvailable: false,
+                unavailableReason: .missingData
+            )
+        }
         let confirmedRemaining = max(0, dailyLimit - confirmedUsedTime)
         let displayResolutionMinutes = AppConfiguration.DailyLimit
             .displayResolutionMinutes(
@@ -79,8 +138,16 @@ enum UsageEstimator {
 
         return UsageEstimate(
             remainingTime: max(0, dailyLimit - displayedUsedTime),
-            isAvailable: true
+            isAvailable: true,
+            unavailableReason: nil
         )
+    }
+
+    private static func localDateComponents(
+        for date: Date,
+        calendar: Calendar
+    ) -> DateComponents {
+        calendar.dateComponents([.era, .year, .month, .day], from: date)
     }
 }
 

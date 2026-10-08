@@ -7,7 +7,7 @@ import Foundation
 
 @MainActor
 final class DailyLimitStore {
-    private let sharedDefaults: UserDefaults
+    private let sharedDefaults: UserDefaults?
     private let previewSuiteName: String
     private let previewWriteQueue: DispatchQueue
     private let previewWriteDelay: DispatchTimeInterval
@@ -15,7 +15,7 @@ final class DailyLimitStore {
     let migratedLimit: TimeInterval?
 
     init(
-        sharedDefaults: UserDefaults,
+        sharedDefaults: UserDefaults?,
         previewSuiteName: String = AppConfiguration.appGroupIdentifier,
         previewWriteQueue: DispatchQueue = DispatchQueue(
             label: "AikariStudio.Mujo.daily-limit-preview",
@@ -28,37 +28,38 @@ final class DailyLimitStore {
         self.previewWriteQueue = previewWriteQueue
         self.previewWriteDelay = previewWriteDelay
         let key = AppConfiguration.DefaultsKey.dailyLimit
-        let storedObject = sharedDefaults.object(forKey: key)
-        let storedLimit = sharedDefaults.double(forKey: key)
+        let storedObject = sharedDefaults?.object(forKey: key)
+        let storedLimit = sharedDefaults?.double(forKey: key) ?? 0
         let normalizedLimit = AppConfiguration.DailyLimit.normalizedLimit(
             storedLimit
         )
         if storedObject == nil {
             // The monitor extension needs the selected limit even before the
             // person changes the default value on the dial.
-            sharedDefaults.set(normalizedLimit, forKey: key)
+            sharedDefaults?.set(normalizedLimit, forKey: key)
             migratedLimit = nil
         } else if storedLimit != normalizedLimit {
-            sharedDefaults.set(normalizedLimit, forKey: key)
+            sharedDefaults?.set(normalizedLimit, forKey: key)
             migratedLimit = normalizedLimit
         } else {
             migratedLimit = nil
         }
-        sharedDefaults.removeObject(
+        sharedDefaults?.removeObject(
             forKey: AppConfiguration.DefaultsKey.previewDailyLimit
         )
     }
 
     var currentLimit: TimeInterval {
-        let storedValue = sharedDefaults.double(
+        let storedValue = sharedDefaults?.double(
             forKey: AppConfiguration.DefaultsKey.dailyLimit
-        )
+        ) ?? 0
         return AppConfiguration.DailyLimit.normalizedLimit(storedValue)
     }
 
     @discardableResult
     func save(_ limit: TimeInterval) -> Bool {
         guard limit.isFinite, limit > 0 else { return false }
+        guard let sharedDefaults else { return false }
         let normalizedLimit = AppConfiguration.DailyLimit.normalizedLimit(limit)
         guard normalizedLimit != currentLimit else { return false }
 
@@ -70,6 +71,7 @@ final class DailyLimitStore {
     }
 
     func preview(minutes: Int) {
+        guard sharedDefaults != nil else { return }
         let safeMinutes = AppConfiguration.DailyLimit.normalizedMinutes(minutes)
         let previewLimit = TimeInterval(safeMinutes * 60)
         let suiteName = previewSuiteName
@@ -90,6 +92,7 @@ final class DailyLimitStore {
     }
 
     func clearPreview() {
+        guard sharedDefaults != nil else { return }
         pendingPreviewWrite?.cancel()
         pendingPreviewWrite = nil
 

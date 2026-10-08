@@ -8,6 +8,16 @@ import Foundation
 /// Values shared by the app and its extension processes.
 enum AppConfiguration {
     nonisolated static let appGroupIdentifier = "group.AikariStudio.Mujo.shared"
+
+    enum Features {
+        // Keep the Live Activity implementation compiled while the product
+        // surface is temporarily disabled.
+#if MUJO_LIVE_ACTIVITIES
+        nonisolated static let liveActivitiesEnabled = true
+#else
+        nonisolated static let liveActivitiesEnabled = false
+#endif
+    }
     nonisolated static let defaultDailyLimit: TimeInterval = 2 * 60 * 60
     nonisolated static let widgetKind = "CountdownWidget"
     nonisolated static let gradientWidgetKind = "GradientWidget"
@@ -76,6 +86,10 @@ enum AppConfiguration {
         nonisolated static let lastCheckpointTimeZoneIdentifier = "lastCheckpointTimeZoneIdentifier"
         nonisolated static let hasUsageCheckpoint = "hasUsageCheckpoint"
         nonisolated static let usageMonitoringStartedAt = "usageMonitoringStartedAt"
+#if DEBUG
+        nonisolated static let lastWidgetTimelineAt = "debug.lastWidgetTimelineAt"
+        nonisolated static let lastWidgetReloadRequestedAt = "debug.lastWidgetReloadRequestedAt"
+#endif
     }
 
     enum Monitoring {
@@ -92,7 +106,7 @@ enum AppConfiguration {
             forLimitMinutes minutes: Int
         ) -> [Int] {
             let limit = DailyLimit.normalizedMinutes(minutes)
-            let invitation = max(
+            let finalWindowStart = max(
                 1,
                 limit - DailyLimit.liveActivityWindowMinutes(
                     forLimitMinutes: limit
@@ -106,7 +120,7 @@ enum AppConfiguration {
             // Confirm the first usage checkpoint soon after monitoring starts.
             thresholds.insert(1)
 
-            for usedMinutes in invitation...limit {
+            for usedMinutes in finalWindowStart...limit {
                 thresholds.insert(usedMinutes)
             }
 

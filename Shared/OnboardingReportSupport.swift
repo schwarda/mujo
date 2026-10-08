@@ -1,18 +1,73 @@
+import Combine
 import DeviceActivity
 import Foundation
 import SwiftUI
 
 extension DeviceActivityReport.Context {
+    nonisolated static let mujoInsightsCarousel = Self(
+        "Mujo Insights Carousel"
+    )
     nonisolated static let mujoDailyAverage = Self("Mujo Daily Average")
     nonisolated static let mujoWeeklyTotal = Self("Mujo Weekly Total")
     nonisolated static let mujoYearlyTotal = Self("Mujo Yearly Total")
-    nonisolated static let mujoLimitPrompt = Self("Mujo Limit Prompt")
     nonisolated static let mujoLimitEditorDescription = Self(
         "Mujo Limit Editor Description"
     )
     nonisolated static let mujoDailySavings = Self("Mujo Daily Savings")
     nonisolated static let mujoWeeklySavings = Self("Mujo Weekly Savings")
     nonisolated static let mujoAnnualSavings = Self("Mujo Annual Savings")
+    nonisolated static let mujoSavingsCarousel = Self(
+        "Mujo Savings Carousel"
+    )
+}
+
+// Screen Time data stays inside the system report extension. Keep its view
+// unchanged when unrelated host state (for example the limit dial) changes.
+struct ScreenTimeReportView: View, Equatable {
+    let context: DeviceActivityReport.Context
+    let filter: DeviceActivityFilter
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.context == rhs.context && lhs.filter == rhs.filter
+    }
+
+    var body: some View {
+#if DEBUG
+        let bodyStartedAt = PerformanceDiagnostics.now
+        let _ = PerformanceDiagnostics.log(
+            "report-host",
+            "ScreenTimeReportView body; context=\(context.rawValue)"
+        )
+#endif
+        DeviceActivityReport(context, filter: filter)
+            .onAppear {
+#if DEBUG
+                PerformanceDiagnostics.markPhase(
+                    "report-host.appeared.\(context.rawValue)"
+                )
+                PerformanceDiagnostics.log(
+                    "report-host",
+                    "DeviceActivityReport appeared; context=\(context.rawValue)"
+                )
+                PerformanceDiagnostics.mainQueueProbe(
+                    "report-host",
+                    "after DeviceActivityReport appeared",
+                    startedAt: bodyStartedAt
+                )
+#endif
+            }
+            .onDisappear {
+#if DEBUG
+                PerformanceDiagnostics.markPhase(
+                    "report-host.disappeared.\(context.rawValue)"
+                )
+                PerformanceDiagnostics.log(
+                    "report-host",
+                    "DeviceActivityReport disappeared; context=\(context.rawValue)"
+                )
+#endif
+            }
+    }
 }
 
 enum OnboardingReportStorage {
@@ -111,6 +166,7 @@ struct OnboardingInsightCard: View {
     let value: String
     let primaryCaption: OnboardingInsightCaption
     let secondaryCaption: OnboardingInsightCaption
+    var horizontalPadding: CGFloat = 28
 
 
     var body: some View {
@@ -138,7 +194,7 @@ struct OnboardingInsightCard: View {
                 }
                 .multilineTextAlignment(.center)
                 .foregroundStyle(primaryColor)
-                .padding(.bottom, 12)
+                .padding(.bottom, 16)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -149,8 +205,8 @@ struct OnboardingInsightCard: View {
             radius: 16,
             y: 10
         )
-        .padding(.horizontal, 28)
-        .padding(.vertical, 32)
+        .padding(.horizontal, horizontalPadding)
+        .padding(.bottom, 32)
     }
 
     private var primaryColor: Color {
@@ -196,6 +252,7 @@ struct OnboardingInsightCaption {
 struct OnboardingSavingsCard: View {
     let annualSavingsMinutes: Int
     let page: Int
+    var horizontalPadding: CGFloat = 28
 
     var body: some View {
         switch page {
@@ -238,7 +295,60 @@ struct OnboardingSavingsCard: View {
             secondaryCaption: .init(
                 "screen-free time ",
                 emphasis: period
-            )
+            ),
+            horizontalPadding: horizontalPadding
         )
+    }
+}
+
+// This model lives in the report process in production. It does not export
+// usage values or readiness through App Groups.
+@MainActor
+final class ReportContentLoader<Value>: ObservableObject {
+    enum State {
+        case loading
+        case loaded(Value)
+        case noData
+        case timedOut
+    }
+
+    @Published private(set) var state: State = .loading
+    private let operation: () async -> Value?
+    private let timeout: Duration
+    private var work: Task<Void, Never>?
+    private var deadline: Task<Void, Never>?
+
+    init(timeout: Duration = .seconds(15), operation: @escaping () async -> Value?) {
+        self.timeout = timeout
+        self.operation = operation
+    }
+
+    func start() {
+        guard work == nil else { return }
+        let operation = operation
+        work = Task { [weak self] in
+            let value = await operation()
+            guard !Task.isCancelled else { return }
+            self?.complete(value)
+        }
+        let timeout = timeout
+        deadline = Task { [weak self] in
+            do { try await Task.sleep(for: timeout) }
+            catch { return }
+            guard let self, case .loading = self.state else { return }
+            self.state = .timedOut
+        }
+    }
+
+    private func complete(_ value: Value?) {
+        deadline?.cancel()
+        // A slow valid result may replace the timeout fallback. A deadline
+        // never replaces content that has already loaded.
+        state = value.map(State.loaded) ?? .noData
+    }
+
+    deinit {
+        work?.cancel()
+        deadline?.cancel()
     }
 }

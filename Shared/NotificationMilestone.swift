@@ -8,10 +8,9 @@
 /*
  Notification hits for every selectable daily limit (h:mm).
  Each cell is used time → remaining time; — means no notification.
- The last column is the notification that invites the user to start a
- Live Activity. Its one-minute updates are not additional notifications.
+ The last column is the notification sent at the start of the final window.
 
- Limit | 50%         | 75%         | Live Activity invitation
+ Limit | 50%         | 75%         | Final-window warning
  ------+-------------+-------------+-------------------------
  0:15  | —           | —           | 0:01→0:14
  0:30  | —           | —           | 0:15→0:15
@@ -61,13 +60,16 @@
  11:30 | 5:45→5:45   | 8:45→2:45   | 11:00→0:30
  11:45 | 6:00→5:45   | 9:00→2:45   | 11:15→0:30
  12:00 | 6:00→6:00   | 9:00→3:00   | 11:30→0:30
+
+ Every selectable limit also notifies at 5 minutes remaining and at expiry.
 */
 
 struct NotificationMilestone {
     enum Kind: String {
         case percent50
         case percent75
-        case liveActivityInvitation
+        case finalWindow
+        case fiveMinutesRemaining
         case timeExpired
     }
 
@@ -100,9 +102,12 @@ struct NotificationMilestone {
 
         milestones.append(
             Self(
-                kind: .liveActivityInvitation,
+                kind: .finalWindow,
                 usedMinutes: max(1, limit - liveRemaining)
             )
+        )
+        milestones.append(
+            Self(kind: .fiveMinutesRemaining, usedMinutes: limit - 5)
         )
         milestones.append(Self(kind: .timeExpired, usedMinutes: limit))
 

@@ -47,15 +47,13 @@ enum NotificationDelivery {
             content.title = remainingTitle(minutes: remainingMinutes)
             content.body = "Your time is getting shorter. Spend it deliberately."
 
-        case .liveActivityInvitation:
-            content.title = remainingTitle(minutes: remainingMinutes)
-            content.body = "Keep it in sight with Live Activity."
-            content.userInfo = [
-                "mujoAction": "startLiveActivity",
-                "limitMinutes": limitMinutes,
-                "remainingMinutes": remainingMinutes,
-                "receivedAt": Date.now.timeIntervalSince1970
-            ]
+        case .finalWindow:
+            content.title = "\(remainingMinutes) min remaining"
+            content.body = "Make the last minutes count."
+
+        case .fiveMinutesRemaining:
+            content.title = "5 min remaining"
+            content.body = "Choose how you want to spend them"
 
         case .timeExpired:
             content.title = "Nothing remains."

@@ -130,15 +130,16 @@ struct WidgetUsageEstimateTests {
         #expect(estimate.remainingTime == 5 * 60 * 60)
     }
 
-    @Test("Monitoring started today cannot establish earlier usage")
-    func unavailableWhenMonitoringStartedToday() {
+    @Test("Monitoring started today begins with zero confirmed usage")
+    func startsMeasurementAtSetup() {
         let estimate = estimate(snapshot: snapshot(
+            estimateDay: dayStart.timeIntervalSince1970,
             monitoringStartedAt: dayStart
                 .addingTimeInterval(60)
                 .timeIntervalSince1970
         ))
 
-        #expect(!estimate.isAvailable)
+        #expect(estimate.isAvailable)
         #expect(estimate.remainingTime == 5 * 60 * 60)
     }
 
@@ -154,12 +155,65 @@ struct WidgetUsageEstimateTests {
         #expect(estimate.remainingTime == 0)
     }
 
+    @Test("An impossible stored 12-hour value is never displayed")
+    func rejectsImpossibleStoredUsage() {
+        let monitoringStart = dayStart.addingTimeInterval(60)
+        let estimate = WidgetUsageEstimator.estimate(
+            from: snapshot(
+                storedDailyLimit: 12 * 60 * 60,
+                estimatedUsedTime: 12 * 60 * 60,
+                estimateDay: dayStart.timeIntervalSince1970,
+                monitoringStartedAt: monitoringStart.timeIntervalSince1970,
+                hasCheckpoint: true
+            ),
+            at: monitoringStart.addingTimeInterval(5 * 60),
+            calendar: calendar
+        )
+
+        #expect(!estimate.isAvailable)
+        #expect(estimate.remainingTime == 12 * 60 * 60)
+    }
+
     @Test("Travel from Bratislava to New York invalidates the estimate")
     func invalidatesEstimateAfterWestwardTravel() throws {
         try expectUnavailableAfterTravel(
             from: "Europe/Bratislava",
             to: "America/New_York"
         )
+    }
+
+    @Test("Travel between zones with the same local day keeps the estimate")
+    func keepsEstimateBetweenBerlinAndBratislava() throws {
+        let berlin = try makeCalendar(
+            timeZoneIdentifier: "Europe/Berlin"
+        )
+        let bratislava = try makeCalendar(
+            timeZoneIdentifier: "Europe/Bratislava"
+        )
+        let date = try makeUTCDate(
+            year: 2026,
+            month: 10,
+            day: 6,
+            hour: 12
+        )
+        let estimate = WidgetUsageEstimator.estimate(
+            from: snapshot(
+                estimatedUsedTime: 60 * 60,
+                estimateDay: berlin.startOfDay(for: date)
+                    .timeIntervalSince1970,
+                monitoringStartedAt: berlin.startOfDay(for: date)
+                    .addingTimeInterval(-60)
+                    .timeIntervalSince1970,
+                hasCheckpoint: true,
+                checkpointTimeZoneIdentifier: berlin.timeZone.identifier
+            ),
+            at: date,
+            calendar: bratislava
+        )
+
+        #expect(estimate.isAvailable)
+        #expect(estimate.unavailableReason == nil)
+        #expect(estimate.remainingTime == 4 * 60 * 60)
     }
 
     @Test("Travel from Bratislava to Tokyo invalidates the estimate")
@@ -268,6 +322,7 @@ struct WidgetUsageEstimateTests {
         )
 
         #expect(!estimate.isAvailable)
+        #expect(estimate.unavailableReason == .timeZoneChanged)
         #expect(estimate.remainingTime == 5 * 60 * 60)
     }
 

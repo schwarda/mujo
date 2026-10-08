@@ -18,7 +18,8 @@ enum RemainingTimeLiveActivityController {
         limitMinutes: Int,
         updatedAt: Date
     ) async throws -> Bool {
-        guard ActivityAuthorizationInfo().areActivitiesEnabled else {
+        guard AppConfiguration.Features.liveActivitiesEnabled,
+              ActivityAuthorizationInfo().areActivitiesEnabled else {
             return false
         }
 
@@ -56,6 +57,10 @@ enum RemainingTimeLiveActivityController {
         with snapshot: UsageSnapshot,
         resumeAfterLimitChange: Bool = false
     ) async {
+        guard AppConfiguration.Features.liveActivitiesEnabled else {
+            await endRunningActivities()
+            return
+        }
         let activities = runningActivities
         if activities.contains(where: {
             Calendar.current.isDate($0.content.state.updatedAt, inSameDayAs: .now)
@@ -113,6 +118,10 @@ enum RemainingTimeLiveActivityController {
     static func restartActiveAfterAppUpdate(
         with snapshot: UsageSnapshot
     ) async throws {
+        guard AppConfiguration.Features.liveActivitiesEnabled else {
+            await endRunningActivities()
+            return
+        }
         let activities = runningActivities
         guard !activities.isEmpty else { return }
 
@@ -158,6 +167,12 @@ enum RemainingTimeLiveActivityController {
     private static var runningActivities: [Activity<RemainingTimeActivityAttributes>] {
         Activity<RemainingTimeActivityAttributes>.activities.filter {
             $0.activityState == .active || $0.activityState == .stale
+        }
+    }
+
+    private static func endRunningActivities() async {
+        for activity in runningActivities {
+            await activity.end(nil, dismissalPolicy: .immediate)
         }
     }
 

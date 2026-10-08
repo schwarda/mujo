@@ -5,9 +5,17 @@ import SwiftUI
 @main
 struct ScreenTimeReportExtension: DeviceActivityReportExtension {
     var body: some DeviceActivityReportScene {
+        OnboardingSuggestionReport(context: .mujoInsightsCarousel) {
+            configuration in
+            OnboardingReportContentView(
+                configuration: configuration,
+                presentation: .insightsCarousel
+            )
+        }
+
         OnboardingSuggestionReport(context: .mujoDailyAverage) {
             configuration in
-            OnboardingSuggestionView(
+            OnboardingReportContentView(
                 configuration: configuration,
                 presentation: .dailyAverage
             )
@@ -15,7 +23,7 @@ struct ScreenTimeReportExtension: DeviceActivityReportExtension {
 
         OnboardingSuggestionReport(context: .mujoWeeklyTotal) {
             configuration in
-            OnboardingSuggestionView(
+            OnboardingReportContentView(
                 configuration: configuration,
                 presentation: .weeklyTotal
             )
@@ -23,23 +31,15 @@ struct ScreenTimeReportExtension: DeviceActivityReportExtension {
 
         OnboardingSuggestionReport(context: .mujoYearlyTotal) {
             configuration in
-            OnboardingSuggestionView(
+            OnboardingReportContentView(
                 configuration: configuration,
                 presentation: .yearlyTotal
             )
         }
 
-        OnboardingSuggestionReport(context: .mujoLimitPrompt) {
-            configuration in
-            OnboardingSuggestionView(
-                configuration: configuration,
-                presentation: .limitPrompt
-            )
-        }
-
         OnboardingSuggestionReport(context: .mujoLimitEditorDescription) {
             configuration in
-            OnboardingSuggestionView(
+            OnboardingReportContentView(
                 configuration: configuration,
                 presentation: .limitEditorDescription
             )
@@ -47,7 +47,7 @@ struct ScreenTimeReportExtension: DeviceActivityReportExtension {
 
         OnboardingSuggestionReport(context: .mujoDailySavings) {
             configuration in
-            OnboardingSuggestionView(
+            OnboardingReportContentView(
                 configuration: configuration,
                 presentation: .dailySavings
             )
@@ -55,7 +55,7 @@ struct ScreenTimeReportExtension: DeviceActivityReportExtension {
 
         OnboardingSuggestionReport(context: .mujoWeeklySavings) {
             configuration in
-            OnboardingSuggestionView(
+            OnboardingReportContentView(
                 configuration: configuration,
                 presentation: .weeklySavings
             )
@@ -63,9 +63,17 @@ struct ScreenTimeReportExtension: DeviceActivityReportExtension {
 
         OnboardingSuggestionReport(context: .mujoAnnualSavings) {
             configuration in
-            OnboardingSuggestionView(
+            OnboardingReportContentView(
                 configuration: configuration,
                 presentation: .annualSavings
+            )
+        }
+
+        OnboardingSuggestionReport(context: .mujoSavingsCarousel) {
+            configuration in
+            OnboardingReportContentView(
+                configuration: configuration,
+                presentation: .savingsCarousel
             )
         }
 

@@ -8,6 +8,9 @@ import Foundation
 
 enum RemainingTimeLiveActivityUpdater {
     static func refresh(defaults: UserDefaults) {
+        guard AppConfiguration.Features.liveActivitiesEnabled else {
+            return
+        }
         // ActivityKit documents app/APNs updates. Extension-side updates are
         // best-effort and depend on the system keeping this process alive.
         Task {
@@ -35,10 +38,7 @@ enum RemainingTimeLiveActivityUpdater {
         let calendar = Calendar.current
         guard defaults.double(
             forKey: AppConfiguration.DefaultsKey.lastCheckpointResetDay
-        ) == calendar.startOfDay(for: .now).timeIntervalSince1970,
-              defaults.string(
-                forKey: AppConfiguration.DefaultsKey.lastCheckpointTimeZoneIdentifier
-              ) == calendar.timeZone.identifier
+        ) == calendar.startOfDay(for: .now).timeIntervalSince1970
         else { return }
 
         let limitMinutes = Int(

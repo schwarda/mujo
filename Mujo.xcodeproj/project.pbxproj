@@ -13,7 +13,6 @@
 		1521AF813052A00000866109 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* AppConfiguration.swift */; };
 		1521AF823052A00000866109 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* AppConfiguration.swift */; };
 		1521AF843052A00000866109 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* AppConfiguration.swift */; };
-		C0D100143080000000000001 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* AppConfiguration.swift */; };
 		1521BA04305B013D00866109 /* NotificationMilestone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521BA02305B013300866109 /* NotificationMilestone.swift */; };
 		1521BA05305B046700866109 /* NotificationMilestone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521BA02305B013300866109 /* NotificationMilestone.swift */; };
 		1521BA09305B397600866109 /* RemainingTimeActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521BA08305B395F00866109 /* RemainingTimeActivityAttributes.swift */; };
@@ -47,6 +46,16 @@
 		C0D1000F3080000000000001 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17E4E013060000000000001 /* Theme.swift */; };
 		C0D100103080000000000001 /* OnboardingReportSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D100123080000000000001 /* OnboardingReportSupport.swift */; };
 		C0D100113080000000000001 /* OnboardingReportSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D100123080000000000001 /* OnboardingReportSupport.swift */; };
+		C0D100143080000000000001 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521AF803052A00000866109 /* AppConfiguration.swift */; };
+		D1A600013090000000000001 /* UsageCheckpointValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A600103090000000000001 /* UsageCheckpointValidator.swift */; };
+		D1A600023090000000000001 /* UsageCheckpointValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A600103090000000000001 /* UsageCheckpointValidator.swift */; };
+		D1A600033090000000000001 /* ReportAvailabilityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A600113090000000000001 /* ReportAvailabilityStore.swift */; };
+		D1A600043090000000000001 /* ReportAvailabilityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A600113090000000000001 /* ReportAvailabilityStore.swift */; };
+		D1A600053090000000000001 /* DiagnosticsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A600123090000000000001 /* DiagnosticsStore.swift */; };
+		D1A600063090000000000001 /* DiagnosticsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A600123090000000000001 /* DiagnosticsStore.swift */; };
+		D1A600073090000000000001 /* DiagnosticsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A600123090000000000001 /* DiagnosticsStore.swift */; };
+		D1A600083090000000000001 /* DiagnosticsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A600123090000000000001 /* DiagnosticsStore.swift */; };
+		D1A600093090000000000001 /* UsageCheckpointValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A600103090000000000001 /* UsageCheckpointValidator.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -136,8 +145,11 @@
 		A17E4E143060000000000001 /* WidgetUsageSnapshotLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetUsageSnapshotLoader.swift; sourceTree = "<group>"; };
 		A17E4E153060000000000001 /* WidgetTimelinePlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetTimelinePlanner.swift; sourceTree = "<group>"; };
 		B4D6E1003070000000000001 /* RemainingTimeBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemainingTimeBadge.swift; sourceTree = "<group>"; };
-		C0D100033080000000000001 /* ScreenTimeReport.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ScreenTimeReport.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		C0D100033080000000000001 /* ScreenTimeReport.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = ScreenTimeReport.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		C0D100123080000000000001 /* OnboardingReportSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingReportSupport.swift; sourceTree = "<group>"; };
+		D1A600103090000000000001 /* UsageCheckpointValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageCheckpointValidator.swift; sourceTree = "<group>"; };
+		D1A600113090000000000001 /* ReportAvailabilityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportAvailabilityStore.swift; sourceTree = "<group>"; };
+		D1A600123090000000000001 /* DiagnosticsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -268,6 +280,9 @@
 		1521AF683052013E00866109 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				D1A600123090000000000001 /* DiagnosticsStore.swift */,
+				D1A600113090000000000001 /* ReportAvailabilityStore.swift */,
+				D1A600103090000000000001 /* UsageCheckpointValidator.swift */,
 				C0D100123080000000000001 /* OnboardingReportSupport.swift */,
 				B4D6E1003070000000000001 /* RemainingTimeBadge.swift */,
 				1521BA08305B395F00866109 /* RemainingTimeActivityAttributes.swift */,
@@ -573,6 +588,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D1A600073090000000000001 /* DiagnosticsStore.swift in Sources */,
+				D1A600093090000000000001 /* UsageCheckpointValidator.swift in Sources */,
 				1521AF843052A00000866109 /* AppConfiguration.swift in Sources */,
 				A17E4E033060000000000001 /* Theme.swift in Sources */,
 				1521AF6F3052050900866109 /* TimeFormatting.swift in Sources */,
@@ -591,6 +608,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D1A600053090000000000001 /* DiagnosticsStore.swift in Sources */,
+				D1A600033090000000000001 /* ReportAvailabilityStore.swift in Sources */,
+				D1A600013090000000000001 /* UsageCheckpointValidator.swift in Sources */,
 				1521AF813052A00000866109 /* AppConfiguration.swift in Sources */,
 				C0D100103080000000000001 /* OnboardingReportSupport.swift in Sources */,
 				B4D6E1013070000000000001 /* RemainingTimeBadge.swift in Sources */,
@@ -626,6 +646,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D1A600063090000000000001 /* DiagnosticsStore.swift in Sources */,
+				D1A600023090000000000001 /* UsageCheckpointValidator.swift in Sources */,
 				1521BA05305B046700866109 /* NotificationMilestone.swift in Sources */,
 				B4D6E1023070000000000001 /* RemainingTimeBadge.swift in Sources */,
 				B4D6E1033070000000000001 /* WidgetUsageEstimate.swift in Sources */,
@@ -639,6 +661,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D1A600083090000000000001 /* DiagnosticsStore.swift in Sources */,
+				D1A600043090000000000001 /* ReportAvailabilityStore.swift in Sources */,
 				C0D100143080000000000001 /* AppConfiguration.swift in Sources */,
 				C0D100113080000000000001 /* OnboardingReportSupport.swift in Sources */,
 				C0D1000F3080000000000001 /* Theme.swift in Sources */,
@@ -683,7 +707,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = CountdownWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = "$(inherited)";
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = 2B2928XT22;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CountdownWidget/Info.plist;
@@ -715,7 +739,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = CountdownWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = "$(inherited)";
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = 2B2928XT22;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CountdownWidget/Info.plist;
@@ -872,14 +896,14 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Mujo/Mujo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = "$(inherited)";
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = 2B2928XT22;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Mujo/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Mujø";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
+				INFOPLIST_KEY_NSSupportsLiveActivities = NO;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -909,14 +933,14 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Mujo/Mujo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = "$(inherited)";
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = 2B2928XT22;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Mujo/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Mujø";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
+				INFOPLIST_KEY_NSSupportsLiveActivities = NO;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -1030,7 +1054,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = ActivityMonitor/ActivityMonitor.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = "$(inherited)";
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = 2B2928XT22;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ActivityMonitor/Info.plist;
@@ -1060,7 +1084,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = ActivityMonitor/ActivityMonitor.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = "$(inherited)";
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = 2B2928XT22;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ActivityMonitor/Info.plist;
@@ -1091,7 +1115,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = ScreenTimeReport/ScreenTimeReport.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = "$(inherited)";
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = 2B2928XT22;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ScreenTimeReport/Info.plist;
@@ -1122,7 +1146,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = ScreenTimeReport/ScreenTimeReport.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = "$(inherited)";
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = 2B2928XT22;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ScreenTimeReport/Info.plist;

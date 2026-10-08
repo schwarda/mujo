@@ -63,6 +63,34 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
             defaults: defaults
         ) else { return }
 
+        let monitoringStartedAt = defaults.double(
+            forKey: AppConfiguration.DefaultsKey.usageMonitoringStartedAt
+        )
+        let validation = UsageCheckpointValidator.decision(
+            reachedSeconds: reachedSeconds,
+            monitoringStartedAt: monitoringStartedAt,
+            now: .now
+        )
+        guard validation == .accept else {
+            let reason: String
+            if case let .reject(rejectionReason) = validation {
+                reason = rejectionReason.rawValue
+            } else {
+                reason = "unknown"
+            }
+            logger.error(
+                "Rejected impossible usage event \(event.rawValue, privacy: .public): \(reason, privacy: .public)"
+            )
+#if DEBUG
+            DiagnosticsStore.record(
+                source: "monitor",
+                message: "Rejected \(event.rawValue): \(reason); started=\(monitoringStartedAt)",
+                defaults: defaults
+            )
+#endif
+            return
+        }
+
         let previousSeconds = AppConfiguration.DailyLimit.normalizedUsage(
             defaults.double(
                 forKey: AppConfiguration.DefaultsKey.estimatedUsedTime
@@ -82,6 +110,13 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         logger.notice(
             "Reached \(event.rawValue, privacy: .public); stored threshold \(newestSeconds, privacy: .public) seconds"
         )
+#if DEBUG
+        DiagnosticsStore.record(
+            source: "monitor",
+            message: "Accepted \(event.rawValue); previous=\(previousSeconds); stored=\(newestSeconds)",
+            defaults: defaults
+        )
+#endif
         WidgetCenter.shared.reloadAllTimelines()
         RemainingTimeBadge.update(
             from: UsageSnapshotLoader(defaults: defaults).load()
@@ -128,15 +163,43 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     @discardableResult
     private func resetEstimateForNewDayIfNeeded(_ defaults: UserDefaults) -> Bool {
         let calendar = Calendar.current
-        let today = calendar.startOfDay(for: .now).timeIntervalSince1970
+        let now = Date.now
+        let today = calendar.startOfDay(for: now).timeIntervalSince1970
         let timeZoneIdentifier = calendar.timeZone.identifier
         let isCurrentDay = defaults.double(
             forKey: AppConfiguration.DefaultsKey.lastCheckpointResetDay
         ) == today
-        let isCurrentTimeZone = defaults.string(
+        let storedTimeZoneIdentifier = defaults.string(
             forKey: AppConfiguration.DefaultsKey.lastCheckpointTimeZoneIdentifier
-        ) == timeZoneIdentifier
-        guard !isCurrentDay || !isCurrentTimeZone else { return false }
+        )
+        let hasEquivalentLocalDay = storedTimeZoneIdentifier.flatMap {
+            TimeZone(identifier: $0)
+        }.map { storedTimeZone in
+            var storedCalendar = calendar
+            storedCalendar.timeZone = storedTimeZone
+            let storedDate = storedCalendar.dateComponents(
+                [.era, .year, .month, .day],
+                from: now
+            )
+            let currentDate = calendar.dateComponents(
+                [.era, .year, .month, .day],
+                from: now
+            )
+            return storedCalendar.startOfDay(for: now)
+                .timeIntervalSince1970 == today
+                && storedDate == currentDate
+        } ?? false
+
+        if isCurrentDay && hasEquivalentLocalDay {
+            if storedTimeZoneIdentifier != timeZoneIdentifier {
+                defaults.set(
+                    timeZoneIdentifier,
+                    forKey: AppConfiguration.DefaultsKey
+                        .lastCheckpointTimeZoneIdentifier
+                )
+            }
+            return false
+        }
 
         defaults.set(
             today,
@@ -156,6 +219,13 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         )
 
         logger.notice("Started a new daily monitoring interval")
+#if DEBUG
+        DiagnosticsStore.record(
+            source: "monitor",
+            message: "Reset daily interval; day=\(today); timeZone=\(timeZoneIdentifier)",
+            defaults: defaults
+        )
+#endif
         WidgetCenter.shared.reloadAllTimelines()
         RemainingTimeBadge.update(
             from: UsageSnapshotLoader(defaults: defaults).load()

@@ -10,6 +10,16 @@ import Testing
 @Suite("Daily limit storage")
 @MainActor
 struct DailyLimitStoreTests {
+    @Test("Unavailable shared storage never falls back to local preferences")
+    @MainActor
+    func unavailableSharedStorageDoesNotPersist() {
+        let store = DailyLimitStore(sharedDefaults: nil)
+
+        #expect(store.currentLimit == AppConfiguration.defaultDailyLimit)
+        #expect(!store.save(2 * 60 * 60))
+        #expect(store.currentLimit == AppConfiguration.defaultDailyLimit)
+    }
+
     @Test("Missing and invalid values use the two-hour default")
     func usesDefaultLimit() {
         withStore { store, defaults in

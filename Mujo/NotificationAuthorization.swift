@@ -10,6 +10,11 @@ import Combine
 
 @MainActor
 final class NotificationAuthorization: ObservableObject {
+    enum RequestOutcome {
+        case authorized
+        case denied
+        case failed
+    }
     @Published private(set) var status: UNAuthorizationStatus = .notDetermined
 
     private let center = UNUserNotificationCenter.current()
@@ -32,15 +37,17 @@ final class NotificationAuthorization: ObservableObject {
         status = settings.authorizationStatus
     }
 
-    func requestAuthorization() async {
+    func requestAuthorization() async -> RequestOutcome {
         do {
-            try await center.requestAuthorization(
+            _ = try await center.requestAuthorization(
                 options: [.alert, .sound, .badge]
             )
         } catch {
-            // Neskôr sem napojíme používateľskú chybovú hlášku.
+            await refreshStatus()
+            return .failed
         }
 
         await refreshStatus()
+        return isAuthorized ? .authorized : .denied
     }
 }

@@ -111,6 +111,12 @@ enum MujoTheme {
         }
     }
 
+    static func onboardingBackground(for colorScheme: ColorScheme) -> Color {
+        colorScheme == .dark
+            ? Color(red: 0.12, green: 0.07, blue: 0.11)
+            : Color(red: 1.00, green: 0.97, blue: 0.98)
+    }
+
     static func surfaceBackground(for colorScheme: ColorScheme) -> Color {
         colorScheme == .dark
             ? Color(red: 0.12, green: 0.07, blue: 0.11)
@@ -176,5 +182,27 @@ struct OnboardingPrimaryButton<Label: View>: View {
         .buttonBorderShape(.capsule)
         .tint(.accentColor)
         .disabled(isDisabled)
+    }
+}
+
+struct ScreenTimeReportLoadingView: View {
+    let message: String
+
+    var body: some View {
+        VStack(spacing: 8) {
+            ProgressView()
+                .controlSize(.large)
+                .tint(.accentColor)
+
+            Text(message)
+                .font(MujoTheme.italicFont(
+                    size: OnboardingTypography.supporting,
+                    relativeTo: .subheadline
+                ))
+                .foregroundStyle(.tint)
+                .multilineTextAlignment(.center)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(message)
     }
 }

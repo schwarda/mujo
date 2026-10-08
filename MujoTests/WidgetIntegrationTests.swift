@@ -123,6 +123,24 @@ struct WidgetIntegrationTests {
         }
     }
 
+    @Test("Equivalent time-zone identifiers keep the timeline available")
+    func keepsTimelineForEquivalentTimeZone() throws {
+        try withDefaults { defaults in
+            configureAvailableEstimate(in: defaults)
+            defaults.set(
+                "Etc/UTC",
+                forKey: AppConfiguration.DefaultsKey
+                    .lastCheckpointTimeZoneIdentifier
+            )
+
+            let plan = makePlan(defaults: defaults)
+
+            #expect(plan.estimate.isAvailable)
+            #expect(plan.estimate.unavailableReason == nil)
+            #expect(plan.estimate.remainingTime == 3 * 60 * 60)
+        }
+    }
+
     private func makePlan(
         defaults: UserDefaults,
         at date: Date? = nil
