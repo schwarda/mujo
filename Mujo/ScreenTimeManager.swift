@@ -33,13 +33,10 @@ final class ScreenTimeManager: ObservableObject {
     private let appUpdateRecovery: AppUpdateRecovery
     private var authorizationStatusSubscription: AnyCancellable?
     private var isRecoveringAppUpdate = false
+    private var badgeUpdateTracker = RemainingTimeBadgeUpdateTracker()
     private let sharedDefaults: UserDefaults?
 
     init(defaults: UserDefaults? = nil) {
-#if DEBUG
-        let initializationStartedAt = PerformanceDiagnostics.now
-        PerformanceDiagnostics.log("screen-time", "ScreenTimeManager init started")
-#endif
         let sharedDefaults = defaults ?? UserDefaults(
             suiteName: AppConfiguration.appGroupIdentifier
         )
@@ -63,10 +60,6 @@ final class ScreenTimeManager: ObservableObject {
                 self?.authorizationStatus = status
             }
 #if DEBUG
-        PerformanceDiagnostics.log(
-            "screen-time",
-            "ScreenTimeManager init finished in \(PerformanceDiagnostics.elapsedMilliseconds(since: initializationStartedAt)) ms; authorized=\(isAuthorized), limitMinutes=\(dailyLimitMinutes)"
-        )
         DiagnosticsStore.record(
             source: "app",
             message: sharedDefaults == nil
@@ -83,16 +76,7 @@ final class ScreenTimeManager: ObservableObject {
 
     @discardableResult
     func refreshAuthorizationStatus() -> Bool {
-#if DEBUG
-        let startedAt = PerformanceDiagnostics.now
-#endif
         authorizationStatus = AuthorizationCenter.shared.authorizationStatus
-#if DEBUG
-        PerformanceDiagnostics.log(
-            "screen-time",
-            "refreshAuthorizationStatus finished in \(PerformanceDiagnostics.elapsedMilliseconds(since: startedAt)) ms; status=\(String(describing: authorizationStatus))"
-        )
-#endif
         return isAuthorized
     }
 
@@ -111,10 +95,6 @@ final class ScreenTimeManager: ObservableObject {
     }
 
     func requestAuthorization() async {
-#if DEBUG
-        let startedAt = PerformanceDiagnostics.now
-        PerformanceDiagnostics.log("screen-time", "AuthorizationCenter request started")
-#endif
         errorMessage = nil
 
         do {
@@ -124,12 +104,6 @@ final class ScreenTimeManager: ObservableObject {
             authorizationStatus = AuthorizationCenter.shared.authorizationStatus
             handleMonitoringError(error)
         }
-#if DEBUG
-        PerformanceDiagnostics.log(
-            "screen-time",
-            "AuthorizationCenter request finished in \(PerformanceDiagnostics.elapsedMilliseconds(since: startedAt)) ms; status=\(String(describing: authorizationStatus)); error=\(errorMessage ?? "none")"
-        )
-#endif
     }
 
     func clearError() {
@@ -182,14 +156,6 @@ final class ScreenTimeManager: ObservableObject {
         }
     }
 
-    func previewDailyLimit(minutes: Int) {
-        limitStore.preview(minutes: minutes)
-    }
-
-    func cancelDailyLimitPreview() {
-        limitStore.clearPreview()
-    }
-
     func usageEstimate(forLimitMinutes minutes: Int) -> UsageEstimate {
         UsageEstimator.estimate(
             from: usageSnapshot,
@@ -202,7 +168,12 @@ final class ScreenTimeManager: ObservableObject {
 
     func refreshUsageSnapshot() {
         let refreshedSnapshot = usageSnapshotLoader.load()
-        RemainingTimeBadge.update(from: refreshedSnapshot)
+        let badgeCount = RemainingTimeBadge.badgeCount(
+            from: refreshedSnapshot
+        ) ?? 0
+        if badgeUpdateTracker.shouldApply(badgeCount) {
+            RemainingTimeBadge.update(count: badgeCount)
+        }
         guard refreshedSnapshot != usageSnapshot else { return }
 
         usageSnapshot = refreshedSnapshot
@@ -239,9 +210,6 @@ final class ScreenTimeManager: ObservableObject {
 
     func setDailyLimit(minutes: Int) async {
         errorMessage = nil
-        defer {
-            limitStore.clearPreview()
-        }
 
         if !isAuthorized {
             do {

@@ -26,36 +26,14 @@ struct ContentView: View {
     private var hasCompletedOnboarding = false
 
     init() {
-#if DEBUG
-        let startedAt = PerformanceDiagnostics.now
-#endif
         _screenTime = StateObject(wrappedValue: ScreenTimeManager())
-#if DEBUG
-        PerformanceDiagnostics.log(
-            "content",
-            "ContentView initialized in \(PerformanceDiagnostics.elapsedMilliseconds(since: startedAt)) ms"
-        )
-#endif
     }
 
     init(screenTime: ScreenTimeManager) {
         _screenTime = StateObject(wrappedValue: screenTime)
-#if DEBUG
-        PerformanceDiagnostics.log(
-            "content",
-            "ContentView initialized with supplied ScreenTimeManager"
-        )
-#endif
     }
 
     var body: some View {
-#if DEBUG
-        let _ = PerformanceDiagnostics.throttledLog(
-            key: "ContentView.body",
-            "swiftui-body",
-            "ContentView body; resolvedAuth=\(hasResolvedInitialAuthorization), launchOverlay=\(isShowingLaunchOverlay), authorized=\(screenTime.isAuthorized), completedOnboarding=\(hasCompletedOnboarding)"
-        )
-#endif
         ZStack {
             if hasCompletedOnboarding {
                 SakuraBackground()
@@ -66,35 +44,13 @@ struct ContentView: View {
             launchOverlay
         }
         .task {
-#if DEBUG
-            PerformanceDiagnostics.log("content", "initial authorization task started")
-#endif
             await resolveInitialAuthorization()
         }
-        .onAppear {
-#if DEBUG
-            PerformanceDiagnostics.markPhase("content.appeared")
-            PerformanceDiagnostics.log("content", "ContentView appeared")
-#endif
-        }
-        .onChange(of: screenTime.authorizationStatus) { oldStatus, newStatus in
-#if DEBUG
-            PerformanceDiagnostics.log(
-                "content",
-                "authorization changed \(String(describing: oldStatus)) -> \(String(describing: newStatus))"
-            )
-            PerformanceDiagnostics.markPhase("authorization.changed")
-#endif
+        .onChange(of: screenTime.authorizationStatus) { _, newStatus in
             guard newStatus != .notDetermined else { return }
             completeInitialSetup()
         }
-        .onChange(of: scenePhase) { oldPhase, newPhase in
-#if DEBUG
-            PerformanceDiagnostics.log(
-                "app-lifecycle",
-                "scene phase \(String(describing: oldPhase)) -> \(String(describing: newPhase))"
-            )
-#endif
+        .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active, hasCompletedOnboarding else { return }
             Task {
                 await screenTime.restoreMonitoringIfPossible()
@@ -125,13 +81,6 @@ struct ContentView: View {
 
     @ViewBuilder
     private var rootContent: some View {
-#if DEBUG
-        let _ = PerformanceDiagnostics.throttledLog(
-            key: "ContentView.rootContent",
-            "swiftui-body",
-            "rootContent; overlay=\(isShowingLaunchOverlay), resolvedAuth=\(hasResolvedInitialAuthorization), authorized=\(screenTime.isAuthorized), completed=\(hasCompletedOnboarding)"
-        )
-#endif
         if isShowingLaunchOverlay || !hasResolvedInitialAuthorization {
             Color.clear
         } else if screenTime.isAuthorized && hasCompletedOnboarding {
@@ -198,10 +147,6 @@ struct ContentView: View {
     }
 
     private func resolveInitialAuthorization() async {
-#if DEBUG
-        let startedAt = PerformanceDiagnostics.now
-        PerformanceDiagnostics.log("content", "resolveInitialAuthorization started")
-#endif
         screenTime.refreshAuthorizationStatus()
         let hasRequestedAuthorization = hasCompletedOnboarding
             || hasReachedScreenTimePermission
@@ -209,12 +154,6 @@ struct ContentView: View {
         if screenTime.authorizationStatus != .notDetermined
             || !hasRequestedAuthorization {
             completeInitialSetup()
-#if DEBUG
-            PerformanceDiagnostics.log(
-                "content",
-                "resolveInitialAuthorization completed immediately in \(PerformanceDiagnostics.elapsedMilliseconds(since: startedAt)) ms"
-            )
-#endif
             return
         }
 
@@ -222,22 +161,9 @@ struct ContentView: View {
         guard !Task.isCancelled else { return }
         screenTime.refreshAuthorizationStatus()
         completeInitialSetup()
-#if DEBUG
-        PerformanceDiagnostics.log(
-            "content",
-            "resolveInitialAuthorization completed after retry in \(PerformanceDiagnostics.elapsedMilliseconds(since: startedAt)) ms"
-        )
-#endif
     }
 
     private func completeInitialSetup() {
-#if DEBUG
-        let startedAt = PerformanceDiagnostics.now
-        PerformanceDiagnostics.log(
-            "content",
-            "completeInitialSetup entered; alreadyResolved=\(hasResolvedInitialAuthorization), authorized=\(screenTime.isAuthorized)"
-        )
-#endif
         guard !hasResolvedInitialAuthorization else { return }
 
         if screenTime.isAuthorized {
@@ -253,12 +179,6 @@ struct ContentView: View {
                 await screenTime.recoverAfterAppUpdateIfNeeded()
             }
         }
-#if DEBUG
-        PerformanceDiagnostics.log(
-            "content",
-            "completeInitialSetup returned in \(PerformanceDiagnostics.elapsedMilliseconds(since: startedAt)) ms"
-        )
-#endif
     }
 
     private func finishOnboardingLaunch() async {
@@ -284,22 +204,10 @@ struct ContentView: View {
 
     private func requestScreenTimeAuthorization() {
         guard !isRequestingAuthorization else { return }
-#if DEBUG
-        let startedAt = PerformanceDiagnostics.now
-        PerformanceDiagnostics.markPhase("authorization.request.started")
-        PerformanceDiagnostics.log("content", "Screen Time authorization requested")
-#endif
         isRequestingAuthorization = true
 
         Task {
             await screenTime.requestAuthorization()
-#if DEBUG
-            PerformanceDiagnostics.log(
-                "content",
-                "Screen Time authorization returned in \(PerformanceDiagnostics.elapsedMilliseconds(since: startedAt)) ms; status=\(String(describing: screenTime.authorizationStatus))"
-            )
-            PerformanceDiagnostics.markPhase("authorization.request.returned")
-#endif
             hasReachedScreenTimePermission = true
             isRequestingAuthorization = false
         }

@@ -4,6 +4,18 @@ import Testing
 
 @Suite("Remaining-time badge")
 struct RemainingTimeBadgeTests {
+    @Test("Badge updates apply the first count and skip duplicates")
+    func updateDeduplication() {
+        var tracker = RemainingTimeBadgeUpdateTracker()
+        let firstUpdate = tracker.shouldApply(45)
+        let duplicateUpdate = tracker.shouldApply(45)
+        let changedUpdate = tracker.shouldApply(30)
+
+        #expect(firstUpdate)
+        #expect(!duplicateUpdate)
+        #expect(changedUpdate)
+    }
+
     private let calendar: Calendar = {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = .gmt

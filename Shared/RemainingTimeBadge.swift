@@ -7,6 +7,16 @@ import Foundation
 import OSLog
 import UserNotifications
 
+struct RemainingTimeBadgeUpdateTracker {
+    private var lastAppliedCount: Int?
+
+    mutating func shouldApply(_ count: Int) -> Bool {
+        guard count != lastAppliedCount else { return false }
+        lastAppliedCount = count
+        return true
+    }
+}
+
 enum RemainingTimeBadge {
     private static let logger = Logger(
         subsystem: "AikariStudio.Mujo",
@@ -23,6 +33,12 @@ enum RemainingTimeBadge {
             at: date,
             calendar: calendar
         ) ?? 0
+
+        update(count: count)
+    }
+
+    static func update(count: Int) {
+        precondition(count >= 0, "Badge count cannot be negative")
 
         UNUserNotificationCenter.current().setBadgeCount(count) { error in
             guard let error else { return }

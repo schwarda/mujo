@@ -150,8 +150,3 @@ enum UsageEstimator {
         calendar.dateComponents([.era, .year, .month, .day], from: date)
     }
 }
-
-// Compatibility names for the existing tests while the shared model is adopted.
-typealias WidgetUsageSnapshot = UsageSnapshot
-typealias WidgetUsageEstimate = UsageEstimate
-typealias WidgetUsageEstimator = UsageEstimator

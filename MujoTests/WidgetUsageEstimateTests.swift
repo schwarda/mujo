@@ -158,7 +158,7 @@ struct WidgetUsageEstimateTests {
     @Test("An impossible stored 12-hour value is never displayed")
     func rejectsImpossibleStoredUsage() {
         let monitoringStart = dayStart.addingTimeInterval(60)
-        let estimate = WidgetUsageEstimator.estimate(
+        let estimate = UsageEstimator.estimate(
             from: snapshot(
                 storedDailyLimit: 12 * 60 * 60,
                 estimatedUsedTime: 12 * 60 * 60,
@@ -196,7 +196,7 @@ struct WidgetUsageEstimateTests {
             day: 6,
             hour: 12
         )
-        let estimate = WidgetUsageEstimator.estimate(
+        let estimate = UsageEstimator.estimate(
             from: snapshot(
                 estimatedUsedTime: 60 * 60,
                 estimateDay: berlin.startOfDay(for: date)
@@ -243,7 +243,7 @@ struct WidgetUsageEstimateTests {
             day: 25,
             hour: 12
         )
-        let estimate = WidgetUsageEstimator.estimate(
+        let estimate = UsageEstimator.estimate(
             from: snapshot(
                 estimatedUsedTime: 60 * 60,
                 estimateDay: bratislava.startOfDay(for: date)
@@ -263,9 +263,9 @@ struct WidgetUsageEstimateTests {
     }
 
     private func estimate(
-        snapshot: WidgetUsageSnapshot
-    ) -> WidgetUsageEstimate {
-        WidgetUsageEstimator.estimate(
+        snapshot: UsageSnapshot
+    ) -> UsageEstimate {
+        UsageEstimator.estimate(
             from: snapshot,
             at: dayStart.addingTimeInterval(12 * 60 * 60),
             calendar: calendar
@@ -279,8 +279,8 @@ struct WidgetUsageEstimateTests {
         monitoringStartedAt: TimeInterval = 0,
         hasCheckpoint: Bool = false,
         checkpointTimeZoneIdentifier: String? = "GMT"
-    ) -> WidgetUsageSnapshot {
-        WidgetUsageSnapshot(
+    ) -> UsageSnapshot {
+        UsageSnapshot(
             storedDailyLimit: storedDailyLimit,
             estimatedUsedTime: estimatedUsedTime,
             estimateDay: estimateDay,
@@ -307,7 +307,7 @@ struct WidgetUsageEstimateTests {
             hour: 12
         )
         let sourceDay = sourceCalendar.startOfDay(for: date)
-        let estimate = WidgetUsageEstimator.estimate(
+        let estimate = UsageEstimator.estimate(
             from: snapshot(
                 estimatedUsedTime: 60 * 60,
                 estimateDay: sourceDay.timeIntervalSince1970,

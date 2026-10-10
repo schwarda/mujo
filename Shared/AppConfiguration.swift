@@ -80,7 +80,6 @@ enum AppConfiguration {
 
     enum DefaultsKey {
         nonisolated static let dailyLimit = "dailyLimitSeconds"
-        nonisolated static let previewDailyLimit = "previewDailyLimitSeconds"
         nonisolated static let estimatedUsedTime = "estimatedUsedTimeSeconds"
         nonisolated static let lastCheckpointResetDay = "lastCheckpointResetDay"
         nonisolated static let lastCheckpointTimeZoneIdentifier = "lastCheckpointTimeZoneIdentifier"

@@ -59,5 +59,3 @@ struct UsageSnapshotLoader {
         return normalized
     }
 }
-
-typealias WidgetUsageSnapshotLoader = UsageSnapshotLoader

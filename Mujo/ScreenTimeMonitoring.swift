@@ -41,9 +41,7 @@ actor ScreenTimeMonitoring {
     }
     
     func restore(limit: TimeInterval) throws {
-        let center = DeviceActivityCenter()
-        try ensureUsageMonitoring(limit: limit, using: center)
-        removeLegacyMonitoring(from: center)
+        try updateLimit(to: limit)
     }
     
     func updateLimit(to limit: TimeInterval) throws {
@@ -216,7 +214,6 @@ actor ScreenTimeMonitoring {
         guard let sharedDefaults else { return }
         let keys = [
             AppConfiguration.DefaultsKey.dailyLimit,
-            AppConfiguration.DefaultsKey.previewDailyLimit,
             AppConfiguration.DefaultsKey.estimatedUsedTime,
             AppConfiguration.DefaultsKey.lastCheckpointResetDay,
             AppConfiguration.DefaultsKey

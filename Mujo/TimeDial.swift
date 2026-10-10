@@ -52,10 +52,6 @@ struct TimeDial: View {
     @State private var previousSampleTime: TimeInterval?
     @State private var didChangeDuringGesture = false
     @State private var hintIsMoving = false
-#if DEBUG
-    @State private var didLogFirstDelta = false
-    @State private var didLogFirstValueChange = false
-#endif
     @AppStorage(TimeDialPreferences.hasUsedCenteredHintKey)
     private var hasUsedTimeDial = false
 
@@ -76,14 +72,6 @@ struct TimeDial: View {
     }
 
     var body: some View {
-#if DEBUG
-        let _ = PerformanceDiagnostics.throttledLog(
-            key: "TimeDial.body",
-            minimumInterval: 0.10,
-            "swiftui-body",
-            "TimeDial body; minutes=\(minutes), rotation=\(visualRotation), hintUsed=\(hasUsedTimeDial), hintMoving=\(hintIsMoving)"
-        )
-#endif
         ZStack {
             tickMarks
                 .rotationEffect(.degrees(visualRotation))
@@ -144,13 +132,6 @@ struct TimeDial: View {
             onCommit(minutes)
         }
         .onAppear {
-#if DEBUG
-            PerformanceDiagnostics.markPhase("time-dial.appeared")
-            PerformanceDiagnostics.log(
-                "time-dial",
-                "appeared; minutes=\(minutes), hasUsedHint=\(hasUsedTimeDial)"
-            )
-#endif
             guard !hasUsedTimeDial else { return }
 
             withAnimation(
@@ -160,31 +141,10 @@ struct TimeDial: View {
                 hintIsMoving = true
             }
         }
-        .onDisappear {
-#if DEBUG
-            PerformanceDiagnostics.log("time-dial", "disappeared; minutes=\(minutes)")
-#endif
-        }
-        .onChange(of: minutes) { oldValue, newValue in
-#if DEBUG
-            PerformanceDiagnostics.markPhase("time-dial.minutes-changed")
-            PerformanceDiagnostics.log(
-                "time-dial",
-                "binding changed \(oldValue) -> \(newValue)"
-            )
-#endif
-        }
     }
 
     private var rotationHint: some View {
-#if DEBUG
-        let _ = PerformanceDiagnostics.throttledLog(
-            key: "TimeDial.rotationHint",
-            "swiftui-body",
-            "rotation hint evaluated; moving=\(hintIsMoving)"
-        )
-#endif
-        return Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90")
+        Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90")
             .font(.system(
                 size: configuration.hintFontSize,
                 weight: .semibold
@@ -200,15 +160,7 @@ struct TimeDial: View {
     }
 
     private var tickMarks: some View {
-#if DEBUG
-        let _ = PerformanceDiagnostics.throttledLog(
-            key: "TimeDial.tickMarks",
-            minimumInterval: 0.10,
-            "swiftui-body",
-            "tick marks evaluated; rotation=\(visualRotation)"
-        )
-#endif
-        return ZStack {
+        ZStack {
             ForEach(0..<configuration.tickCount, id: \.self) { index in
                 let isMajorTick = index.isMultiple(
                     of: configuration.majorTickFrequency
@@ -247,19 +199,6 @@ struct TimeDial: View {
                     self.previousAngle = angle
                     previousSampleTime = CACurrentMediaTime()
                     didChangeDuringGesture = false
-#if DEBUG
-                    let startedAt = PerformanceDiagnostics.now
-                    PerformanceDiagnostics.markPhase("time-dial.gesture-began")
-                    PerformanceDiagnostics.log(
-                        "time-dial",
-                        "gesture began; minutes=\(minutes)"
-                    )
-                    PerformanceDiagnostics.mainQueueProbe(
-                        "time-dial",
-                        "after first drag sample",
-                        startedAt: startedAt
-                    )
-#endif
                     return
                 }
 
@@ -271,52 +210,10 @@ struct TimeDial: View {
                 unconsumedRotation += delta
                 visualRotation += delta
                 updateWindStrength(for: delta)
-#if DEBUG
-                PerformanceDiagnostics.throttledLog(
-                    key: "TimeDial.dragSamples",
-                    minimumInterval: 0.10,
-                    "time-dial",
-                    "drag sample; delta=\(delta), accumulated=\(unconsumedRotation), visualRotation=\(visualRotation), minutes=\(minutes)"
-                )
-                if !didLogFirstDelta {
-                    didLogFirstDelta = true
-                    let startedAt = PerformanceDiagnostics.now
-                    PerformanceDiagnostics.log(
-                        "time-dial",
-                        "first movement delta=\(delta); accumulated=\(unconsumedRotation)"
-                    )
-                    PerformanceDiagnostics.mainQueueProbe(
-                        "time-dial",
-                        "after first movement delta",
-                        startedAt: startedAt
-                    )
-                }
-#endif
 
                 while abs(unconsumedRotation)
                     >= configuration.degreesPerValueStep {
-#if DEBUG
-                    let isFirstLoggedChange = !didLogFirstValueChange
-                    let valueChangeStartedAt = PerformanceDiagnostics.now
-                    if isFirstLoggedChange {
-                        PerformanceDiagnostics.markPhase(
-                            "time-dial.first-value-threshold"
-                        )
-                        PerformanceDiagnostics.log(
-                            "time-dial",
-                            "first value threshold reached; minutes=\(minutes), accumulated=\(unconsumedRotation)"
-                        )
-                    }
-#endif
                     markTimeDialAsUsed()
-#if DEBUG
-                    if isFirstLoggedChange {
-                        PerformanceDiagnostics.log(
-                            "time-dial",
-                            "hint state updated after \(PerformanceDiagnostics.elapsedMilliseconds(since: valueChangeStartedAt)) ms"
-                        )
-                    }
-#endif
 
                     let direction = unconsumedRotation > 0 ? 1 : -1
                     if changeMinutes(
@@ -324,38 +221,11 @@ struct TimeDial: View {
                     ) {
                         didChangeDuringGesture = true
                     }
-#if DEBUG
-                    if isFirstLoggedChange {
-                        didLogFirstValueChange = true
-                        PerformanceDiagnostics.log(
-                            "time-dial",
-                            "minutes update finished; minutes=\(minutes), elapsed=\(PerformanceDiagnostics.elapsedMilliseconds(since: valueChangeStartedAt)) ms"
-                        )
-                        PerformanceDiagnostics.mainQueueProbe(
-                            "time-dial",
-                            "after first minutes update",
-                            startedAt: valueChangeStartedAt
-                        )
-                    }
-#endif
                     unconsumedRotation -= Double(direction)
                         * configuration.degreesPerValueStep
                 }
             }
             .onEnded { _ in
-#if DEBUG
-                let endedAt = PerformanceDiagnostics.now
-                PerformanceDiagnostics.markPhase("time-dial.gesture-ended")
-                PerformanceDiagnostics.log(
-                    "time-dial",
-                    "gesture ended; minutes=\(minutes), changed=\(didChangeDuringGesture)"
-                )
-                PerformanceDiagnostics.mainQueueProbe(
-                    "time-dial",
-                    "after gesture ended",
-                    startedAt: endedAt
-                )
-#endif
                 let shouldCommit = didChangeDuringGesture
                 previousAngle = nil
                 previousSampleTime = nil
@@ -420,19 +290,9 @@ struct TimeDial: View {
     private func markTimeDialAsUsed() {
         guard !hasUsedTimeDial else { return }
 
-#if DEBUG
-        let startedAt = PerformanceDiagnostics.now
-        PerformanceDiagnostics.log("time-dial", "markTimeDialAsUsed started")
-#endif
         withAnimation(.easeOut(duration: 0.2)) {
             hasUsedTimeDial = true
         }
-#if DEBUG
-        PerformanceDiagnostics.log(
-            "time-dial",
-            "markTimeDialAsUsed returned in \(PerformanceDiagnostics.elapsedMilliseconds(since: startedAt)) ms"
-        )
-#endif
     }
 
 }

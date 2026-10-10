@@ -1,7 +1,86 @@
-import Combine
 import DeviceActivity
 import Foundation
 import SwiftUI
+
+struct OnboardingSuggestionConfiguration: Equatable, Sendable {
+    let totalMinutes: Int?
+    let recentTotalMinutes: Int?
+    let averageMinutes: Int?
+    let suggestedMinutes: Int?
+    let dailyLimitMinutes: Int?
+    let availableDayCount: Int
+    let recentAvailableDayCount: Int
+
+    nonisolated static let unavailable = Self(
+        totalMinutes: nil,
+        recentTotalMinutes: nil,
+        averageMinutes: nil,
+        suggestedMinutes: nil,
+        dailyLimitMinutes: nil,
+        availableDayCount: 0,
+        recentAvailableDayCount: 0
+    )
+}
+
+enum OnboardingAverageScope: Sendable {
+    case allAvailableDays
+    case recentDays
+}
+
+enum OnboardingSuggestionCalculator {
+    nonisolated static func configuration(
+        dailyTotals: [Date: TimeInterval],
+        averageScope: OnboardingAverageScope,
+        dailyLimitMinutes: Int?
+    ) -> OnboardingSuggestionConfiguration {
+        let totalSeconds = dailyTotals.values.reduce(0, +)
+        guard !dailyTotals.isEmpty, totalSeconds > 0 else {
+            return .unavailable
+        }
+
+        let recentSource = dailyTotals
+            .sorted { $0.key < $1.key }
+            .suffix(OnboardingProjectionRules.recentDayCount)
+            .map(\.value)
+        let averageSource: [TimeInterval]
+        switch averageScope {
+        case .allAvailableDays:
+            averageSource = Array(dailyTotals.values)
+        case .recentDays:
+            averageSource = recentSource
+        }
+
+        let averageSeconds = averageSource.reduce(0, +)
+        let averageMinutes = max(
+            1,
+            Int((averageSeconds / Double(averageSource.count) / 60).rounded())
+        )
+        let stepMinutes = OnboardingProjectionRules.limitStepMinutes
+        let suggestedMinutes = max(
+            OnboardingProjectionRules.minimumLimitMinutes,
+            Int(
+                (
+                    Double(averageMinutes)
+                        * OnboardingProjectionRules.suggestedLimitRatio
+                        / Double(stepMinutes)
+                ).rounded()
+            ) * stepMinutes
+        )
+
+        return OnboardingSuggestionConfiguration(
+            totalMinutes: max(1, Int((totalSeconds / 60).rounded())),
+            recentTotalMinutes: max(
+                1,
+                Int((recentSource.reduce(0, +) / 60).rounded())
+            ),
+            averageMinutes: averageMinutes,
+            suggestedMinutes: suggestedMinutes,
+            dailyLimitMinutes: dailyLimitMinutes,
+            availableDayCount: dailyTotals.count,
+            recentAvailableDayCount: recentSource.count
+        )
+    }
+}
 
 extension DeviceActivityReport.Context {
     nonisolated static let mujoInsightsCarousel = Self(
@@ -32,48 +111,8 @@ struct ScreenTimeReportView: View, Equatable {
     }
 
     var body: some View {
-#if DEBUG
-        let bodyStartedAt = PerformanceDiagnostics.now
-        let _ = PerformanceDiagnostics.log(
-            "report-host",
-            "ScreenTimeReportView body; context=\(context.rawValue)"
-        )
-#endif
         DeviceActivityReport(context, filter: filter)
-            .onAppear {
-#if DEBUG
-                PerformanceDiagnostics.markPhase(
-                    "report-host.appeared.\(context.rawValue)"
-                )
-                PerformanceDiagnostics.log(
-                    "report-host",
-                    "DeviceActivityReport appeared; context=\(context.rawValue)"
-                )
-                PerformanceDiagnostics.mainQueueProbe(
-                    "report-host",
-                    "after DeviceActivityReport appeared",
-                    startedAt: bodyStartedAt
-                )
-#endif
-            }
-            .onDisappear {
-#if DEBUG
-                PerformanceDiagnostics.markPhase(
-                    "report-host.disappeared.\(context.rawValue)"
-                )
-                PerformanceDiagnostics.log(
-                    "report-host",
-                    "DeviceActivityReport disappeared; context=\(context.rawValue)"
-                )
-#endif
-            }
     }
-}
-
-enum OnboardingReportStorage {
-    nonisolated static let appGroupIdentifier =
-        "group.AikariStudio.Mujo.shared"
-    nonisolated static let dailyLimitSecondsKey = "dailyLimitSeconds"
 }
 
 enum OnboardingProjectionRules {
@@ -298,57 +337,5 @@ struct OnboardingSavingsCard: View {
             ),
             horizontalPadding: horizontalPadding
         )
-    }
-}
-
-// This model lives in the report process in production. It does not export
-// usage values or readiness through App Groups.
-@MainActor
-final class ReportContentLoader<Value>: ObservableObject {
-    enum State {
-        case loading
-        case loaded(Value)
-        case noData
-        case timedOut
-    }
-
-    @Published private(set) var state: State = .loading
-    private let operation: () async -> Value?
-    private let timeout: Duration
-    private var work: Task<Void, Never>?
-    private var deadline: Task<Void, Never>?
-
-    init(timeout: Duration = .seconds(15), operation: @escaping () async -> Value?) {
-        self.timeout = timeout
-        self.operation = operation
-    }
-
-    func start() {
-        guard work == nil else { return }
-        let operation = operation
-        work = Task { [weak self] in
-            let value = await operation()
-            guard !Task.isCancelled else { return }
-            self?.complete(value)
-        }
-        let timeout = timeout
-        deadline = Task { [weak self] in
-            do { try await Task.sleep(for: timeout) }
-            catch { return }
-            guard let self, case .loading = self.state else { return }
-            self.state = .timedOut
-        }
-    }
-
-    private func complete(_ value: Value?) {
-        deadline?.cancel()
-        // A slow valid result may replace the timeout fallback. A deadline
-        // never replaces content that has already loaded.
-        state = value.map(State.loaded) ?? .noData
-    }
-
-    deinit {
-        work?.cancel()
-        deadline?.cancel()
     }
 }

@@ -12,7 +12,6 @@ nonisolated private struct HomeNoticeGeometry: Equatable, Sendable {
     let visualFrame: CGRect
     let layoutHeight: CGFloat
 }
-
 struct HomeScreen: View {
     nonisolated private static let noticeSpacing: CGFloat = 8
     nonisolated private static let noticeStackStep: CGFloat = 14
@@ -22,7 +21,6 @@ struct HomeScreen: View {
         enum ID: Hashable {
             case timeZoneChanged
             case firstDay
-            case debug(Int)
         }
 
         let id: ID
@@ -44,40 +42,6 @@ struct HomeScreen: View {
             + "From tomorrow, it will count from midnight."
     )
 
-#if DEBUG
-    private static let debugNotices = [
-        HomeNotice(
-            id: .debug(1),
-            title: "Test card 1",
-            message: "A short message for checking the compact card height."
-        ),
-        HomeNotice(
-            id: .debug(2),
-            title: "Test card 2",
-            message: "This message is a little longer so it should wrap "
-                + "across two lines on smaller iPhones."
-        ),
-        HomeNotice(
-            id: .debug(3),
-            title: "Test card 3",
-            message: "Scroll through the stack to confirm that each card "
-                + "becomes readable when it reaches the active position."
-        ),
-        HomeNotice(
-            id: .debug(4),
-            title: "Test card 4",
-            message: "The frosted effect should grow smoothly while this "
-                + "card overlaps the one below it."
-        ),
-        HomeNotice(
-            id: .debug(5),
-            title: "Test card 5",
-            message: "Last test card. Scrolling should stop when this card "
-                + "reaches the active position."
-        ),
-    ]
-#endif
-
     @Environment(\.scenePhase) private var scenePhase
     @ObservedObject var screenTime: ScreenTimeManager
 
@@ -87,7 +51,6 @@ struct HomeScreen: View {
     let petalsStartFilled: Bool
     let showsPetals: Bool
 
-    @State private var previewMinutes: Int?
     @State private var isShowingLimitEditor = false
     @State private var noticeGeometries: [HomeNotice.ID: HomeNoticeGeometry] = [:]
 
@@ -198,7 +161,7 @@ struct HomeScreen: View {
     }
 
     private var selectedMinutes: Int {
-        previewMinutes ?? screenTime.dailyLimitMinutes
+        screenTime.dailyLimitMinutes
     }
 
     private var shouldEmitPetals: Bool {
@@ -528,10 +491,6 @@ struct HomeScreen: View {
     }
 
     private var homeNotices: [HomeNotice] {
-#if DEBUG
-        // Temporary physical-device preview for the multi-card stack.
-        return [Self.timeZoneNotice, Self.firstDayNotice] + Self.debugNotices
-#else
         let estimate = screenTime.usageEstimate(
             forLimitMinutes: selectedMinutes
         )
@@ -546,7 +505,6 @@ struct HomeScreen: View {
         }
 
         return notices
-#endif
     }
 
     private var isFirstMeasurementDay: Bool {
@@ -558,374 +516,3 @@ struct HomeScreen: View {
     }
 
 }
-
-// Keep ownership of the sheet on a UIKit container, outside the SwiftUI
-// hierarchy that embeds DeviceActivityReport's remote view controller.
-private struct DailyLimitSheetPresenter: UIViewControllerRepresentable {
-    @Binding var isPresented: Bool
-    let screenTime: ScreenTimeManager
-    @Binding var windStrength: Double
-
-    func makeCoordinator() -> Coordinator { Coordinator() }
-
-    func makeUIViewController(context: Context) -> AnchorController {
-        let anchor = AnchorController()
-        anchor.onAppear = { [weak coordinator = context.coordinator, weak anchor] in
-            guard let anchor else { return }
-            coordinator?.updatePresentation(from: anchor)
-        }
-        return anchor
-    }
-
-    func updateUIViewController(_ anchor: AnchorController, context: Context) {
-        context.coordinator.configuration = self
-        context.coordinator.updatePresentation(from: anchor)
-    }
-
-    static func dismantleUIViewController(_ anchor: AnchorController, coordinator: Coordinator) {
-        coordinator.discardCachedSheet()
-    }
-
-    final class AnchorController: UIViewController {
-        var onAppear: (() -> Void)?
-
-        override func loadView() {
-            view = UIView()
-            view.backgroundColor = .clear
-            view.isUserInteractionEnabled = false
-        }
-
-        override func viewDidAppear(_ animated: Bool) {
-            super.viewDidAppear(animated)
-            onAppear?()
-        }
-    }
-
-    final class Coordinator: NSObject, UISheetPresentationControllerDelegate {
-        var configuration: DailyLimitSheetPresenter?
-        var sheet: UIViewController?
-        private var hosting: UIHostingController<DailyLimitEditorScreen>?
-        private weak var presentationAnchor: UIViewController?
-        private var isDismissing = false
-        private var cachedReportDay: Date?
-
-        func updatePresentation(from anchor: UIViewController) {
-            guard let configuration else { return }
-            presentationAnchor = anchor
-            discardCachedSheetIfExpired()
-
-            if !configuration.isPresented {
-                guard let sheet,
-                      sheet.presentingViewController != nil,
-                      !isDismissing
-                else { return }
-                isDismissing = true
-                sheet.dismiss(animated: true) { [weak self] in self?.didDismiss() }
-                return
-            }
-
-            guard !isDismissing,
-                  anchor.viewIfLoaded?.window != nil,
-                  anchor.presentedViewController == nil
-            else { return }
-
-            let container = UIViewController()
-            container.modalPresentationStyle = .pageSheet
-            let hosting = cachedHosting(for: configuration)
-            container.addChild(hosting)
-            container.view.addSubview(hosting.view)
-            hosting.view.translatesAutoresizingMaskIntoConstraints = false
-            NSLayoutConstraint.activate([
-                hosting.view.leadingAnchor.constraint(equalTo: container.view.leadingAnchor),
-                hosting.view.trailingAnchor.constraint(equalTo: container.view.trailingAnchor),
-                hosting.view.topAnchor.constraint(equalTo: container.view.topAnchor),
-                hosting.view.bottomAnchor.constraint(equalTo: container.view.bottomAnchor)
-            ])
-            hosting.didMove(toParent: container)
-            if let presentation = container.sheetPresentationController {
-                presentation.detents = [.large()]
-                presentation.prefersGrabberVisible = true
-                presentation.prefersScrollingExpandsWhenScrolledToEdge = false
-                presentation.delegate = self
-            }
-            sheet = container
-            anchor.present(container, animated: true)
-        }
-
-        func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
-            didDismiss()
-        }
-
-        private func didDismiss() {
-            guard let sheet else { return }
-            detachHosting(from: sheet)
-            self.sheet = nil
-            isDismissing = false
-            configuration?.isPresented = false
-            configuration?.screenTime.cancelDailyLimitPreview()
-        }
-
-        private func cachedHosting(
-            for configuration: DailyLimitSheetPresenter
-        ) -> UIHostingController<DailyLimitEditorScreen> {
-            if let hosting {
-                return hosting
-            }
-
-            let content = DailyLimitEditorScreen(
-                screenTime: configuration.screenTime,
-                windStrength: configuration.$windStrength,
-                onSaved: { [weak self] in
-                    guard let self else { return }
-                    self.configuration?.isPresented = false
-                    if let presentationAnchor {
-                        updatePresentation(from: presentationAnchor)
-                    }
-                }
-            )
-            let hosting = UIHostingController(rootView: content)
-            hosting.view.backgroundColor = .clear
-            self.hosting = hosting
-            cachedReportDay = Calendar.autoupdatingCurrent.startOfDay(for: .now)
-            return hosting
-        }
-
-        private func detachHosting(from container: UIViewController) {
-            guard let hosting, hosting.parent === container else { return }
-            hosting.willMove(toParent: nil)
-            hosting.view.removeFromSuperview()
-            hosting.removeFromParent()
-        }
-
-        private func discardCachedSheetIfExpired() {
-            let today = Calendar.autoupdatingCurrent.startOfDay(for: .now)
-            guard let cachedReportDay,
-                  cachedReportDay != today,
-                  sheet == nil,
-                  !isDismissing
-            else { return }
-
-            hosting = nil
-            self.cachedReportDay = nil
-        }
-
-        func discardCachedSheet() {
-            sheet?.dismiss(animated: false)
-            if let sheet {
-                detachHosting(from: sheet)
-            }
-            sheet = nil
-            hosting = nil
-            cachedReportDay = nil
-            isDismissing = false
-        }
-    }
-}
-
-private struct DailyLimitEditorScreen: View {
-    let onSaved: () -> Void
-    @ObservedObject var screenTime: ScreenTimeManager
-    @Binding var windStrength: Double
-
-    @State private var selectedMinutes: Int
-    @State private var isSaving = false
-    private let originalLimitMinutes: Int
-
-    init(
-        screenTime: ScreenTimeManager,
-        windStrength: Binding<Double>,
-        onSaved: @escaping () -> Void
-    ) {
-        self.onSaved = onSaved
-        self.screenTime = screenTime
-        _windStrength = windStrength
-        _selectedMinutes = State(initialValue: screenTime.dailyLimitMinutes)
-        originalLimitMinutes = screenTime.dailyLimitMinutes
-    }
-
-    var body: some View {
-        ZStack {
-            OnboardingBackground()
-
-            VStack(spacing: 0) {
-
-                Text("Choose your\ndaily limit")
-                    .font(MujoTheme.boldFont(size: 40, relativeTo: .largeTitle))
-                    .foregroundStyle(.tint)
-                    .multilineTextAlignment(.center)
-                    .padding(.top, 40)
-                    .accessibilityIdentifier("daily-limit-heading")
-
-                // The report owns its private data and stays mounted while editing.
-                // An App Group acknowledgement cannot determine report readiness.
-                ZStack {
-                    ScreenTimeReportLoadingView(
-                        message: "Loading your average time…"
-                    )
-
-                    ScreenTimeReportView(
-                        context: .mujoLimitEditorDescription,
-                        filter: sevenDayReportFilter
-                    )
-                    .equatable()
-                    .allowsHitTesting(false)
-                }
-                .frame(height: 72)
-                .padding(.horizontal, 24)
-                .padding(.top, 32)
-
-                Spacer(minLength: 18)
-
-                Text(formattedLimit)
-                    .font(.system(size: 88, weight: .bold, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(.tint)
-                    .minimumScaleFactor(0.7)
-                    .lineLimit(1)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .multilineTextAlignment(.center)
-
-                Text("new daily limit")
-                    .font(MujoTheme.italicFont(size: 18, relativeTo: .body))
-                    .foregroundStyle(
-                        .tint.opacity(MujoTheme.secondaryTextOpacity)
-                    )
-                    .padding(.top, -8)
-
-                TimeDial(
-                    minutes: $selectedMinutes,
-                    windStrength: $windStrength,
-                    showsValue: false,
-                    onValueChange: screenTime.previewDailyLimit,
-                    onCommit: { _ in }
-                )
-                .padding(.top, 40)
-                
-                Spacer(minLength: 18)
-
-                OnboardingPrimaryButton(isDisabled: isSaving) {
-                    saveLimit()
-                } label: {
-                    if isSaving {
-                        ProgressView()
-                    } else {
-                        Text("Set limit")
-                    }
-                }
-                .padding(.horizontal, 28)
-                .padding(.bottom, 28)
-            }
-        }
-        .onAppear {
-            selectedMinutes = screenTime.dailyLimitMinutes
-            isSaving = false
-        }
-    }
-
-    private var sevenDayReportFilter: DeviceActivityFilter {
-        let calendar = Calendar.autoupdatingCurrent
-        let end = calendar.startOfDay(for: .now)
-        let start = calendar.date(
-            byAdding: .day,
-            value: -OnboardingProjectionRules.recentDayCount,
-            to: end
-        ) ?? end
-
-        return DeviceActivityFilter(
-            segment: .daily(during: DateInterval(start: start, end: end)),
-            users: .all,
-            devices: .all
-        )
-    }
-
-    private var formattedLimit: String {
-        let hours = selectedMinutes / 60
-        let minutes = selectedMinutes % 60
-        return String(format: "%d:%02d", hours, minutes)
-    }
-
-    private var formattedOriginalLimit: String {
-        let hours = originalLimitMinutes / 60
-        let minutes = originalLimitMinutes % 60
-        return String(format: "%d:%02d", hours, minutes)
-    }
-
-    private func saveLimit() {
-        guard !isSaving else { return }
-        isSaving = true
-
-        Task {
-            await screenTime.setDailyLimit(minutes: selectedMinutes)
-            isSaving = false
-            guard screenTime.errorMessage == nil else { return }
-            onSaved()
-        }
-    }
-}
-
-#if DEBUG
-struct HomeScreenPreview: View {
-    @StateObject private var screenTime: ScreenTimeManager
-    @State private var windStrength = 0.25
-    @State private var petalSimulationTime = 0.0
-    @State private var petalFlow = SakuraPetalFlowState()
-
-    init() {
-        let suiteName = "HomeScreenPreview"
-        let defaults = UserDefaults(suiteName: suiteName) ?? .standard
-        let calendar = Calendar.autoupdatingCurrent
-        let today = calendar.startOfDay(for: .now)
-
-        defaults.removePersistentDomain(forName: suiteName)
-        defaults.set(
-            2 * 60 * 60,
-            forKey: AppConfiguration.DefaultsKey.dailyLimit
-        )
-        defaults.set(
-            45 * 60,
-            forKey: AppConfiguration.DefaultsKey.estimatedUsedTime
-        )
-        defaults.set(
-            today.timeIntervalSince1970,
-            forKey: AppConfiguration.DefaultsKey.lastCheckpointResetDay
-        )
-        defaults.set(
-            calendar.timeZone.identifier,
-            forKey: AppConfiguration.DefaultsKey
-                .lastCheckpointTimeZoneIdentifier
-        )
-        defaults.set(
-            today.addingTimeInterval(-60).timeIntervalSince1970,
-            forKey: AppConfiguration.DefaultsKey.usageMonitoringStartedAt
-        )
-        defaults.set(
-            true,
-            forKey: AppConfiguration.DefaultsKey.hasUsageCheckpoint
-        )
-
-        _screenTime = StateObject(
-            wrappedValue: ScreenTimeManager(defaults: defaults)
-        )
-    }
-
-    var body: some View {
-        ZStack {
-            SakuraBackground()
-
-            HomeScreen(
-                screenTime: screenTime,
-                windStrength: $windStrength,
-                petalSimulationTime: $petalSimulationTime,
-                petalFlow: $petalFlow,
-                petalsStartFilled: true,
-                showsPetals: true
-            )
-        }
-    }
-}
-
-#Preview("Home") {
-    HomeScreenPreview()
-}
-
-#endif

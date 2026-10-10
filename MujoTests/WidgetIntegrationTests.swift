@@ -145,7 +145,7 @@ struct WidgetIntegrationTests {
         defaults: UserDefaults,
         at date: Date? = nil
     ) -> WidgetTimelinePlan {
-        let snapshot = WidgetUsageSnapshotLoader(defaults: defaults).load()
+        let snapshot = UsageSnapshotLoader(defaults: defaults).load()
 
         return WidgetTimelinePlanner.makePlan(
             from: snapshot,
