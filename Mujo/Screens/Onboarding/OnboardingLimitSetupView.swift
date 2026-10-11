@@ -3,29 +3,27 @@ import SwiftUI
 import UIKit
 
 struct OnboardingLimitSetupView: View {
-
-    enum Step {
-        case insights
-        case chooseLimit
-        case savings
-        case limitReached
-        case notifications
-        case lockScreenWidget
-        case homeScreenWidget
-    }
-
     @ObservedObject var screenTime: ScreenTimeManager
     @Environment(\.colorScheme) private var colorScheme
-    let onCompleted: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let onCompleted: (OnboardingMotionStyle) -> Void
     private let usesPreviewData: Bool
 
-    @State private var step: Step = .insights
+    @State private var step: OnboardingStep = .insights
+    @State private var motionStyle = OnboardingMotionStyle.standard
     @State private var insightPage: OnboardingInsightPage = .day
     @State private var selectedMinutes = 0
+    @State private var selectedTimeFrame = CGRect.zero
+    @State private var limitDestinationFrame = CGRect.zero
+    @State private var limitHero: OnboardingLimitHeroState?
+    @State private var limitHeroProgress = 0.0
+    @State private var savingsExitProgress = 0.0
+    @State private var isSavingsExiting = false
     @State private var showsHistoryReports = true
     @State private var isRequestingNotifications = false
     @State private var isShowingNotificationRequestError = false
     @State private var isShowingNotificationDenialAlert = false
+    @State private var showsLockScreenMockup = false
     @State private var widgetHelp: OnboardingWidgetHelp?
     @StateObject private var notificationAuthorization = NotificationAuthorization()
     @AppStorage("wasNotificationPromptShown")
@@ -34,7 +32,7 @@ struct OnboardingLimitSetupView: View {
     init(
         screenTime: ScreenTimeManager,
         usesPreviewData: Bool = false,
-        onCompleted: @escaping () -> Void
+        onCompleted: @escaping (OnboardingMotionStyle) -> Void
     ) {
         _screenTime = ObservedObject(wrappedValue: screenTime)
         _selectedMinutes = State(
@@ -48,7 +46,7 @@ struct OnboardingLimitSetupView: View {
 
 #if DEBUG
     init(
-        previewStep: Step,
+        previewStep: OnboardingStep,
         insightPage: OnboardingInsightPage = .day
     ) {
         _screenTime = ObservedObject(wrappedValue: ScreenTimeManager())
@@ -58,7 +56,7 @@ struct OnboardingLimitSetupView: View {
             initialValue: OnboardingPreviewData.initialLimitMinutes
         )
         usesPreviewData = true
-        onCompleted = {}
+        onCompleted = { _ in }
     }
 #endif
 
@@ -88,12 +86,42 @@ struct OnboardingLimitSetupView: View {
             // already calculated average is not queried for a second time.
             switch step {
             case .insights, .chooseLimit:
-                insightsAndLimitStep.transition(.identity)
-            case .savings: savingsStep.transition(.identity)
-            case .limitReached: limitReachedStep
-            case .notifications: notificationsStep
-            case .lockScreenWidget: lockScreenWidgetStep
-            case .homeScreenWidget: homeScreenWidgetStep
+                insightsAndLimitStep.transition(motionStyle.transition)
+            case .savings:
+                EmptyView()
+            case .limitReached:
+                limitReachedStep.transition(motionStyle.transition)
+            case .notifications:
+                notificationsStep.transition(motionStyle.transition)
+            case .lockScreenWidget:
+                lockScreenWidgetStep.transition(motionStyle.transition)
+            case .homeScreenWidget:
+                homeScreenWidgetStep.transition(motionStyle.transition)
+            }
+
+            if step == .savings || isSavingsExiting {
+                savingsStep
+                    .transition(motionStyle.transition)
+                    .zIndex(isSavingsExiting ? 1 : 0)
+            }
+
+            if let limitHero {
+                AnimatedOnboardingLimitHero(
+                    text: limitHero.text,
+                    motion: OnboardingLimitHeroMotion(
+                        sourceFrame: limitHero.sourceFrame,
+                        destinationFrame: limitDestinationFrame.isEmpty
+                            ? limitHero.sourceFrame
+                            : limitDestinationFrame,
+                        sourceFontSize: 88,
+                        destinationFontSize: OnboardingTypography.descriptive
+                    ),
+                    progress: limitHeroProgress
+                )
+                .foregroundStyle(.tint)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+                .zIndex(2)
             }
 
             if isShowingNotificationRequestError {
@@ -110,6 +138,7 @@ struct OnboardingLimitSetupView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .coordinateSpace(name: OnboardingCoordinateSpace.limitSetup)
         .onAppear {
 #if DEBUG
             if !usesPreviewData,
@@ -145,7 +174,8 @@ struct OnboardingLimitSetupView: View {
         VStack(spacing: 0) {
             OnboardingInsightsAndLimitReportSection(
                 isChoosingLimit: step == .chooseLimit,
-                showsHistoryReport: showsHistoryReports
+                showsHistoryReport: showsHistoryReports,
+                motionStyle: motionStyle
             ) {
                 report(
                     context: .mujoInsightsCarousel,
@@ -163,13 +193,19 @@ struct OnboardingLimitSetupView: View {
                     Text("Continue")
                 }
                 .padding(.horizontal, 34)
+                .transition(motionStyle.transition)
             } else {
                 Spacer(minLength: 12)
 
                 OnboardingLimitSelectionSection(
                     initialMinutes: selectedMinutes,
+                    hidesSelectedTime: limitHero != nil,
+                    onSelectedTimeFrameChange: { frame in
+                        selectedTimeFrame = frame
+                    },
                     onSave: saveLimit(minutes:)
                 )
+                .transition(motionStyle.transition)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -180,19 +216,30 @@ struct OnboardingLimitSetupView: View {
     }
 
     private func advanceInsight() {
-        step = .chooseLimit
+        advance(to: .chooseLimit)
     }
 
     private var savingsStep: some View {
-        AdaptiveOnboardingStep {
+        let cardExit = OnboardingSavingsCardExitMotion.sample(
+            at: savingsExitProgress
+        )
+
+        return AdaptiveOnboardingStep {
             VStack(spacing: 0) {
                 savingsHeader
+                    .opacity(1 - savingsExitProgress)
+                    .offset(y: -16 * savingsExitProgress)
+                    .scaleEffect(1 - 0.015 * savingsExitProgress)
 
                 report(
                     context: .mujoSavingsCarousel,
                     filter: sevenDayReportFilter
                 )
                 .frame(minHeight: OnboardingLayoutMetrics.savingsReportMinimumHeight)
+                .compositingGroup()
+                .scaleEffect(cardExit.scale)
+                .offset(y: cardExit.verticalOffset)
+                .opacity(cardExit.opacity)
 
                 Spacer(minLength: 32)
 
@@ -200,10 +247,14 @@ struct OnboardingLimitSetupView: View {
                     Text("Continue")
                 }
                 .padding(.horizontal, 34)
+                .opacity(1 - savingsExitProgress)
+                .offset(y: -16 * savingsExitProgress)
+                .scaleEffect(1 - 0.015 * savingsExitProgress)
 
             }
             .padding(.bottom, 34)
         }
+        .allowsHitTesting(!isSavingsExiting)
     }
 
     private var savingsHeader: some View {
@@ -221,27 +272,39 @@ struct OnboardingLimitSetupView: View {
                     OnboardingLayoutMetrics.topHeadingPadding
                 )
 
-            let limit = Text(verbatim: selectedTime)
-                .font(MujoTheme.semiboldItalicFont(
-                    size: OnboardingTypography.descriptive,
-                    relativeTo: .body
-                ))
+            HStack(spacing: 0) {
+                Text("Your daily limit: ")
+                    .font(MujoTheme.italicFont(
+                        size: OnboardingTypography.descriptive,
+                        relativeTo: .body
+                    ))
 
-            Text("Your daily limit: \(limit)")
-                .font(MujoTheme.italicFont(
-                    size: OnboardingTypography.descriptive,
-                    relativeTo: .body
-                ))
-                .padding(.top, 16)
-                .foregroundStyle(.tint)
-                .multilineTextAlignment(.center)
+                Text(verbatim: selectedTime)
+                    .font(MujoTheme.semiboldItalicFont(
+                        size: OnboardingTypography.descriptive,
+                        relativeTo: .body
+                    ))
+                    .opacity(limitHero == nil ? 1 : 0)
+                    .onGeometryChange(
+                        for: CGRect.self,
+                        of: { proxy in
+                            proxy.frame(in: .named(
+                                OnboardingCoordinateSpace.limitSetup
+                            ))
+                        },
+                        action: updateLimitDestinationFrame
+                    )
+            }
+            .padding(.top, 16)
+            .foregroundStyle(.tint)
+            .multilineTextAlignment(.center)
         }
     }
 
     private var notificationsStep: some View {
         AdaptiveOnboardingStep {
             VStack(spacing: 0) {
-                OnboardingNotificationBanner()
+                OnboardingNotificationStack()
                     .padding(.horizontal, 12)
                     .padding(.top, 4)
 
@@ -363,7 +426,7 @@ struct OnboardingLimitSetupView: View {
 //                Spacer(minLength: 28)
 
                 OnboardingPrimaryButton(action: {
-                    step = .notifications
+                    advance(to: .notifications)
                 }) {
                     Text("Got it")
                 }
@@ -379,7 +442,7 @@ struct OnboardingLimitSetupView: View {
             subtitle: "See what’s remaining\nwithout unlocking your phone",
             imageFirst: true,
             help: .lockScreen,
-            onContinue: { step = .homeScreenWidget }
+            onContinue: { advance(to: .homeScreenWidget) }
         )
     }
 
@@ -389,7 +452,7 @@ struct OnboardingLimitSetupView: View {
             subtitle: "See what’s remaining right on your\nhome screen without opening Mujø",
             imageFirst: false,
             help: .homeScreen,
-            onContinue: onCompleted
+            onContinue: completeOnboarding
         )
     }
 
@@ -400,81 +463,132 @@ struct OnboardingLimitSetupView: View {
         help: OnboardingWidgetHelp,
         onContinue: @escaping () -> Void
     ) -> some View {
-        AdaptiveOnboardingStep {
-            VStack(spacing: 0) {
+        GeometryReader { geometry in
+            let lockScreenLayout = OnboardingLockScreenLayout(
+                containerWidth: geometry.size.width,
+                safeAreaTopInset: geometry.safeAreaInsets.top,
+                globalMinY: geometry.frame(in: .global).minY
+            )
+
+            AdaptiveOnboardingStep {
+                VStack(spacing: 0) {
+                    if imageFirst {
+                        Color.clear
+                            .frame(
+                                height: lockScreenLayout
+                                    .contentPlaceholderHeight
+                            )
+                            .accessibilityHidden(true)
+                    }
+
+                    if imageFirst {
+                        Spacer(minLength: 20)
+                    }
+
+                    Text(title)
+                        .font(MujoTheme.boldFont(
+                            size: 40,
+                            relativeTo: .largeTitle
+                        ))
+                        .foregroundStyle(.tint)
+                        .multilineTextAlignment(.center)
+                        .padding(
+                            .top,
+                            imageFirst
+                                ? 0
+                                : OnboardingLayoutMetrics.topHeadingPadding
+                        )
+
+                    Text(subtitle)
+                        .font(MujoTheme.italicFont(
+                            size: OnboardingTypography.descriptive,
+                            relativeTo: .subheadline
+                        ))
+                        .foregroundStyle(.tint)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 10)
+
+                    if !imageFirst {
+                        Image(homeScreenWidgetAssetName)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(
+                                maxWidth: OnboardingLayoutMetrics
+                                    .homeScreenWidgetMaximumWidth
+                            )
+                            .clipShape(.rect(
+                                cornerRadius: OnboardingLayoutMetrics
+                                    .homeScreenWidgetCornerRadius
+                            ))
+                            .shadow(
+                                color: Color.accentColor.opacity(0.4),
+                                radius: 18,
+                                y: 10
+                            )
+                            .accessibilityLabel(
+                                "Mujø Home Screen widget preview"
+                            )
+                            .padding(.top, 24)
+                    }
+
+                    Spacer(minLength: 20)
+
+                    OnboardingPrimaryButton(action: onContinue) {
+                        Text("Got it")
+                    }
+                    .padding(.horizontal, 34)
+
+                    OnboardingSecondaryButton(
+                        title: "Show me how to add it ›",
+                        action: { widgetHelp = help }
+                    )
+                    .padding(.top, 5)
+                }
+                .padding(.bottom, 16)
+            }
+            .scrollDisabled(!imageFirst)
+            .overlay(alignment: .top) {
                 if imageFirst {
                     OnboardingLockScreenMockup()
-                        .aspectRatio(
-                            OnboardingLayoutMetrics.lockScreenAspectRatio,
-                            contentMode: .fit
-                        )
-                }
-
-                if imageFirst {
-                    Spacer(minLength: 20)
-                }
-
-                Text(title)
-                    .font(MujoTheme.boldFont(
-                        size: 40,
-                        relativeTo: .largeTitle
-                    ))
-                    .foregroundStyle(.tint)
-                    .multilineTextAlignment(.center)
-                    .padding(
-                        .top,
-                        imageFirst
-                            ? 0
-                            : OnboardingLayoutMetrics.topHeadingPadding
-                    )
-
-                Text(subtitle)
-                    .font(MujoTheme.italicFont(
-                        size: OnboardingTypography.descriptive,
-                        relativeTo: .subheadline
-                    ))
-                    .foregroundStyle(.tint)
-                    .multilineTextAlignment(.center)
-                    .padding(.top, 10)
-
-                if !imageFirst {
-                    Image(homeScreenWidgetAssetName)
-                        .resizable()
-                        .scaledToFit()
                         .frame(
-                            maxWidth: OnboardingLayoutMetrics
-                                .homeScreenWidgetMaximumWidth
+                            width: geometry.size.width,
+                            height: lockScreenLayout.previewHeight
                         )
-                        .clipShape(.rect(
-                            cornerRadius: OnboardingLayoutMetrics
-                                .homeScreenWidgetCornerRadius
-                        ))
-                        .shadow(
-                            color: Color.accentColor.opacity(0.4),
-                            radius: 18,
-                            y: 10
+                        .opacity(showsLockScreenMockup ? 1 : 0)
+                        .offset(
+                            y: lockScreenLayout.previewTopOffset
+                                + (showsLockScreenMockup
+                                    ? 0
+                                    : OnboardingInteractionMetrics
+                                        .lockScreenMockupVerticalOffset)
                         )
-                        .accessibilityLabel("Mujø Home Screen widget preview")
-                        .padding(.top, 24)
+                        .allowsHitTesting(false)
+                        .onAppear(perform: revealLockScreenMockup)
                 }
-
-                Spacer(minLength: 20)
-
-                OnboardingPrimaryButton(action: onContinue) {
-                    Text("Got it")
-                }
-                .padding(.horizontal, 34)
-
-                OnboardingSecondaryButton(
-                    title: "Show me how to add it ›",
-                    action: { widgetHelp = help }
-                )
-                .padding(.top, 5)
             }
-            .padding(.bottom, 16)
         }
-        .scrollDisabled(!imageFirst)
         .ignoresSafeArea(edges: imageFirst ? .top : [])
+    }
+
+    private func revealLockScreenMockup() {
+        let style = OnboardingMotionPolicy.lockScreenMockupStyle(
+            reduceMotion: reduceMotion
+        )
+
+        guard style == .delayedSlideFromTop else {
+            showsLockScreenMockup = true
+            return
+        }
+
+        withAnimation(
+            .easeOut(
+                duration: OnboardingInteractionMetrics
+                    .lockScreenMockupAnimationDuration
+            )
+            .delay(OnboardingInteractionMetrics.lockScreenMockupDelay)
+        ) {
+            showsLockScreenMockup = true
+        }
     }
 
     private func enableNotifications() {
@@ -522,11 +636,7 @@ struct OnboardingLimitSetupView: View {
         if !usesPreviewData {
             wasNotificationPromptShown = true
         }
-        withAnimation(.easeInOut(
-            duration: OnboardingInteractionMetrics.stepAnimationDuration
-        )) {
-            step = .lockScreenWidget
-        }
+        advance(to: .lockScreenWidget)
     }
 
     @ViewBuilder
@@ -720,10 +830,36 @@ struct OnboardingLimitSetupView: View {
     }
 
     private func advanceSavings() {
-        withAnimation(.easeInOut(
-            duration: OnboardingInteractionMetrics.stepAnimationDuration
-        )) {
-            step = .limitReached
+        guard !isSavingsExiting else { return }
+
+        let destination = OnboardingStep.limitReached
+        let style = OnboardingMotionPolicy.style(
+            from: step,
+            to: destination,
+            reduceMotion: reduceMotion
+        )
+
+        guard style != .crossfade else {
+            advance(to: destination)
+            return
+        }
+
+        motionStyle = style
+        isSavingsExiting = true
+
+        withAnimation(
+            style.animation,
+            completionCriteria: .logicallyComplete
+        ) {
+            savingsExitProgress = 1
+            step = destination
+        } completion: {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                isSavingsExiting = false
+                savingsExitProgress = 0
+            }
         }
     }
 
@@ -732,11 +868,7 @@ struct OnboardingLimitSetupView: View {
 
         if usesPreviewData {
             selectedMinutes = minutes
-            withAnimation(.easeInOut(
-                duration: OnboardingInteractionMetrics.stepAnimationDuration
-            )) {
-                step = showsHistoryReports ? .savings : .limitReached
-            }
+            advance(to: showsHistoryReports ? .savings : .limitReached)
             return true
         }
 
@@ -747,11 +879,97 @@ struct OnboardingLimitSetupView: View {
         else { return false }
 
         selectedMinutes = minutes
-        withAnimation(.easeInOut(
-            duration: OnboardingInteractionMetrics.stepAnimationDuration
-        )) {
-            step = showsHistoryReports ? .savings : .limitReached
-        }
+        advance(to: showsHistoryReports ? .savings : .limitReached)
         return true
+    }
+
+    private func advance(to destination: OnboardingStep) {
+        let style = OnboardingMotionPolicy.style(
+            from: step,
+            to: destination,
+            reduceMotion: reduceMotion
+        )
+
+        if style == .limitConfirmation, !selectedTimeFrame.isEmpty {
+            limitDestinationFrame = .zero
+            limitHeroProgress = 0
+            limitHero = OnboardingLimitHeroState(
+                text: selectedTime,
+                sourceFrame: selectedTimeFrame
+            )
+        }
+
+        motionStyle = style
+        withAnimation(style.animation) {
+            step = destination
+        }
+    }
+
+    private func updateLimitDestinationFrame(_ frame: CGRect) {
+        guard !frame.isEmpty else { return }
+        limitDestinationFrame = frame
+
+        guard limitHero != nil, limitHeroProgress == 0 else { return }
+
+        withAnimation(
+            .easeInOut(
+                duration: OnboardingInteractionMetrics
+                    .limitHeroAnimationDuration
+            ),
+            completionCriteria: .logicallyComplete
+        ) {
+            limitHeroProgress = 1
+        } completion: {
+            limitHero = nil
+            limitHeroProgress = 0
+        }
+    }
+
+    private func completeOnboarding() {
+        let style = OnboardingMotionPolicy.style(
+            from: step,
+            to: nil,
+            reduceMotion: reduceMotion
+        )
+        onCompleted(style)
+    }
+}
+
+private struct OnboardingLimitHeroState {
+    let text: String
+    let sourceFrame: CGRect
+}
+
+private struct AnimatedOnboardingLimitHero: View, Animatable {
+    let text: String
+    let motion: OnboardingLimitHeroMotion
+    var progress: Double
+
+    var animatableData: Double {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    var body: some View {
+        let sample = motion.sample(at: progress)
+
+        ZStack {
+            Text(verbatim: text)
+                .font(MujoTheme.boldFont(
+                    size: sample.fontSize,
+                    relativeTo: .largeTitle
+                ))
+                .opacity(1 - progress)
+
+            Text(verbatim: text)
+                .font(MujoTheme.semiboldItalicFont(
+                    size: sample.fontSize,
+                    relativeTo: .body
+                ))
+                .opacity(progress)
+        }
+        .monospacedDigit()
+        .fixedSize()
+        .position(sample.position)
     }
 }

@@ -1,7 +1,85 @@
+import Foundation
 import SwiftUI
 
-struct OnboardingNotificationBanner: View {
+enum OnboardingNotificationStackPhase: Int, Equatable {
+    case hidden
+    case thirtyMinutes
+    case fiveMinutes
+    case expired
+
+    static func initial(reduceMotionEnabled: Bool) -> Self {
+        reduceMotionEnabled ? .expired : .hidden
+    }
+
+    var visibleNotificationCount: Int {
+        rawValue
+    }
+
+    mutating func advance() {
+        switch self {
+        case .hidden:
+            self = .thirtyMinutes
+        case .thirtyMinutes:
+            self = .fiveMinutes
+        case .fiveMinutes, .expired:
+            self = .expired
+        }
+    }
+}
+
+struct OnboardingNotificationStackLayout {
+    let bannerHeight: CGFloat = 76
+
+    private let depthOffset: CGFloat = 9
+    private let depthScaleStep: CGFloat = 0.045
+
+    func scale(atDepth depth: Int) -> CGFloat {
+        1 - CGFloat(depth) * depthScaleStep
+    }
+
+    func verticalOffset(atDepth depth: Int) -> CGFloat {
+        CGFloat(depth) * depthOffset
+    }
+
+    func exposedBottomEdge(atDepth depth: Int) -> CGFloat {
+        guard depth > 0 else { return 0 }
+        return bottomEdge(atDepth: depth) - bottomEdge(atDepth: depth - 1)
+    }
+
+    private func bottomEdge(atDepth depth: Int) -> CGFloat {
+        bannerHeight * scale(atDepth: depth) + verticalOffset(atDepth: depth)
+    }
+}
+
+private struct OnboardingNotificationPreviewContent: Identifiable {
+    let id: Int
+    let title: String
+    let body: String
+
+    static let sequence = [
+        Self(
+            id: 0,
+            title: "30 min remaining",
+            body: "Make the last minutes count."
+        ),
+        Self(
+            id: 1,
+            title: "5 min remaining",
+            body: "Choose how you want to spend them."
+        ),
+        Self(
+            id: 2,
+            title: "Nothing remains.",
+            body: "You've reached the time you chose for today."
+        )
+    ]
+}
+
+private struct OnboardingNotificationBanner: View {
     @Environment(\.colorScheme) private var colorScheme
+
+    let content: OnboardingNotificationPreviewContent
+    let height: CGFloat
 
     var body: some View {
         HStack(spacing: 8) {
@@ -19,13 +97,13 @@ struct OnboardingNotificationBanner: View {
             .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Nothing remains.")
+                Text(content.title)
                     .font(.system(
                         size: OnboardingTypography.systemUI,
                         weight: .semibold
                     ))
 
-                Text("You've reached the time you chose for today.")
+                Text(content.body)
                     .font(.system(
                         size: OnboardingTypography.systemUI,
                         weight: .regular
@@ -38,6 +116,7 @@ struct OnboardingNotificationBanner: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
+        .frame(height: height)
         .background(notificationBackground, in: .rect(cornerRadius: 22))
         .overlay {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
@@ -54,14 +133,9 @@ struct OnboardingNotificationBanner: View {
                 .padding(.trailing, 16)
         }
         .shadow(
-            color: Color.black.opacity(colorScheme == .dark ? 0.34 : 0.16),
-            radius: 16,
-            y: 8
-        )
-        .shadow(
-            color: Color.accentColor.opacity(colorScheme == .dark ? 0.22 : 0.16),
-            radius: 20,
-            y: 8
+            color: Color.accentColor.opacity(0.08),
+            radius: 10,
+            y: 4
         )
         .accessibilityElement(children: .combine)
     }
@@ -86,6 +160,86 @@ struct OnboardingNotificationBanner: View {
 
     private var appIconBackground: Color {
         MujoTheme.raisedSurfaceBackground(for: colorScheme)
+    }
+}
+
+struct OnboardingNotificationStack: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotionEnabled
+    @State private var phase = OnboardingNotificationStackPhase.hidden
+
+    private let revealDelay = Duration.milliseconds(850)
+    private let initialDelay = Duration.milliseconds(200)
+    private let layout = OnboardingNotificationStackLayout()
+
+    var body: some View {
+        let visibleNotifications = OnboardingNotificationPreviewContent
+            .sequence
+            .prefix(phase.visibleNotificationCount)
+
+        ZStack(alignment: .top) {
+            ForEach(Array(visibleNotifications.enumerated()), id: \.element.id) {
+                index, notification in
+                let depth = visibleNotifications.count - index - 1
+
+                OnboardingNotificationBanner(
+                    content: notification,
+                    height: layout.bannerHeight
+                )
+                    .scaleEffect(layout.scale(atDepth: depth), anchor: .top)
+                    .offset(y: layout.verticalOffset(atDepth: depth))
+                    .opacity(layerOpacity(depth: depth))
+                    .zIndex(Double(visibleNotifications.count - depth))
+                    .transition(
+                        .move(edge: .top)
+                            .combined(with: .opacity)
+                            .combined(with: .scale(scale: 0.96))
+                    )
+            }
+        }
+        .frame(height: layout.bannerHeight, alignment: .top)
+        .accessibilityElement(children: .combine)
+        .task {
+            await playSequence()
+        }
+    }
+
+    private func layerOpacity(depth: Int) -> Double {
+        switch depth {
+        case 0: 1
+        case 1: 0.88
+        default: 0.74
+        }
+    }
+
+    @MainActor
+    private func playSequence() async {
+        guard phase == .hidden else { return }
+
+        let initialPhase = OnboardingNotificationStackPhase.initial(
+            reduceMotionEnabled: reduceMotionEnabled
+        )
+        guard initialPhase == .hidden else {
+            phase = initialPhase
+            return
+        }
+
+        do {
+            try await Task.sleep(for: initialDelay)
+            revealNextNotification()
+            try await Task.sleep(for: revealDelay)
+            revealNextNotification()
+            try await Task.sleep(for: revealDelay)
+            revealNextNotification()
+        } catch {
+            return
+        }
+    }
+
+    @MainActor
+    private func revealNextNotification() {
+        withAnimation(.spring(duration: 0.46, bounce: 0.16)) {
+            phase.advance()
+        }
     }
 }
 struct NotificationRequestErrorOverlay: View {
@@ -131,6 +285,28 @@ struct NotificationRequestErrorOverlay: View {
     }
 }
 
+enum OnboardingLockScreenDateFormatter {
+    static func display(
+        for date: Date,
+        timeZone: TimeZone = .autoupdatingCurrent
+    ) -> (date: String, time: String) {
+        let dateFormatter = DateFormatter()
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+        dateFormatter.timeZone = timeZone
+        dateFormatter.dateFormat = "EEE d"
+
+        let timeFormatter = DateFormatter()
+        timeFormatter.locale = Locale(identifier: "en_US_POSIX")
+        timeFormatter.timeZone = timeZone
+        timeFormatter.dateFormat = "HH:mm"
+
+        return (
+            date: dateFormatter.string(from: date),
+            time: timeFormatter.string(from: date)
+        )
+    }
+}
+
 struct OnboardingLockScreenMockup: View {
     @Environment(\.colorScheme) private var colorScheme
 
@@ -145,55 +321,61 @@ struct OnboardingLockScreenMockup: View {
                 endPoint: .bottomTrailing
             )
 
-            VStack(spacing: 0) {
-                Text("Sat 26  ·  \(remainingText)")
-                    .font(.system(
-                        size: 23,
-                        weight: .semibold,
-                        design: .rounded
-                    ))
-                    .foregroundStyle(clockColor)
+            TimelineView(.periodic(from: .now, by: 1)) { context in
+                let display = OnboardingLockScreenDateFormatter.display(
+                    for: context.date
+                )
 
-                Text("17:11")
-                    .font(.system(
-                        size: 114,
-                        weight: .bold,
-                        design: .rounded
-                    ))
-                    .foregroundStyle(clockColor)
-                    .tracking(-2)
-                    .padding(.top, -4)
-
-                ZStack {
-                    Circle()
-                        .stroke(
-                            supportingContentColor.opacity(0.35),
-                            lineWidth: 2.5
-                        )
-
-                    Circle()
-                        .trim(from: 0, to: 0.5)
-                        .stroke(
-                            widgetEmphasisColor,
-                            style: StrokeStyle(
-                                lineWidth: 2.5,
-                                lineCap: .round
-                            )
-                        )
-                        .rotationEffect(.degrees(-90))
-
-                    Text("1:30")
+                VStack(spacing: 0) {
+                    Text("\(display.date)  ·  \(remainingText)")
                         .font(.system(
-                            size: 15,
+                            size: 23,
                             weight: .semibold,
                             design: .rounded
                         ))
-                        .foregroundStyle(widgetEmphasisColor)
+                        .foregroundStyle(clockColor)
+
+                    Text(verbatim: display.time)
+                        .font(.system(
+                            size: 114,
+                            weight: .bold,
+                            design: .rounded
+                        ))
+                        .foregroundStyle(clockColor)
+                        .tracking(-2)
+                        .padding(.top, -4)
+
+                    ZStack {
+                        Circle()
+                            .stroke(
+                                supportingContentColor.opacity(0.35),
+                                lineWidth: 2.5
+                            )
+
+                        Circle()
+                            .trim(from: 0, to: 0.5)
+                            .stroke(
+                                widgetEmphasisColor,
+                                style: StrokeStyle(
+                                    lineWidth: 2.5,
+                                    lineCap: .round
+                                )
+                            )
+                            .rotationEffect(.degrees(-90))
+
+                        Text("1:30")
+                            .font(.system(
+                                size: 15,
+                                weight: .semibold,
+                                design: .rounded
+                            ))
+                            .foregroundStyle(widgetEmphasisColor)
+                    }
+                    .frame(width: 58, height: 58)
+                    .padding(.top, -8)
                 }
-                .frame(width: 58, height: 58)
-                .padding(.top, -8)
+                .padding(.top, 78)
             }
-            .padding(.top, 78)
         }
         .clipShape(
             UnevenRoundedRectangle(

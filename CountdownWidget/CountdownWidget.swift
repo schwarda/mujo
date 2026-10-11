@@ -103,4 +103,11 @@ struct CountdownEntry: TimelineEntry {
     var isExhausted: Bool {
         isEstimateAvailable && remainingTime <= 0
     }
+
+    var usedTime: TimeInterval {
+        UsageEstimate.displayedUsedTime(
+            remainingTime: remainingTime,
+            dailyLimit: dailyLimit
+        )
+    }
 }

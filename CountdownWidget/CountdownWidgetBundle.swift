@@ -12,6 +12,8 @@ import WidgetKit
 struct CountdownWidgetBundle: WidgetBundle {
     var body: some Widget {
         DigitalWidget()
+        UsedDigitalWidget()
+        DigitalOverviewWidget()
         GradientWidget()
         GradientDigitalWidget()
 #if MUJO_LIVE_ACTIVITIES

@@ -58,6 +58,54 @@ private enum WidgetPreviewEntry {
     WidgetPreviewEntry.timeZoneChanged
 }
 
+#Preview("Used Time · Available", as: .systemSmall) {
+    UsedDigitalWidget()
+} timeline: {
+    WidgetPreviewEntry.remaining
+}
+
+#Preview("Used Time · Exhausted", as: .systemSmall) {
+    UsedDigitalWidget()
+} timeline: {
+    WidgetPreviewEntry.exhausted
+}
+
+#Preview("Used Time · Waiting", as: .systemSmall) {
+    UsedDigitalWidget()
+} timeline: {
+    WidgetPreviewEntry.waiting
+}
+
+#Preview("Used Time · Time Zone", as: .systemSmall) {
+    UsedDigitalWidget()
+} timeline: {
+    WidgetPreviewEntry.timeZoneChanged
+}
+
+#Preview("Time Overview · Available", as: .systemMedium) {
+    DigitalOverviewWidget()
+} timeline: {
+    WidgetPreviewEntry.remaining
+}
+
+#Preview("Time Overview · Exhausted", as: .systemMedium) {
+    DigitalOverviewWidget()
+} timeline: {
+    WidgetPreviewEntry.exhausted
+}
+
+#Preview("Time Overview · Waiting", as: .systemMedium) {
+    DigitalOverviewWidget()
+} timeline: {
+    WidgetPreviewEntry.waiting
+}
+
+#Preview("Time Overview · Time Zone", as: .systemMedium) {
+    DigitalOverviewWidget()
+} timeline: {
+    WidgetPreviewEntry.timeZoneChanged
+}
+
 #Preview("Gradient · Remaining", as: .systemSmall) {
     GradientWidget()
 } timeline: {

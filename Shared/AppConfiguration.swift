@@ -20,6 +20,8 @@ enum AppConfiguration {
     }
     nonisolated static let defaultDailyLimit: TimeInterval = 2 * 60 * 60
     nonisolated static let widgetKind = "CountdownWidget"
+    nonisolated static let usedDigitalWidgetKind = "UsedDigitalWidget"
+    nonisolated static let digitalOverviewWidgetKind = "DigitalOverviewWidget"
     nonisolated static let gradientWidgetKind = "GradientWidget"
     nonisolated static let gradientDigitalWidgetKind = "GradientDigitalWidget"
 

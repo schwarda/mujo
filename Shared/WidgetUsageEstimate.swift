@@ -33,6 +33,13 @@ struct UsageEstimate: Equatable {
         self.isAvailable = isAvailable
         self.unavailableReason = unavailableReason
     }
+
+    static func displayedUsedTime(
+        remainingTime: TimeInterval,
+        dailyLimit: TimeInterval
+    ) -> TimeInterval {
+        min(max(0, dailyLimit - remainingTime), max(0, dailyLimit))
+    }
 }
 
 enum UsageEstimator {

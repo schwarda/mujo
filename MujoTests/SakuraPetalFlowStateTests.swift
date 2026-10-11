@@ -43,4 +43,18 @@ struct SakuraPetalFlowStateTests {
         #expect(flow.streams.count == 1)
         #expect(flow.streams[0].startTime == 5)
     }
+
+    @Test("A non-filled field starts after previously accumulated time")
+    func nonFilledFieldUsesCurrentTime() {
+        var flow = SakuraPetalFlowState()
+
+        flow.reconcile(
+            emitsPetals: true,
+            at: 12,
+            startsFilled: false
+        )
+
+        #expect(flow.streams.count == 1)
+        #expect(flow.streams[0].startTime == 12)
+    }
 }

@@ -155,6 +155,26 @@ struct WidgetUsageEstimateTests {
         #expect(estimate.remainingTime == 0)
     }
 
+    @Test("Displayed used time is the consumed part of the daily limit")
+    func derivesDisplayedUsedTime() {
+        let partialUsage = UsageEstimate.displayedUsedTime(
+            remainingTime: 90 * 60,
+            dailyLimit: 3 * 60 * 60
+        )
+        let exhaustedUsage = UsageEstimate.displayedUsedTime(
+            remainingTime: -60,
+            dailyLimit: 3 * 60 * 60
+        )
+        let unusedLimit = UsageEstimate.displayedUsedTime(
+            remainingTime: 4 * 60 * 60,
+            dailyLimit: 3 * 60 * 60
+        )
+
+        #expect(partialUsage == 90 * 60)
+        #expect(exhaustedUsage == 3 * 60 * 60)
+        #expect(unusedLimit == 0)
+    }
+
     @Test("An impossible stored 12-hour value is never displayed")
     func rejectsImpossibleStoredUsage() {
         let monitoringStart = dayStart.addingTimeInterval(60)

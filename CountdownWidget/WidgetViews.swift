@@ -35,27 +35,99 @@ private struct HomeScreenUnavailableView: View {
     }
 }
 
+private struct DigitalTimeColumn: View {
+    let title: String
+    let value: TimeInterval
+    let timeSize: CGFloat
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Text(title)
+                .font(MujoTheme.mediumFont(
+                    size: 12,
+                    relativeTo: .caption2
+                ))
+                .textCase(.uppercase)
+                .foregroundStyle(
+                    MujoTheme.glassAccent.opacity(
+                        MujoTheme.secondaryTextOpacity
+                    )
+                )
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+
+            GlassText(value: value.formatted(), size: timeSize)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
 struct DigitalHomeScreenView: View {
     let entry: CountdownProvider.Entry
 
     var body: some View {
         Group {
             if entry.isEstimateAvailable {
-                VStack(spacing: 6) {
-                    Text("R e m a i n i n g")
-                        .font(MujoTheme.mediumFont(
-                            size: 12,
-                            relativeTo: .caption2
-                        ))
-                        .textCase(.uppercase)
-                        .foregroundStyle(
-                            MujoTheme.glassAccent.opacity(
-                                MujoTheme.secondaryTextOpacity
-                            )
-                        )
+                DigitalTimeColumn(
+                    title: "R e m a i n i n g",
+                    value: entry.remainingTime,
+                    timeSize: 68
+                )
+            } else {
+                HomeScreenUnavailableView(entry: entry)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .containerBackground(Color("BackgroundColor"), for: .widget)
+    }
+}
 
-                    GlassText(value: entry.remainingTime.formatted(), size: 68)
+struct UsedDigitalHomeScreenView: View {
+    let entry: CountdownProvider.Entry
+
+    var body: some View {
+        Group {
+            if entry.isEstimateAvailable {
+                DigitalTimeColumn(
+                    title: "U s e d",
+                    value: entry.usedTime,
+                    timeSize: 68
+                )
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Used: \(entry.usedTime.formatted())")
+            } else {
+                HomeScreenUnavailableView(entry: entry)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .containerBackground(Color("BackgroundColor"), for: .widget)
+    }
+}
+
+struct DigitalOverviewHomeScreenView: View {
+    let entry: CountdownProvider.Entry
+
+    var body: some View {
+        Group {
+            if entry.isEstimateAvailable {
+                HStack(spacing: 16) {
+                    DigitalTimeColumn(
+                        title: "R e m a i n i n g",
+                        value: entry.remainingTime,
+                        timeSize: 54
+                    )
+
+                    DigitalTimeColumn(
+                        title: "U s e d",
+                        value: entry.usedTime,
+                        timeSize: 54
+                    )
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(
+                    "Remaining: \(entry.remainingTime.formatted()), "
+                        + "used: \(entry.usedTime.formatted())"
+                )
             } else {
                 HomeScreenUnavailableView(entry: entry)
             }

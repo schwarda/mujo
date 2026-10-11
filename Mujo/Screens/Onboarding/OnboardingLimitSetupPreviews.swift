@@ -2,7 +2,7 @@ import SwiftUI
 
 #if DEBUG
 private struct OnboardingScreenPreview: View {
-    let step: OnboardingLimitSetupView.Step
+    let step: OnboardingStep
     var insightPage: OnboardingInsightPage = .day
 
     var body: some View {

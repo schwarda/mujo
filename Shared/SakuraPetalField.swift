@@ -22,11 +22,19 @@ struct SakuraPetalFlowState {
     private(set) var streams: [Stream] = []
     private var nextStreamID = 0
 
-    mutating func reconcile(emitsPetals: Bool, at time: TimeInterval) {
+    mutating func reconcile(
+        emitsPetals: Bool,
+        at time: TimeInterval,
+        startsFilled: Bool = true
+    ) {
         guard let wasEmitting = isEmitting else {
             isEmitting = emitsPetals
             if emitsPetals {
-                streams = [Stream(id: nextStreamID, startTime: nil, stopTime: nil)]
+                streams = [Stream(
+                    id: nextStreamID,
+                    startTime: startsFilled ? nil : time,
+                    stopTime: nil
+                )]
                 nextStreamID += 1
             }
             return
@@ -185,7 +193,11 @@ struct SakuraPetalField: View {
         .allowsHitTesting(false)
         .accessibilityHidden(true)
         .onAppear {
-            flowState.reconcile(emitsPetals: emitsPetals, at: clock.time)
+            flowState.reconcile(
+                emitsPetals: emitsPetals,
+                at: clock.time,
+                startsFilled: startsFilled
+            )
         }
         .onChange(of: emitsPetals) { _, isEmitting in
             flowState.reconcile(emitsPetals: isEmitting, at: clock.time)

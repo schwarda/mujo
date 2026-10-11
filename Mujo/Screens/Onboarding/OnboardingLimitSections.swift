@@ -3,55 +3,64 @@ import SwiftUI
 struct OnboardingInsightsAndLimitReportSection<ReportContent: View>: View {
     let isChoosingLimit: Bool
     let showsHistoryReport: Bool
+    let motionStyle: OnboardingMotionStyle
     private let reportContent: () -> ReportContent
 
     init(
         isChoosingLimit: Bool,
         showsHistoryReport: Bool,
+        motionStyle: OnboardingMotionStyle,
         @ViewBuilder reportContent: @escaping () -> ReportContent
     ) {
         self.isChoosingLimit = isChoosingLimit
         self.showsHistoryReport = showsHistoryReport
+        self.motionStyle = motionStyle
         self.reportContent = reportContent
     }
 
     var body: some View {
         Group {
             if isChoosingLimit {
-                Text("Take the first step")
-                    .font(MujoTheme.boldFont(size: 40, relativeTo: .largeTitle))
-                    .foregroundStyle(.tint)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
+                Group {
+                    Text("Take the first step")
+                        .font(MujoTheme.boldFont(size: 40, relativeTo: .largeTitle))
+                        .foregroundStyle(.tint)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                Text(
-                    "Set the amount of screen time\nyou want to give yourself each day."
-                )
-                .font(MujoTheme.italicFont(
-                    size: OnboardingTypography.descriptive,
-                    relativeTo: .body
-                ))
-                .foregroundStyle(.tint)
-                .multilineTextAlignment(.center)
-                .padding(.top, 12)
-
-                Spacer(minLength: 12)
-            } else {
-                Text("Before you\nchoose, know\nwhere you are")
-                    .font(MujoTheme.boldFont(
-                        size: 40,
-                        relativeTo: .largeTitle
+                    Text(
+                        "Set the amount of screen time\nyou want to give yourself each day."
+                    )
+                    .font(MujoTheme.italicFont(
+                        size: OnboardingTypography.descriptive,
+                        relativeTo: .body
                     ))
                     .foregroundStyle(.tint)
                     .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .layoutPriority(2)
-                    .padding(
-                        .top,
-                        OnboardingLayoutMetrics.topHeadingPadding
-                    )
+                    .padding(.top, 12)
 
-                Spacer(minLength: 32)
+                    Spacer(minLength: 12)
+                }
+                .transition(motionStyle.transition)
+            } else {
+                Group {
+                    Text("Before you\nchoose, know\nwhere you are")
+                        .font(MujoTheme.boldFont(
+                            size: 40,
+                            relativeTo: .largeTitle
+                        ))
+                        .foregroundStyle(.tint)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .layoutPriority(2)
+                        .padding(
+                            .top,
+                            OnboardingLayoutMetrics.topHeadingPadding
+                        )
+
+                    Spacer(minLength: 32)
+                }
+                .transition(motionStyle.transition)
             }
 
             if showsHistoryReport {
@@ -70,12 +79,18 @@ struct OnboardingLimitSelectionSection: View {
     @State private var isSaving = false
 
     let onSave: (Int) async -> Bool
+    let hidesSelectedTime: Bool
+    let onSelectedTimeFrameChange: (CGRect) -> Void
 
     init(
         initialMinutes: Int,
+        hidesSelectedTime: Bool,
+        onSelectedTimeFrameChange: @escaping (CGRect) -> Void,
         onSave: @escaping (Int) async -> Bool
     ) {
         _selectedMinutes = State(initialValue: initialMinutes)
+        self.hidesSelectedTime = hidesSelectedTime
+        self.onSelectedTimeFrameChange = onSelectedTimeFrameChange
         self.onSave = onSave
     }
 
@@ -89,6 +104,16 @@ struct OnboardingLimitSelectionSection: View {
                 .monospacedDigit()
                 .foregroundStyle(.tint)
                 .contentTransition(.numericText())
+                .opacity(hidesSelectedTime ? 0 : 1)
+                .onGeometryChange(
+                    for: CGRect.self,
+                    of: { proxy in
+                        proxy.frame(in: .named(
+                            OnboardingCoordinateSpace.limitSetup
+                        ))
+                    },
+                    action: onSelectedTimeFrameChange
+                )
 
             Text("Daily limit")
                 .font(MujoTheme.italicFont(

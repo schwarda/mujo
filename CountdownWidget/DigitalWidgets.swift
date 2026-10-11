@@ -52,6 +52,36 @@ struct DigitalWidget: Widget {
     }
 }
 
+struct UsedDigitalWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(
+            kind: AppConfiguration.usedDigitalWidgetKind,
+            provider: CountdownProvider()
+        ) { entry in
+            UsedDigitalHomeScreenView(entry: entry)
+                .unredacted()
+        }
+        .configurationDisplayName("Mujø Used Time")
+        .description("See how much of today's chosen time you have used.")
+        .supportedFamilies([.systemSmall])
+    }
+}
+
+struct DigitalOverviewWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(
+            kind: AppConfiguration.digitalOverviewWidgetKind,
+            provider: CountdownProvider()
+        ) { entry in
+            DigitalOverviewHomeScreenView(entry: entry)
+                .unredacted()
+        }
+        .configurationDisplayName("Mujø Time Overview")
+        .description("See today's remaining and used time together.")
+        .supportedFamilies([.systemMedium])
+    }
+}
+
 #Preview(as: .accessoryRectangular) {
     DigitalWidget()
 } timeline: {

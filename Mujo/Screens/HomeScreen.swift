@@ -92,7 +92,7 @@ struct HomeScreen: View {
                 .foregroundStyle(.tint)
                 .buttonStyle(.plain)
                 .frame(minHeight: 44)
-                .padding(.bottom, 80)
+                .padding(.bottom, 34)
                 
             }
 

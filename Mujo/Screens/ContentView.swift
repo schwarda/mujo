@@ -10,6 +10,7 @@ import FamilyControls
 
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var screenTime: ScreenTimeManager
     @State private var isRequestingAuthorization = false
     @State private var sharedWindStrength = 0.0
@@ -18,6 +19,8 @@ struct ContentView: View {
     @State private var petalsStartedDuringOnboarding = false
     @State private var hasResolvedInitialAuthorization = false
     @State private var isShowingLaunchOverlay = true
+    @State private var showsOnboardingCompletionPetals = false
+    @State private var onboardingCompletionProgress = 0.0
     private let firstLaunchLogoDuration = 1.6
     private let launchOverlayFadeDuration = 0.45
     @AppStorage("hasReachedScreenTimePermission")
@@ -37,11 +40,40 @@ struct ContentView: View {
         ZStack {
             if hasCompletedOnboarding {
                 SakuraBackground()
-            } else {
-                OnboardingBackground()
+                    .transition(.opacity)
             }
+
+            if !hasCompletedOnboarding
+                || showsOnboardingCompletionPetals {
+                OnboardingBackground()
+                    .onboardingCompletionMask(
+                        isActive: showsOnboardingCompletionPetals,
+                        progress: onboardingCompletionProgress
+                    )
+                    .transition(.opacity)
+            }
+
             rootContent
+                .transition(rootOnboardingMotionStyle.transition)
+                .animation(
+                    rootOnboardingMotionStyle.animation,
+                    value: screenTime.authorizationStatus
+                )
+                .animation(
+                    rootOnboardingMotionStyle.animation,
+                    value: hasReachedScreenTimePermission
+                )
+
+            if showsOnboardingCompletionPetals {
+                OnboardingSakuraCompletionView(
+                    progress: onboardingCompletionProgress
+                )
+                    .transition(.opacity)
+                    .zIndex(2)
+            }
+
             launchOverlay
+                .zIndex(3)
         }
         .task {
             await resolveInitialAuthorization()
@@ -83,22 +115,32 @@ struct ContentView: View {
     private var rootContent: some View {
         if isShowingLaunchOverlay || !hasResolvedInitialAuthorization {
             Color.clear
-        } else if screenTime.isAuthorized && hasCompletedOnboarding {
-            HomeScreen(
-                screenTime: screenTime,
-                windStrength: $sharedWindStrength,
-                petalSimulationTime: $petalSimulationTime,
-                petalFlow: $petalFlow,
-                petalsStartFilled: !petalsStartedDuringOnboarding,
-                showsPetals: screenTime.errorMessage == nil
-            )
         } else if screenTime.isAuthorized {
-            OnboardingLimitSetupView(
-                screenTime: screenTime,
-                onCompleted: {
-                    hasCompletedOnboarding = true
+            ZStack {
+                if hasCompletedOnboarding {
+                    HomeScreen(
+                        screenTime: screenTime,
+                        windStrength: $sharedWindStrength,
+                        petalSimulationTime: $petalSimulationTime,
+                        petalFlow: $petalFlow,
+                        petalsStartFilled: !petalsStartedDuringOnboarding,
+                        showsPetals: screenTime.errorMessage == nil
+                    )
                 }
-            )
+
+                if !hasCompletedOnboarding
+                    || showsOnboardingCompletionPetals {
+                    OnboardingLimitSetupView(
+                        screenTime: screenTime,
+                        onCompleted: completeOnboarding(using:)
+                    )
+                    .onboardingCompletionMask(
+                        isActive: showsOnboardingCompletionPetals,
+                        progress: onboardingCompletionProgress
+                    )
+                    .zIndex(1)
+                }
+            }
         } else if shouldShowPermissionExplanation {
             ScreenTimePermissionView(
                 isRequestingAccess: isRequestingAuthorization,
@@ -144,6 +186,10 @@ struct ContentView: View {
         default:
             return true
         }
+    }
+
+    private var rootOnboardingMotionStyle: OnboardingMotionStyle {
+        reduceMotion ? .crossfade : .standard
     }
 
     private func resolveInitialAuthorization() async {
@@ -211,6 +257,65 @@ struct ContentView: View {
             hasReachedScreenTimePermission = true
             isRequestingAuthorization = false
         }
+    }
+
+    private func completeOnboarding(using style: OnboardingMotionStyle) {
+        guard !showsOnboardingCompletionPetals else { return }
+
+        guard style == .sakuraCompletion else {
+            withAnimation(style.animation) {
+                hasCompletedOnboarding = true
+            }
+            return
+        }
+
+        showsOnboardingCompletionPetals = true
+        petalsStartedDuringOnboarding = true
+        onboardingCompletionProgress = 0
+        hasCompletedOnboarding = true
+
+        Task { @MainActor in
+            await Task.yield()
+            withAnimation(OnboardingSakuraGust.animation) {
+                onboardingCompletionProgress = 1
+            }
+
+            try? await Task.sleep(
+                for: .seconds(OnboardingSakuraGust.animationDuration)
+            )
+            guard !Task.isCancelled else { return }
+
+            showsOnboardingCompletionPetals = false
+            onboardingCompletionProgress = 0
+        }
+    }
+}
+
+private struct OnboardingCompletionMaskModifier: ViewModifier {
+    let isActive: Bool
+    let progress: Double
+
+    func body(content: Content) -> some View {
+        let maskProgress = OnboardingCompletionMaskPolicy.progress(
+            showsCompletionPetals: isActive,
+            transitionProgress: progress
+        )
+
+        content.mask {
+            OnboardingSakuraWipeMask(progress: maskProgress)
+        }
+    }
+}
+
+private extension View {
+    func onboardingCompletionMask(
+        isActive: Bool,
+        progress: Double
+    ) -> some View {
+        modifier(OnboardingCompletionMaskModifier(
+            isActive: isActive,
+            progress: progress
+        ))
     }
 }
 
