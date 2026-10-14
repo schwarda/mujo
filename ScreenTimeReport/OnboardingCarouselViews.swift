@@ -92,15 +92,15 @@ struct OnboardingSavingsCarouselView: View {
            let averageMinutes = configuration.averageMinutes {
             let dailyLimitMinutes = configuration.dailyLimitMinutes
                 ?? averageMinutes
-            let annualSavingsMinutes = OnboardingAnnualSavingsCalculator
-                .minutes(
+            let annualDifference = OnboardingAnnualSavingsCalculator
+                .difference(
                     annualTotalMinutes: totalMinutes,
                     recentDailyAverageMinutes: averageMinutes,
                     availableDayCount: configuration.availableDayCount,
                     dailyLimitMinutes: dailyLimitMinutes
                 )
             OnboardingSavingsCard(
-                annualSavingsMinutes: annualSavingsMinutes,
+                annualDifference: annualDifference,
                 page: page,
                 horizontalPadding: 0
             )

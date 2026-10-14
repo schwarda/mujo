@@ -19,6 +19,14 @@ struct OnboardingLimitSetupView: View {
     @State private var limitHeroProgress = 0.0
     @State private var savingsExitProgress = 0.0
     @State private var isSavingsExiting = false
+    @State private var limitCountdown: OnboardingLimitCountdownState?
+    @State private var limitCountdownTakeoffProgress = 0.0
+    @State private var limitCountdownProgress = 0.0
+    @State private var limitCountdownHandoffProgress = 0.0
+    @State private var limitReachedMarkFrame = CGRect.zero
+    @State private var limitCountdownContainerWidth: CGFloat = 0
+    @State private var limitCountdownMeasuredTextWidth: CGFloat = 0
+    @State private var limitCountdownMeasuredFinalMarkWidth: CGFloat = 0
     @State private var showsHistoryReports = true
     @State private var isRequestingNotifications = false
     @State private var isShowingNotificationRequestError = false
@@ -99,6 +107,11 @@ struct OnboardingLimitSetupView: View {
                 homeScreenWidgetStep.transition(motionStyle.transition)
             }
 
+            if step == .lockScreenWidget {
+                lockScreenMockupLayer
+                    .transition(reduceMotion ? .opacity : .identity)
+            }
+
             if step == .savings || isSavingsExiting {
                 savingsStep
                     .transition(motionStyle.transition)
@@ -124,6 +137,29 @@ struct OnboardingLimitSetupView: View {
                 .zIndex(2)
             }
 
+            if let limitCountdown {
+                AnimatedOnboardingLimitCountdownHero(
+                    selectedMinutes: limitCountdown.selectedMinutes,
+                    motion: OnboardingLimitCountdownMotion(
+                        sourceFrame: limitCountdown.sourceFrame,
+                        destinationFrame: limitReachedMarkFrame.isEmpty
+                            ? limitCountdown.sourceFrame
+                            : limitReachedMarkFrame,
+                        sourceFontSize: OnboardingTypography.descriptive,
+                        destinationFontSize: limitCountdown.destinationFontSize
+                    ),
+                    availableTextWidth: limitCountdown.availableTextWidth,
+                    finalMarkFontSize: limitCountdown.finalMarkFontSize,
+                    takeoffProgress: limitCountdownTakeoffProgress,
+                    countdownProgress: limitCountdownProgress,
+                    handoffProgress: limitCountdownHandoffProgress
+                )
+                .foregroundStyle(.tint)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+                .zIndex(3)
+            }
+
             if isShowingNotificationRequestError {
                 NotificationRequestErrorOverlay(
                     tryAgain: {
@@ -138,6 +174,43 @@ struct OnboardingLimitSetupView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background {
+            ZStack {
+                Text(verbatim: selectedTime)
+                    .font(MujoTheme.boldFont(
+                        size: OnboardingLimitCountdownTextLayout
+                            .maximumFontSize,
+                        relativeTo: .largeTitle
+                    ))
+                    .monospacedDigit()
+                    .fixedSize()
+                    .hidden()
+                    .onGeometryChange(
+                        for: CGFloat.self,
+                        of: { $0.size.width },
+                        action: { limitCountdownMeasuredTextWidth = $0 }
+                    )
+
+                Text(verbatim: "Ø")
+                    .font(MujoTheme.boldFont(
+                        size: OnboardingLimitCountdownTextLayout
+                            .finalMarkFontSize,
+                        relativeTo: .largeTitle
+                    ))
+                    .fixedSize()
+                    .hidden()
+                    .onGeometryChange(
+                        for: CGFloat.self,
+                        of: { $0.size.width },
+                        action: { limitCountdownMeasuredFinalMarkWidth = $0 }
+                    )
+            }
+        }
+        .onGeometryChange(
+            for: CGFloat.self,
+            of: { $0.size.width },
+            action: { limitCountdownContainerWidth = $0 }
+        )
         .coordinateSpace(name: OnboardingCoordinateSpace.limitSetup)
         .onAppear {
 #if DEBUG
@@ -284,7 +357,9 @@ struct OnboardingLimitSetupView: View {
                         size: OnboardingTypography.descriptive,
                         relativeTo: .body
                     ))
-                    .opacity(limitHero == nil ? 1 : 0)
+                    .opacity(
+                        limitHero == nil && limitCountdown == nil ? 1 : 0
+                    )
                     .onGeometryChange(
                         for: CGRect.self,
                         of: { proxy in
@@ -298,6 +373,17 @@ struct OnboardingLimitSetupView: View {
             .padding(.top, 16)
             .foregroundStyle(.tint)
             .multilineTextAlignment(.center)
+
+            Text("By sticking to this limit:")
+                .font(MujoTheme.italicFont(
+                    size: OnboardingTypography.descriptive,
+                    relativeTo: .body
+                ))
+                .foregroundStyle(.tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .padding(.horizontal, 34)
+                .padding(.bottom, 8)
         }
     }
 
@@ -372,7 +458,12 @@ struct OnboardingLimitSetupView: View {
     }
 
     private var limitReachedStep: some View {
-        AdaptiveOnboardingStep {
+        let isCountdownActive = limitCountdown != nil
+        let revealProgress = isCountdownActive
+            ? limitCountdownHandoffProgress
+            : 1
+
+        return AdaptiveOnboardingStep {
             VStack(spacing: 0) {
                 Text("What happens\nwhen you reach\nyour limit?")
                     .font(MujoTheme.boldFont(
@@ -382,10 +473,31 @@ struct OnboardingLimitSetupView: View {
                     .foregroundStyle(.tint)
                     .multilineTextAlignment(.center)
                     .padding(.top, OnboardingLayoutMetrics.topHeadingPadding)
+                    .opacity(revealProgress)
+                    .offset(y: 4 * (1 - revealProgress))
 
                 Spacer()
 
                 OnboardingLimitReachedMark()
+                    .opacity(
+                        isCountdownActive
+                            ? limitCountdownHandoffProgress
+                            : 1
+                    )
+                    .scaleEffect(
+                        isCountdownActive
+                            ? 0.98 + 0.02 * limitCountdownHandoffProgress
+                            : 1
+                    )
+                    .onGeometryChange(
+                        for: CGRect.self,
+                        of: { proxy in
+                            proxy.frame(in: .named(
+                                OnboardingCoordinateSpace.limitSetup
+                            ))
+                        },
+                        action: updateLimitReachedMarkFrame
+                    )
 
                 Spacer()
 
@@ -401,6 +513,8 @@ struct OnboardingLimitSetupView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 30)
                 .padding(.bottom, 32)
+                .opacity(revealProgress)
+                .offset(y: 4 * (1 - revealProgress))
 
 //                HStack(alignment: .center, spacing: 16) {
 //                    Image(systemName: "bell.badge")
@@ -431,8 +545,14 @@ struct OnboardingLimitSetupView: View {
                     Text("Got it")
                 }
                 .padding(.horizontal, 34)
+                .opacity(revealProgress)
+                .offset(y: 4 * (1 - revealProgress))
+                .allowsHitTesting(!isCountdownActive)
             }
             .padding(.bottom, 34)
+            .accessibilityHidden(
+                isCountdownActive && limitCountdownHandoffProgress == 0
+            )
         }
     }
 
@@ -509,24 +629,10 @@ struct OnboardingLimitSetupView: View {
                         .padding(.top, 10)
 
                     if !imageFirst {
-                        Image(homeScreenWidgetAssetName)
-                            .resizable()
-                            .scaledToFit()
+                        OnboardingHomeScreenMockup()
                             .frame(
                                 maxWidth: OnboardingLayoutMetrics
                                     .homeScreenWidgetMaximumWidth
-                            )
-                            .clipShape(.rect(
-                                cornerRadius: OnboardingLayoutMetrics
-                                    .homeScreenWidgetCornerRadius
-                            ))
-                            .shadow(
-                                color: Color.accentColor.opacity(0.4),
-                                radius: 18,
-                                y: 10
-                            )
-                            .accessibilityLabel(
-                                "Mujø Home Screen widget preview"
                             )
                             .padding(.top, 24)
                     }
@@ -547,27 +653,38 @@ struct OnboardingLimitSetupView: View {
                 .padding(.bottom, 16)
             }
             .scrollDisabled(!imageFirst)
-            .overlay(alignment: .top) {
-                if imageFirst {
-                    OnboardingLockScreenMockup()
-                        .frame(
-                            width: geometry.size.width,
-                            height: lockScreenLayout.previewHeight
-                        )
-                        .opacity(showsLockScreenMockup ? 1 : 0)
-                        .offset(
-                            y: lockScreenLayout.previewTopOffset
-                                + (showsLockScreenMockup
-                                    ? 0
-                                    : OnboardingInteractionMetrics
-                                        .lockScreenMockupVerticalOffset)
-                        )
-                        .allowsHitTesting(false)
-                        .onAppear(perform: revealLockScreenMockup)
-                }
-            }
         }
         .ignoresSafeArea(edges: imageFirst ? .top : [])
+    }
+
+    private var lockScreenMockupLayer: some View {
+        GeometryReader { geometry in
+            let layout = OnboardingLockScreenLayout(
+                containerWidth: geometry.size.width,
+                safeAreaTopInset: geometry.safeAreaInsets.top,
+                globalMinY: geometry.frame(in: .global).minY
+            )
+            let transform = OnboardingLockScreenRevealMotion.transform(
+                isRevealed: showsLockScreenMockup,
+                previewHeight: layout.previewHeight
+            )
+
+            OnboardingLockScreenMockup()
+                .frame(
+                    width: geometry.size.width,
+                    height: layout.previewHeight
+                )
+                .opacity(transform.opacity)
+                .offset(
+                    x: transform.offset.width,
+                    y: layout.previewTopOffset + transform.offset.height
+                )
+                .scaleEffect(transform.scale)
+                .rotationEffect(.degrees(transform.rotationDegrees))
+                .allowsHitTesting(false)
+                .onAppear(perform: revealLockScreenMockup)
+        }
+        .ignoresSafeArea(edges: .top)
     }
 
     private func revealLockScreenMockup() {
@@ -581,9 +698,10 @@ struct OnboardingLimitSetupView: View {
         }
 
         withAnimation(
-            .easeOut(
+            .spring(
                 duration: OnboardingInteractionMetrics
-                    .lockScreenMockupAnimationDuration
+                    .lockScreenMockupAnimationDuration,
+                bounce: 0.06
             )
             .delay(OnboardingInteractionMetrics.lockScreenMockupDelay)
         ) {
@@ -796,16 +914,16 @@ struct OnboardingLimitSetupView: View {
     }
 
     private func previewSavingsReport(page: Int) -> some View {
-        let baselineMinutes = OnboardingPreviewData.dailyAverageMinutes
-            * OnboardingProjectionRules.annualDayCount
-        let limitedMinutes = min(
-            baselineMinutes,
-            selectedMinutes * OnboardingProjectionRules.annualDayCount
+        let annualDifference = OnboardingAnnualSavingsCalculator.difference(
+            annualTotalMinutes: 0,
+            recentDailyAverageMinutes: OnboardingPreviewData
+                .dailyAverageMinutes,
+            availableDayCount: OnboardingProjectionRules.recentDayCount,
+            dailyLimitMinutes: selectedMinutes
         )
-        let reclaimedMinutes = max(0, baselineMinutes - limitedMinutes)
 
         return OnboardingSavingsCard(
-            annualSavingsMinutes: reclaimedMinutes,
+            annualDifference: annualDifference,
             page: page
         )
     }
@@ -816,12 +934,6 @@ struct OnboardingLimitSetupView: View {
             : OnboardingAssetName.badgeLight
     }
 
-    private var homeScreenWidgetAssetName: String {
-        colorScheme == .dark
-            ? OnboardingAssetName.homeScreenWidgetDark
-            : OnboardingAssetName.homeScreenWidgetLight
-    }
-
     private var selectedTime: String {
         OnboardingDurationFormatter.string(
             minutes: selectedMinutes,
@@ -830,7 +942,7 @@ struct OnboardingLimitSetupView: View {
     }
 
     private func advanceSavings() {
-        guard !isSavingsExiting else { return }
+        guard !isSavingsExiting, limitCountdown == nil else { return }
 
         let destination = OnboardingStep.limitReached
         let style = OnboardingMotionPolicy.style(
@@ -838,28 +950,165 @@ struct OnboardingLimitSetupView: View {
             to: destination,
             reduceMotion: reduceMotion
         )
+        let destinationFontSize = OnboardingLimitCountdownTextLayout
+            .fittedFontSize(
+                measuredWidthAtMaximumSize: limitCountdownMeasuredTextWidth,
+                containerWidth: limitCountdownContainerWidth
+            )
+        let availableTextWidth = max(
+            0,
+            limitCountdownContainerWidth
+                - 2 * OnboardingLimitCountdownTextLayout.horizontalInset
+        )
+        let finalMarkFontSize = fittedFinalMarkFontSize(
+            availableWidth: availableTextWidth
+        )
 
-        guard style != .crossfade else {
+        guard style == .limitCountdown,
+              !limitDestinationFrame.isEmpty,
+              selectedMinutes > 0,
+              destinationFontSize > 0,
+              availableTextWidth > 0,
+              finalMarkFontSize > 0
+        else {
             advance(to: destination)
             return
         }
 
         motionStyle = style
+        limitReachedMarkFrame = .zero
+        limitCountdownTakeoffProgress = 0
+        limitCountdownProgress = 0
+        limitCountdownHandoffProgress = 0
+        limitCountdown = OnboardingLimitCountdownState(
+            selectedMinutes: selectedMinutes,
+            sourceFrame: limitDestinationFrame,
+            availableTextWidth: availableTextWidth,
+            destinationFontSize: destinationFontSize,
+            finalMarkFontSize: finalMarkFontSize
+        )
         isSavingsExiting = true
 
+        withAnimation(style.animation) {
+            step = destination
+        }
+
+        scheduleLimitCountdownFallback()
+    }
+
+    private func updateLimitReachedMarkFrame(_ frame: CGRect) {
+        guard !frame.isEmpty else { return }
+        limitReachedMarkFrame = frame
+
+        guard limitCountdown != nil,
+              limitCountdownTakeoffProgress == 0,
+              limitCountdownProgress == 0
+        else { return }
+
+        withAnimation(.spring(
+            duration: OnboardingLimitCountdownTiming.takeoffDuration,
+            bounce: 0.22
+        )) {
+            limitCountdownTakeoffProgress = 1
+            savingsExitProgress = 1
+        }
+
+        let duration = OnboardingLimitCountdownTiming.countdownDuration(
+            for: limitCountdown?.selectedMinutes ?? 0
+        )
         withAnimation(
-            style.animation,
+            .linear(duration: duration)
+                .delay(OnboardingLimitCountdownTiming.countdownStartDelay),
             completionCriteria: .logicallyComplete
         ) {
-            savingsExitProgress = 1
-            step = destination
+            limitCountdownProgress = 1
         } completion: {
-            var transaction = Transaction()
-            transaction.disablesAnimations = true
-            withTransaction(transaction) {
-                isSavingsExiting = false
-                savingsExitProgress = 0
+            holdLimitCountdownZeroBeforeHandoff()
+        }
+    }
+
+    private func holdLimitCountdownZeroBeforeHandoff() {
+        Task { @MainActor in
+            do {
+                try await Task.sleep(
+                    for: .seconds(
+                        OnboardingLimitCountdownTiming.zeroHoldDuration
+                    )
+                )
+            } catch {
+                return
             }
+            guard limitCountdown != nil,
+                  limitCountdownProgress == 1,
+                  limitCountdownHandoffProgress == 0
+            else { return }
+
+            beginLimitCountdownHandoff()
+        }
+    }
+
+    private func beginLimitCountdownHandoff() {
+        guard limitCountdown != nil else { return }
+
+        withAnimation(
+            .timingCurve(
+                0.76,
+                0,
+                0.24,
+                1,
+                duration: OnboardingLimitCountdownTiming.handoffDuration
+            ),
+            completionCriteria: .logicallyComplete
+        ) {
+            limitCountdownHandoffProgress = 1
+        } completion: {
+            resetLimitCountdownState()
+        }
+    }
+
+    private func scheduleLimitCountdownFallback() {
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(500))
+            guard limitCountdown != nil,
+                  limitReachedMarkFrame.isEmpty
+            else { return }
+
+            motionStyle = .standard
+            withAnimation(
+                OnboardingMotionStyle.standard.animation,
+                completionCriteria: .logicallyComplete
+            ) {
+                savingsExitProgress = 1
+                limitCountdownHandoffProgress = 1
+            } completion: {
+                resetLimitCountdownState()
+            }
+        }
+    }
+
+    private func fittedFinalMarkFontSize(availableWidth: CGFloat) -> CGFloat {
+        guard availableWidth > 0,
+              limitCountdownMeasuredFinalMarkWidth > 0
+        else { return 0 }
+
+        let maximumSize = OnboardingLimitCountdownTextLayout.finalMarkFontSize
+        let scale = min(
+            1,
+            availableWidth / limitCountdownMeasuredFinalMarkWidth
+        )
+        return maximumSize * scale
+    }
+
+    private func resetLimitCountdownState() {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            limitCountdown = nil
+            limitCountdownTakeoffProgress = 0
+            limitCountdownProgress = 0
+            limitCountdownHandoffProgress = 0
+            isSavingsExiting = false
+            savingsExitProgress = 0
         }
     }
 
@@ -940,6 +1189,14 @@ private struct OnboardingLimitHeroState {
     let sourceFrame: CGRect
 }
 
+private struct OnboardingLimitCountdownState {
+    let selectedMinutes: Int
+    let sourceFrame: CGRect
+    let availableTextWidth: CGFloat
+    let destinationFontSize: CGFloat
+    let finalMarkFontSize: CGFloat
+}
+
 private struct AnimatedOnboardingLimitHero: View, Animatable {
     let text: String
     let motion: OnboardingLimitHeroMotion
@@ -970,6 +1227,87 @@ private struct AnimatedOnboardingLimitHero: View, Animatable {
         }
         .monospacedDigit()
         .fixedSize()
+        .position(sample.position)
+    }
+}
+
+private struct AnimatedOnboardingLimitCountdownHero: View, Animatable {
+    let selectedMinutes: Int
+    let motion: OnboardingLimitCountdownMotion
+    let availableTextWidth: CGFloat
+    let finalMarkFontSize: CGFloat
+    var takeoffProgress: Double
+    var countdownProgress: Double
+    var handoffProgress: Double
+
+    var animatableData: AnimatablePair<
+        Double,
+        AnimatablePair<Double, Double>
+    > {
+        get {
+            AnimatablePair(
+                takeoffProgress,
+                AnimatablePair(countdownProgress, handoffProgress)
+            )
+        }
+        set {
+            takeoffProgress = newValue.first
+            countdownProgress = newValue.second.first
+            handoffProgress = newValue.second.second
+        }
+    }
+
+    var body: some View {
+        let sample = motion.sample(at: takeoffProgress)
+        let remainingMinutes = OnboardingLimitCountdownValue.remainingMinutes(
+            selectedMinutes: selectedMinutes,
+            progress: countdownProgress
+        )
+        let settlingProgress = OnboardingLimitCountdownTextLayout
+            .finalMarkProgress(
+                progress: countdownProgress
+            )
+        let fontSize = sample.fontSize
+            + (finalMarkFontSize - sample.fontSize) * settlingProgress
+        let text = OnboardingLimitCountdownPresentation.text(
+            remainingMinutes: remainingMinutes,
+            selectedMinutes: selectedMinutes
+        )
+        let usesImmediateNumberChange = OnboardingLimitCountdownPresentation
+            .isResolutionBoundary(
+                remainingMinutes: remainingMinutes,
+                selectedMinutes: selectedMinutes
+            )
+
+        return ZStack {
+            Text(verbatim: text)
+                .font(MujoTheme.semiboldItalicFont(
+                    size: fontSize,
+                    relativeTo: .body
+                ))
+                .opacity(1 - takeoffProgress)
+
+            Text(verbatim: text)
+                .font(MujoTheme.boldFont(
+                    size: fontSize,
+                    relativeTo: .largeTitle
+                ))
+                .opacity(takeoffProgress)
+        }
+        .monospacedDigit()
+        .contentTransition(
+            usesImmediateNumberChange
+                ? .identity
+                : .numericText(countsDown: true)
+        )
+        .lineLimit(1)
+        .minimumScaleFactor(0.1)
+        .frame(width: availableTextWidth)
+        .offset(y: OnboardingLimitCountdownTextLayout.opticalOffsetY(
+            progress: countdownProgress
+        ))
+        .opacity(1 - handoffProgress)
+        .frame(height: 220)
         .position(sample.position)
     }
 }

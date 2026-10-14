@@ -17,7 +17,7 @@ struct OnboardingSakuraCompletionView: View {
                     AnimatedOnboardingSakuraPetal(
                         assetName: "petal_\((petal.index % 12) + 1)",
                         size: petal.size,
-                        canvasWidth: geometry.size.width,
+                        canvasHeight: geometry.size.height,
                         rotationMultiplier: petal.rotationMultiplier,
                         motion: petal.motion,
                         progress: progress
@@ -42,23 +42,27 @@ struct OnboardingSakuraWipeMask: View, Animatable {
 
     var body: some View {
         GeometryReader { geometry in
-            let edgeX = OnboardingSakuraWipe.edgeX(
+            let edgeY = OnboardingSakuraWipe.onboardingTopEdgeY(
                 at: progress,
-                canvasWidth: geometry.size.width
+                canvasHeight: geometry.size.height
             )
-            let softEdgeWidth = OnboardingSakuraWipe.softEdgeWidth
+            let softEdgeHeight = OnboardingSakuraWipe.softEdgeHeight
 
-            ZStack(alignment: .leading) {
-                Color.white
-                    .frame(width: max(0, edgeX - softEdgeWidth))
-
+            ZStack(alignment: .top) {
                 LinearGradient(
-                    colors: [.white, .clear],
-                    startPoint: .leading,
-                    endPoint: .trailing
+                    colors: [.clear, .white],
+                    startPoint: .top,
+                    endPoint: .bottom
                 )
-                .frame(width: softEdgeWidth)
-                .offset(x: edgeX - softEdgeWidth)
+                .frame(height: softEdgeHeight)
+                .offset(y: edgeY)
+
+                Color.white
+                    .frame(height: max(
+                        0,
+                        geometry.size.height - edgeY - softEdgeHeight
+                    ))
+                    .offset(y: edgeY + softEdgeHeight)
             }
         }
         .ignoresSafeArea()
@@ -85,7 +89,7 @@ private struct AnimatedOnboardingSakuraVeil: View, Animatable {
 private struct AnimatedOnboardingSakuraPetal: View, Animatable {
     let assetName: String
     let size: CGFloat
-    let canvasWidth: CGFloat
+    let canvasHeight: CGFloat
     let rotationMultiplier: Double
     let motion: OnboardingSakuraPetalMotion
     var progress: Double
@@ -98,7 +102,7 @@ private struct AnimatedOnboardingSakuraPetal: View, Animatable {
     var body: some View {
         let sample = motion.sample(
             at: progress,
-            canvasWidth: canvasWidth,
+            canvasHeight: canvasHeight,
             petalSize: size
         )
 

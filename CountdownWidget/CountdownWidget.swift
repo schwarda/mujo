@@ -62,6 +62,7 @@ struct CountdownProvider: TimelineProvider {
 struct CountdownEntry: TimelineEntry {
     let date: Date
     let remainingTime: TimeInterval
+    let usedTime: TimeInterval
     let dailyLimit: TimeInterval
     let isEstimateAvailable: Bool
     let unavailableReason: UsageEstimate.UnavailableReason?
@@ -69,12 +70,15 @@ struct CountdownEntry: TimelineEntry {
     init(
         date: Date,
         remainingTime: TimeInterval,
+        usedTime: TimeInterval? = nil,
         dailyLimit: TimeInterval = AppConfiguration.defaultDailyLimit,
         isEstimateAvailable: Bool,
         unavailableReason: UsageEstimate.UnavailableReason? = nil
     ) {
         self.date = date
         self.remainingTime = remainingTime
+        self.usedTime = usedTime
+            ?? min(max(0, dailyLimit - remainingTime), max(0, dailyLimit))
         self.dailyLimit = dailyLimit
         self.isEstimateAvailable = isEstimateAvailable
         self.unavailableReason = unavailableReason
@@ -84,6 +88,7 @@ struct CountdownEntry: TimelineEntry {
         self.init(
             date: plan.date,
             remainingTime: plan.estimate.remainingTime,
+            usedTime: plan.estimate.usedTime,
             dailyLimit: plan.dailyLimit,
             isEstimateAvailable: plan.estimate.isAvailable,
             unavailableReason: plan.estimate.unavailableReason
@@ -104,10 +109,4 @@ struct CountdownEntry: TimelineEntry {
         isEstimateAvailable && remainingTime <= 0
     }
 
-    var usedTime: TimeInterval {
-        UsageEstimate.displayedUsedTime(
-            remainingTime: remainingTime,
-            dailyLimit: dailyLimit
-        )
-    }
 }

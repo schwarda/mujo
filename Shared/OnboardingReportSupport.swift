@@ -183,13 +183,23 @@ enum OnboardingSavingsDurationFormatter {
     }
 }
 
+nonisolated enum OnboardingScreenTimeDifferenceDirection: Equatable {
+    case less
+    case more
+}
+
+nonisolated struct OnboardingScreenTimeDifference: Equatable {
+    let minutes: Int
+    let direction: OnboardingScreenTimeDifferenceDirection
+}
+
 enum OnboardingAnnualSavingsCalculator {
-    nonisolated static func minutes(
+    nonisolated static func difference(
         annualTotalMinutes: Int,
         recentDailyAverageMinutes: Int,
         availableDayCount: Int,
         dailyLimitMinutes: Int
-    ) -> Int {
+    ) -> OnboardingScreenTimeDifference {
         let annualBaseline = availableDayCount
             >= OnboardingProjectionRules.annualDayCount
             ? annualTotalMinutes
@@ -197,7 +207,12 @@ enum OnboardingAnnualSavingsCalculator {
                 * OnboardingProjectionRules.annualDayCount
         let limitedAnnualTotal = max(0, dailyLimitMinutes)
             * OnboardingProjectionRules.annualDayCount
-        return max(0, annualBaseline - limitedAnnualTotal)
+        let signedDifference = annualBaseline - limitedAnnualTotal
+
+        return OnboardingScreenTimeDifference(
+            minutes: abs(signedDifference),
+            direction: signedDifference >= 0 ? .less : .more
+        )
     }
 }
 
@@ -289,7 +304,7 @@ struct OnboardingInsightCaption {
 }
 
 struct OnboardingSavingsCard: View {
-    let annualSavingsMinutes: Int
+    let annualDifference: OnboardingScreenTimeDifference
     let page: Int
     var horizontalPadding: CGFloat = 28
 
@@ -298,44 +313,50 @@ struct OnboardingSavingsCard: View {
         case 0:
             savingsCard(
                 value: OnboardingCardDurationFormatter.string(
-                    minutes: dailySavingsMinutes
+                    minutes: dailyDifferenceMinutes
                 ),
                 period: "every day"
             )
         case 1:
             savingsCard(
                 value: OnboardingCardDurationFormatter.string(
-                    minutes: weeklySavingsMinutes
+                    minutes: weeklyDifferenceMinutes
                 ),
                 period: "every week"
             )
         default:
             savingsCard(
                 value: OnboardingSavingsDurationFormatter.string(
-                    minutes: annualSavingsMinutes
+                    minutes: annualDifference.minutes
                 ),
                 period: "over the next year"
             )
         }
     }
 
-    private var dailySavingsMinutes: Int {
-        Int((Double(annualSavingsMinutes) / 365).rounded())
+    private var dailyDifferenceMinutes: Int {
+        Int((Double(annualDifference.minutes) / 365).rounded())
     }
 
-    private var weeklySavingsMinutes: Int {
-        dailySavingsMinutes * 7
+    private var weeklyDifferenceMinutes: Int {
+        dailyDifferenceMinutes * 7
     }
 
     private func savingsCard(value: String, period: String) -> some View {
         OnboardingInsightCard(
             value: value,
-            primaryCaption: .init("you could ", emphasis: "reclaim"),
-            secondaryCaption: .init(
-                "screen-free time ",
-                emphasis: period
-            ),
+            primaryCaption: .init(emphasis: differenceCaption),
+            secondaryCaption: .init(emphasis: period),
             horizontalPadding: horizontalPadding
         )
+    }
+
+    private var differenceCaption: String {
+        switch annualDifference.direction {
+        case .less:
+            "less screen time"
+        case .more:
+            "more screen time"
+        }
     }
 }

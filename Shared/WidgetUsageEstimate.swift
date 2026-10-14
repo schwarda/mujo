@@ -21,24 +21,20 @@ struct UsageEstimate: Equatable {
     }
 
     let remainingTime: TimeInterval
+    let usedTime: TimeInterval
     let isAvailable: Bool
     let unavailableReason: UnavailableReason?
 
     init(
         remainingTime: TimeInterval,
+        usedTime: TimeInterval = 0,
         isAvailable: Bool,
         unavailableReason: UnavailableReason? = nil
     ) {
         self.remainingTime = remainingTime
+        self.usedTime = usedTime
         self.isAvailable = isAvailable
         self.unavailableReason = unavailableReason
-    }
-
-    static func displayedUsedTime(
-        remainingTime: TimeInterval,
-        dailyLimit: TimeInterval
-    ) -> TimeInterval {
-        min(max(0, dailyLimit - remainingTime), max(0, dailyLimit))
     }
 }
 
@@ -128,8 +124,9 @@ enum UsageEstimator {
             )
         }
         let confirmedRemaining = max(0, dailyLimit - confirmedUsedTime)
-        let displayResolutionMinutes = AppConfiguration.DailyLimit
-            .displayResolutionMinutes(
+        let displayResolutionMinutes = confirmedUsedTime >= dailyLimit
+            ? AppConfiguration.DailyLimit.stepMinutes
+            : AppConfiguration.DailyLimit.displayResolutionMinutes(
                 remainingTime: confirmedRemaining,
                 dailyLimit: dailyLimit
             )
@@ -145,6 +142,7 @@ enum UsageEstimator {
 
         return UsageEstimate(
             remainingTime: max(0, dailyLimit - displayedUsedTime),
+            usedTime: displayedUsedTime,
             isAvailable: true,
             unavailableReason: nil
         )

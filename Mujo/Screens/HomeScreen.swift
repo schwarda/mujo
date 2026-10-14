@@ -52,6 +52,7 @@ struct HomeScreen: View {
     let showsPetals: Bool
 
     @State private var isShowingLimitEditor = false
+    @State private var isShowingAppInfo = false
     @State private var noticeGeometries: [HomeNotice.ID: HomeNoticeGeometry] = [:]
 
 #if DEBUG
@@ -61,103 +62,140 @@ struct HomeScreen: View {
 #endif
 
     var body: some View {
-        ZStack {
-            if showsPetals {
-                SakuraPetalField(
-                    windStrength: windStrength,
-                    startsFilled: petalsStartFilled,
-                    simulationTime: $petalSimulationTime,
-                    emitsPetals: shouldEmitPetals,
-                    flowState: $petalFlow
-                )
-            }
-
-            VStack(spacing: 0) {
-                remainingTimeView
-                    .frame(minHeight: 200)
-                    .padding(.top, 64)
-
-                homeNoticesView
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 16)
-
-                Button("Change daily limit ›") {
-                    isShowingLimitEditor = true
+        NavigationStack {
+            ZStack {
+                if showsPetals {
+                    SakuraPetalField(
+                        windStrength: windStrength,
+                        startsFilled: petalsStartFilled,
+                        simulationTime: $petalSimulationTime,
+                        emitsPetals: shouldEmitPetals,
+                        flowState: $petalFlow
+                    )
                 }
-                .font(MujoTheme.mediumFont(
-                    size: OnboardingTypography.supporting,
-                    relativeTo: .body
-                ))
-                .foregroundStyle(.tint)
-                .buttonStyle(.plain)
-                .frame(minHeight: 44)
-                .padding(.bottom, 34)
-                
-            }
+
+                VStack(spacing: 0) {
+                    remainingTimeView
+                        .frame(minHeight: 200)
+                        .padding(.top, 64)
+
+                    homeNoticesView
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 16)
+
+                    Button("Change daily limit ›") {
+                        isShowingLimitEditor = true
+                    }
+                    .font(MujoTheme.mediumFont(
+                        size: OnboardingTypography.supporting,
+                        relativeTo: .body
+                    ))
+                    .foregroundStyle(.tint)
+                    .buttonStyle(.plain)
+                    .frame(minHeight: 44)
+                    .padding(.bottom, 34)
+
+                }
+
+                homeMenu
 
 #if DEBUG
-            VStack {
-                HStack {
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            hasCompletedOnboarding = false
+                VStack {
+                    HStack {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                hasCompletedOnboarding = false
+                            }
+                        } label: {
+                            Label(
+                                "Replay onboarding",
+                                systemImage: "arrow.counterclockwise"
+                            )
                         }
-                    } label: {
-                        Label(
-                            "Replay onboarding",
-                            systemImage: "arrow.counterclockwise"
-                        )
+                        .buttonStyle(.glass)
+                        .foregroundStyle(.tint)
+
+                        Spacer()
+
+                        Button {
+                            isShowingDiagnostics = true
+                        } label: {
+                            Label("Diagnostics", systemImage: "stethoscope")
+                        }
+                        .buttonStyle(.glass)
+                        .foregroundStyle(.tint)
                     }
-                    .buttonStyle(.glass)
-                    .foregroundStyle(.tint)
 
                     Spacer()
-
-                    Button {
-                        isShowingDiagnostics = true
-                    } label: {
-                        Label("Diagnostics", systemImage: "stethoscope")
-                    }
-                    .buttonStyle(.glass)
-                    .foregroundStyle(.tint)
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 60)
+#endif
+            }
+            .task {
+                await refreshUsageWhileVisible()
+            }
+            .onChange(of: scenePhase) { _, newPhase in
+                guard newPhase == .active else { return }
+                screenTime.refreshUsageSnapshot()
+                screenTime.requestWidgetReload()
+            }
+            .onReceive(
+                NotificationCenter.default.publisher(
+                    for: Notification.Name.NSSystemTimeZoneDidChange
+                )
+            ) { _ in
+                screenTime.refreshUsageSnapshot()
+            }
+            .background {
+                DailyLimitSheetPresenter(
+                    isPresented: $isShowingLimitEditor,
+                    screenTime: screenTime,
+                    windStrength: $windStrength
+                )
+            }
+            .navigationDestination(isPresented: $isShowingAppInfo) {
+                AppInfoScreen()
+            }
+#if DEBUG
+            .sheet(isPresented: $isShowingDiagnostics) {
+                DiagnosticsView(screenTime: screenTime)
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
+            }
+#endif
+        }
+    }
+
+    private var homeMenu: some View {
+        VStack {
+            HStack {
+                Menu {
+                    Button {
+                        isShowingAppInfo = true
+                    } label: {
+                        Label("App Info", systemImage: "info.circle")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 17, weight: .semibold))
+                        .rotationEffect(.degrees(90))
+                        .frame(width: 44, height: 44)
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.clear.interactive(), in: .circle)
+                .foregroundStyle(.tint)
+                .accessibilityLabel("Menu")
 
                 Spacer()
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-#endif
+
+            Spacer()
         }
-        .task {
-            await refreshUsageWhileVisible()
-        }
-        .onChange(of: scenePhase) { _, newPhase in
-            guard newPhase == .active else { return }
-            screenTime.refreshUsageSnapshot()
-            screenTime.requestWidgetReload()
-        }
-        .onReceive(
-            NotificationCenter.default.publisher(
-                for: Notification.Name.NSSystemTimeZoneDidChange
-            )
-        ) { _ in
-            screenTime.refreshUsageSnapshot()
-        }
-        .background {
-            DailyLimitSheetPresenter(
-                isPresented: $isShowingLimitEditor,
-                screenTime: screenTime,
-                windStrength: $windStrength
-            )
-        }
-#if DEBUG
-        .sheet(isPresented: $isShowingDiagnostics) {
-            DiagnosticsView(screenTime: screenTime)
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-        }
-#endif
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
     }
 
     private var selectedMinutes: Int {
@@ -213,7 +251,7 @@ struct HomeScreen: View {
             }
 
             if estimate.isAvailable {
-                Text(usageSummary)
+                Text(usageSummary(usedTime: estimate.usedTime))
                 .font(MujoTheme.italicFont(size: 22, relativeTo: .body))
                 .monospacedDigit()
                 .multilineTextAlignment(.center)
@@ -459,33 +497,12 @@ struct HomeScreen: View {
         }
     }
 
-    private var displayedUsedTime: TimeInterval {
-        let usedTime = screenTime.usageSnapshot.estimatedUsedTime
-        let limit = TimeInterval(selectedMinutes * 60)
-        let coarseStep = TimeInterval(
-            AppConfiguration.DailyLimit.stepMinutes * 60
-        )
-
-        guard usedTime < limit else {
-            return floor(usedTime / coarseStep) * coarseStep
-        }
-
-        let remainingTime = limit - usedTime
-        let resolutionMinutes = AppConfiguration.DailyLimit
-            .displayResolutionMinutes(
-                remainingTime: remainingTime,
-                dailyLimit: limit
-            )
-        let resolution = TimeInterval(resolutionMinutes * 60)
-        return floor(usedTime / resolution) * resolution
-    }
-
-    private var usageSummary: String {
+    private func usageSummary(usedTime: TimeInterval) -> String {
         let formattedLimit = OnboardingDurationFormatter.string(
             minutes: selectedMinutes
         )
         let formattedUsedTime = OnboardingDurationFormatter.string(
-            minutes: Int(displayedUsedTime) / 60
+            minutes: Int(usedTime) / 60
         )
         return "\(formattedUsedTime) used · \(formattedLimit) limit"
     }

@@ -48,25 +48,53 @@ struct OnboardingDurationFormatterTests {
 
     @Test("Annual savings use projection when a full year is unavailable")
     func projectedAnnualSavings() {
-        #expect(
-            OnboardingAnnualSavingsCalculator.minutes(
-                annualTotalMinutes: 1_470,
-                recentDailyAverageMinutes: 210,
-                availableDayCount: 7,
-                dailyLimitMinutes: 120
-            ) == 90 * 365
+        let difference = OnboardingAnnualSavingsCalculator.difference(
+            annualTotalMinutes: 1_470,
+            recentDailyAverageMinutes: 210,
+            availableDayCount: 7,
+            dailyLimitMinutes: 120
         )
+
+        #expect(difference.minutes == 90 * 365)
+        #expect(difference.direction == .less)
     }
 
     @Test("Annual savings use the real total with full-year coverage")
     func actualAnnualSavings() {
-        #expect(
-            OnboardingAnnualSavingsCalculator.minutes(
-                annualTotalMinutes: 70_000,
-                recentDailyAverageMinutes: 210,
-                availableDayCount: 365,
-                dailyLimitMinutes: 120
-            ) == 26_200
+        let difference = OnboardingAnnualSavingsCalculator.difference(
+            annualTotalMinutes: 70_000,
+            recentDailyAverageMinutes: 210,
+            availableDayCount: 365,
+            dailyLimitMinutes: 120
         )
+
+        #expect(difference.minutes == 26_200)
+        #expect(difference.direction == .less)
+    }
+
+    @Test("A limit above the baseline reports additional screen time")
+    func limitAboveAverage() {
+        let difference = OnboardingAnnualSavingsCalculator.difference(
+            annualTotalMinutes: 210 * 7,
+            recentDailyAverageMinutes: 210,
+            availableDayCount: 7,
+            dailyLimitMinutes: 240
+        )
+
+        #expect(difference.minutes == 30 * 365)
+        #expect(difference.direction == .more)
+    }
+
+    @Test("A limit below the baseline preserves reduced screen time")
+    func limitBelowAverage() {
+        let difference = OnboardingAnnualSavingsCalculator.difference(
+            annualTotalMinutes: 210 * 7,
+            recentDailyAverageMinutes: 210,
+            availableDayCount: 7,
+            dailyLimitMinutes: 120
+        )
+
+        #expect(difference.minutes == 90 * 365)
+        #expect(difference.direction == .less)
     }
 }

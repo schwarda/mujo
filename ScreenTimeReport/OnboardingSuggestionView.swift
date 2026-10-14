@@ -144,15 +144,15 @@ struct OnboardingSuggestionView: View {
         case .dailySavings, .weeklySavings, .annualSavings:
             let dailyLimitMinutes = configuration.dailyLimitMinutes
                 ?? averageMinutes
-            let annualSavingsMinutes = OnboardingAnnualSavingsCalculator
-                .minutes(
+            let annualDifference = OnboardingAnnualSavingsCalculator
+                .difference(
                     annualTotalMinutes: totalMinutes,
                     recentDailyAverageMinutes: averageMinutes,
                     availableDayCount: configuration.availableDayCount,
                     dailyLimitMinutes: dailyLimitMinutes
                 )
             OnboardingSavingsCard(
-                annualSavingsMinutes: annualSavingsMinutes,
+                annualDifference: annualDifference,
                 page: savingsPage
             )
         }
@@ -229,7 +229,12 @@ struct OnboardingSuggestionView: View {
 
     private func averageText(_ averageMinutes: Int) -> Text {
         let average = emphasizedItalicText(formatted(averageMinutes))
-        return italicText("Your average \(average) a day.")
+        let aDay = Text("a day")
+            .font(MujoTheme.semiboldItalicFont(
+                size: OnboardingTypography.descriptive,
+                relativeTo: .body
+            ))
+        return italicText("Your average is \(average) \(aDay).")
     }
 
     private func suggestionText(_ suggestedMinutes: Int) -> Text {

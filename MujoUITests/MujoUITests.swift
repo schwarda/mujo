@@ -66,6 +66,34 @@ final class MujoUITests: XCTestCase {
     }
 
     @MainActor
+    func testAppInfoUsesBackNavigation() {
+        let app = XCUIApplication()
+        app.launchArguments.append("--ui-test-home")
+        app.launch()
+
+        let menu = app.buttons["Menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 10))
+        let menuFrame = menu.frame
+        menu.tap()
+
+        let appInfoMenuItem = app.buttons["App Info"]
+        XCTAssertTrue(appInfoMenuItem.waitForExistence(timeout: 5))
+        appInfoMenuItem.tap()
+
+        let backButton = app.buttons["Back"]
+        XCTAssertTrue(backButton.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Privacy Policy"].exists)
+        XCTAssertEqual(backButton.frame.minX, menuFrame.minX, accuracy: 1)
+        XCTAssertEqual(backButton.frame.minY, menuFrame.minY, accuracy: 1)
+        XCTAssertEqual(backButton.frame.width, menuFrame.width, accuracy: 1)
+        XCTAssertEqual(backButton.frame.height, menuFrame.height, accuracy: 1)
+
+        backButton.tap()
+        XCTAssertTrue(menu.waitForExistence(timeout: 5))
+        XCTAssertTrue(backButton.waitForNonExistence(timeout: 5))
+    }
+
+    @MainActor
     func testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.
         measure(metrics: [XCTApplicationLaunchMetric()]) {
