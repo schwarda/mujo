@@ -77,5 +77,28 @@ struct ScreenTimeReportExtension: DeviceActivityReportExtension {
             )
         }
 
+#if DEBUG
+        OnboardingSuggestionReport(
+            context: .mujoDiagnosticsInsightsCarousel
+        ) { configuration in
+            OnboardingReportContentView(
+                configuration: configuration,
+                presentation: .insightsCarousel
+            )
+        }
+
+        OnboardingSuggestionReport(
+            context: .mujoDiagnosticsSavingsCarousel
+        ) { configuration in
+            OnboardingReportContentView(
+                configuration: configuration,
+                presentation: .savingsCarousel
+            )
+        }
+
+        ScreenTimeDiagnosticsReport { configuration in
+            ScreenTimeDiagnosticsReportView(configuration: configuration)
+        }
+#endif
     }
 }

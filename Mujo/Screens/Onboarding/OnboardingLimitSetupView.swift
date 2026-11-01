@@ -212,15 +212,6 @@ struct OnboardingLimitSetupView: View {
             action: { limitCountdownContainerWidth = $0 }
         )
         .coordinateSpace(name: OnboardingCoordinateSpace.limitSetup)
-        .onAppear {
-#if DEBUG
-            if !usesPreviewData,
-               DiagnosticsScenarioStore.consumeNoHistoryOnboarding() {
-                showsHistoryReports = false
-                step = .chooseLimit
-            }
-#endif
-        }
         .alert(
             "Are you sure you don’t want notifications?",
             isPresented: $isShowingNotificationDenialAlert
@@ -251,7 +242,7 @@ struct OnboardingLimitSetupView: View {
                 motionStyle: motionStyle
             ) {
                 report(
-                    context: .mujoInsightsCarousel,
+                    context: insightsReportContext,
                     filter: sevenDayReportFilter,
                     loadingMessage: step == .insights
                         ? "Loading your insights…"
@@ -305,8 +296,9 @@ struct OnboardingLimitSetupView: View {
                     .scaleEffect(1 - 0.015 * savingsExitProgress)
 
                 report(
-                    context: .mujoSavingsCarousel,
-                    filter: sevenDayReportFilter
+                    context: savingsReportContext,
+                    filter: sevenDayReportFilter,
+                    loadingMessage: "Loading your savings…"
                 )
                 .frame(minHeight: OnboardingLayoutMetrics.savingsReportMinimumHeight)
                 .compositingGroup()
@@ -346,7 +338,7 @@ struct OnboardingLimitSetupView: View {
                 )
 
             HStack(spacing: 0) {
-                Text("Your daily limit: ")
+                Text("Your daily limit is  ")
                     .font(MujoTheme.italicFont(
                         size: OnboardingTypography.descriptive,
                         relativeTo: .body
@@ -370,20 +362,9 @@ struct OnboardingLimitSetupView: View {
                         action: updateLimitDestinationFrame
                     )
             }
-            .padding(.top, 16)
+            .padding(.top, 18)
             .foregroundStyle(.tint)
             .multilineTextAlignment(.center)
-
-            Text("By sticking to this limit:")
-                .font(MujoTheme.italicFont(
-                    size: OnboardingTypography.descriptive,
-                    relativeTo: .body
-                ))
-                .foregroundStyle(.tint)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-                .padding(.horizontal, 34)
-                .padding(.bottom, 8)
         }
     }
 
@@ -778,6 +759,26 @@ struct OnboardingLimitSetupView: View {
                     .accessibilityElement(children: .contain)
             }
         }
+    }
+
+    private var insightsReportContext: DeviceActivityReport.Context {
+#if DEBUG
+        if !usesPreviewData,
+           DiagnosticsScenarioStore.activeOnboardingScenario() != nil {
+            return .mujoDiagnosticsInsightsCarousel
+        }
+#endif
+        return .mujoInsightsCarousel
+    }
+
+    private var savingsReportContext: DeviceActivityReport.Context {
+#if DEBUG
+        if !usesPreviewData,
+           DiagnosticsScenarioStore.activeOnboardingScenario() != nil {
+            return .mujoDiagnosticsSavingsCarousel
+        }
+#endif
+        return .mujoSavingsCarousel
     }
 
     private func defaultLoadingMessage(

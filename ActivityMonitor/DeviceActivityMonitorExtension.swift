@@ -126,6 +126,7 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
         if newestSeconds > previousSeconds {
             handleUsageNotificationCheckpoint(
+                previousSeconds: previousSeconds,
                 reachedSeconds: reachedSeconds,
                 defaults: defaults
             )
@@ -133,6 +134,7 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     }
     
     private func handleUsageNotificationCheckpoint(
+        previousSeconds: TimeInterval,
         reachedSeconds: TimeInterval,
         defaults: UserDefaults
     ) {
@@ -148,14 +150,18 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         )
         let reachedMinutes = Int(reachedSeconds / 60)
 
-        guard let milestone = NotificationMilestone
-            .forLimit(minutes: limitMinutes)
-            .first(where: { $0.usedMinutes == reachedMinutes })
+        guard let milestone = NotificationMilestone.latestCrossed(
+            forLimitMinutes: limitMinutes,
+            previousUsedMinutes: Int(previousSeconds / 60),
+            reachedUsedMinutes: reachedMinutes,
+            preferences: NotificationPreferences.load(from: defaults)
+        )
         else { return }
 
         NotificationDelivery.send(
             milestone,
             limitMinutes: limitMinutes,
+            reachedUsedMinutes: reachedMinutes,
             defaults: defaults
         )
     }
@@ -255,7 +261,11 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         )
         let reachedMinutes = Int(seconds / 60)
         guard AppConfiguration.Monitoring
-            .usageThresholdMinutes(forLimitMinutes: limitMinutes)
+            .usageThresholdMinutes(
+                forLimitMinutes: limitMinutes,
+                customPercentages: NotificationPreferences.load(from: defaults)
+                    .customPercentages
+            )
             .contains(reachedMinutes) else {
             logger.notice(
                 "Ignored usage event outside current plan: \(event.rawValue, privacy: .public)"

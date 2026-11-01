@@ -15,7 +15,7 @@ struct OnboardingSakuraCompletionView: View {
                     id: \.index
                 ) { petal in
                     AnimatedOnboardingSakuraPetal(
-                        assetName: "petal_\((petal.index % 12) + 1)",
+                        assetName: "petal_\((petal.index % 11) + 1)",
                         size: petal.size,
                         canvasHeight: geometry.size.height,
                         rotationMultiplier: petal.rotationMultiplier,

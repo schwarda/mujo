@@ -68,20 +68,76 @@ enum DiagnosticsStore {
     }
 }
 
-enum DiagnosticsScenarioStore {
-    nonisolated private static let forceNoHistoryKey =
-        "mujo.debug.forceNoHistoryOnboarding"
+enum OnboardingDiagnosticsScenario: String, CaseIterable, Identifiable,
+    Sendable {
+    case noData
+    case oneDay
+    case threeDays
+    case sixDays
+    case eightDays
 
-    nonisolated static func scheduleNoHistoryOnboarding() {
-        UserDefaults.standard.set(true, forKey: forceNoHistoryKey)
+    nonisolated var id: String { rawValue }
+
+    nonisolated var title: String {
+        switch self {
+        case .noData: "No data"
+        case .oneDay: "1 day"
+        case .threeDays: "3 days"
+        case .sixDays: "6 days"
+        case .eightDays: "8 days in history"
+        }
     }
 
-    nonisolated static func consumeNoHistoryOnboarding() -> Bool {
-        guard UserDefaults.standard.bool(forKey: forceNoHistoryKey) else {
-            return false
+    nonisolated var detail: String {
+        switch self {
+        case .noData:
+            "Screen Time data is unavailable"
+        case .oneDay:
+            "1h daily average · 1 reported day"
+        case .threeDays:
+            "2h daily average · 3 reported days"
+        case .sixDays:
+            "3h 30m daily average · 6 reported days"
+        case .eightDays:
+            "5h daily average · last 7 of 8 days"
         }
-        UserDefaults.standard.removeObject(forKey: forceNoHistoryKey)
-        return true
+    }
+
+    nonisolated var historyDayCount: Int {
+        switch self {
+        case .noData: 0
+        case .oneDay: 1
+        case .threeDays: 3
+        case .sixDays: 6
+        case .eightDays: 8
+        }
+    }
+}
+
+enum DiagnosticsScenarioStore {
+    nonisolated private static let onboardingScenarioKey =
+        "mujo.debug.onboardingDataScenario"
+
+    nonisolated static func scheduleOnboarding(
+        scenario: OnboardingDiagnosticsScenario
+    ) {
+        sharedDefaults?.set(scenario.rawValue, forKey: onboardingScenarioKey)
+    }
+
+    nonisolated static func activeOnboardingScenario()
+        -> OnboardingDiagnosticsScenario? {
+        guard let rawValue = sharedDefaults?.string(
+            forKey: onboardingScenarioKey
+        ) else { return nil }
+        return OnboardingDiagnosticsScenario(rawValue: rawValue)
+    }
+
+    nonisolated static func clearOnboardingScenario() {
+        sharedDefaults?.removeObject(forKey: onboardingScenarioKey)
+    }
+
+    nonisolated private static var sharedDefaults: UserDefaults? {
+        UserDefaults(suiteName: AppConfiguration.appGroupIdentifier)
     }
 }
 #endif

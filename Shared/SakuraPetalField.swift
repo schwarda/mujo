@@ -145,7 +145,7 @@ struct SakuraPetalField: View {
         petals = (0..<configuration.petalCount).map { index in
             Petal(
                 id: index,
-                assetName: "petal_\((index % 12) + 1)",
+                assetName: "petal_\((index % 11) + 1)",
                 phase: Self.random(index, salt: 1),
                 startingHeight: Self.random(index, salt: 2),
                 fallingDistance: Self.random(index, salt: 3),

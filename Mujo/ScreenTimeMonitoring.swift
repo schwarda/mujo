@@ -79,8 +79,9 @@ actor ScreenTimeMonitoring {
 
         // Re-registering with includesPastActivity disabled would restart the
         // first day's counter. Keep the active first-day session intact. Its
-        // universal 15-minute checkpoints still cover all notification
-        // milestones for a changed limit.
+        // universal 15-minute checkpoints still advance measurement. Custom
+        // alerts use crossing detection until the next registration can safely
+        // include past activity.
         if startedToday, center.activities.contains(.mujoUsage) {
 #if DEBUG
             DiagnosticsStore.record(
@@ -194,7 +195,11 @@ actor ScreenTimeMonitoring {
         )
         var events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
         for usedMinutes in AppConfiguration.Monitoring
-            .usageThresholdMinutes(forLimitMinutes: minutes) {
+            .usageThresholdMinutes(
+                forLimitMinutes: minutes,
+                customPercentages: NotificationPreferences.load(from: sharedDefaults)
+                    .customPercentages
+            ) {
             let name = DeviceActivityEvent.Name(
                 AppConfiguration.Monitoring.usageEventName(minutes: usedMinutes)
             )

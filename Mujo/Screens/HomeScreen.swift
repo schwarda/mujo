@@ -21,6 +21,7 @@ struct HomeScreen: View {
         enum ID: Hashable {
             case timeZoneChanged
             case firstDay
+            case notificationsDisabled
         }
 
         let id: ID
@@ -42,6 +43,13 @@ struct HomeScreen: View {
             + "From tomorrow, it will count from midnight."
     )
 
+    private static let notificationsNotice = HomeNotice(
+        id: .notificationsDisabled,
+        title: "Notifications are off",
+        message: "Mujø can’t send alerts or show the app badge. "
+            + "To allow them, open the menu and choose Notifications."
+    )
+
     @Environment(\.scenePhase) private var scenePhase
     @ObservedObject var screenTime: ScreenTimeManager
 
@@ -53,6 +61,9 @@ struct HomeScreen: View {
 
     @State private var isShowingLimitEditor = false
     @State private var isShowingAppInfo = false
+    @State private var isShowingNotificationSettings = false
+    @StateObject private var notificationAuthorization = NotificationAuthorization()
+    @State private var widgetHelp: OnboardingWidgetHelp?
     @State private var noticeGeometries: [HomeNotice.ID: HomeNoticeGeometry] = [:]
 
 #if DEBUG
@@ -134,12 +145,17 @@ struct HomeScreen: View {
 #endif
             }
             .task {
+                await notificationAuthorization.refreshStatus()
                 await refreshUsageWhileVisible()
             }
             .onChange(of: scenePhase) { _, newPhase in
                 guard newPhase == .active else { return }
                 screenTime.refreshUsageSnapshot()
                 screenTime.requestWidgetReload()
+                Task {
+                    await notificationAuthorization.refreshStatus()
+                    screenTime.refreshNotificationBadge()
+                }
             }
             .onReceive(
                 NotificationCenter.default.publisher(
@@ -158,6 +174,18 @@ struct HomeScreen: View {
             .navigationDestination(isPresented: $isShowingAppInfo) {
                 AppInfoScreen()
             }
+            .navigationDestination(isPresented: $isShowingNotificationSettings) {
+                NotificationSettingsScreen(screenTime: screenTime)
+            }
+            .onChange(of: isShowingNotificationSettings) { _, showing in
+                guard !showing else { return }
+                Task { await notificationAuthorization.refreshStatus() }
+            }
+            .sheet(item: $widgetHelp) { help in
+                OnboardingWidgetHelpSheet(help: help)
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
+            }
 #if DEBUG
             .sheet(isPresented: $isShowingDiagnostics) {
                 DiagnosticsView(screenTime: screenTime)
@@ -172,6 +200,34 @@ struct HomeScreen: View {
         VStack {
             HStack {
                 Menu {
+                    Button {
+                        isShowingNotificationSettings = true
+                    } label: {
+                        Label("Notifications", systemImage: "bell")
+                    }
+
+                    Menu {
+                        Button {
+                            widgetHelp = .lockScreen
+                        } label: {
+                            Label(
+                                "Lock Screen",
+                                systemImage: OnboardingWidgetHelp.lockScreen.systemImage
+                            )
+                        }
+
+                        Button {
+                            widgetHelp = .homeScreen
+                        } label: {
+                            Label(
+                                "Home Screen",
+                                systemImage: OnboardingWidgetHelp.homeScreen.systemImage
+                            )
+                        }
+                    } label: {
+                        Label("Add a widget", systemImage: "plus.rectangle.on.rectangle")
+                    }
+
                     Button {
                         isShowingAppInfo = true
                     } label: {
@@ -519,6 +575,10 @@ struct HomeScreen: View {
 
         if isFirstMeasurementDay {
             notices.append(Self.firstDayNotice)
+        }
+
+        if notificationAuthorization.status == .denied {
+            notices.append(Self.notificationsNotice)
         }
 
         return notices

@@ -98,6 +98,14 @@ extension DeviceActivityReport.Context {
     nonisolated static let mujoSavingsCarousel = Self(
         "Mujo Savings Carousel"
     )
+#if DEBUG
+    nonisolated static let mujoDiagnosticsInsightsCarousel = Self(
+        "Mujo Diagnostics Insights Carousel"
+    )
+    nonisolated static let mujoDiagnosticsSavingsCarousel = Self(
+        "Mujo Diagnostics Savings Carousel"
+    )
+#endif
 }
 
 // Screen Time data stays inside the system report extension. Keep its view
@@ -303,6 +311,28 @@ struct OnboardingInsightCaption {
     }
 }
 
+enum OnboardingSavingsCaption {
+    nonisolated static func direction(
+        _ direction: OnboardingScreenTimeDifferenceDirection
+    ) -> OnboardingInsightCaption {
+        OnboardingInsightCaption(
+            emphasis: direction == .less ? "less" : "more",
+            trailing: " screen time"
+        )
+    }
+
+    nonisolated static func period(page: Int) -> OnboardingInsightCaption {
+        switch page {
+        case 0:
+            OnboardingInsightCaption("every ", emphasis: "day")
+        case 1:
+            OnboardingInsightCaption("every ", emphasis: "week")
+        default:
+            OnboardingInsightCaption("over the next ", emphasis: "year")
+        }
+    }
+}
+
 struct OnboardingSavingsCard: View {
     let annualDifference: OnboardingScreenTimeDifference
     let page: Int
@@ -314,22 +344,19 @@ struct OnboardingSavingsCard: View {
             savingsCard(
                 value: OnboardingCardDurationFormatter.string(
                     minutes: dailyDifferenceMinutes
-                ),
-                period: "every day"
+                )
             )
         case 1:
             savingsCard(
                 value: OnboardingCardDurationFormatter.string(
                     minutes: weeklyDifferenceMinutes
-                ),
-                period: "every week"
+                )
             )
         default:
             savingsCard(
                 value: OnboardingSavingsDurationFormatter.string(
                     minutes: annualDifference.minutes
-                ),
-                period: "over the next year"
+                )
             )
         }
     }
@@ -342,21 +369,14 @@ struct OnboardingSavingsCard: View {
         dailyDifferenceMinutes * 7
     }
 
-    private func savingsCard(value: String, period: String) -> some View {
+    private func savingsCard(value: String) -> some View {
         OnboardingInsightCard(
             value: value,
-            primaryCaption: .init(emphasis: differenceCaption),
-            secondaryCaption: .init(emphasis: period),
+            primaryCaption: OnboardingSavingsCaption.direction(
+                annualDifference.direction
+            ),
+            secondaryCaption: OnboardingSavingsCaption.period(page: page),
             horizontalPadding: horizontalPadding
         )
-    }
-
-    private var differenceCaption: String {
-        switch annualDifference.direction {
-        case .less:
-            "less screen time"
-        case .more:
-            "more screen time"
-        }
     }
 }

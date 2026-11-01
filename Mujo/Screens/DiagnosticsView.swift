@@ -1,4 +1,5 @@
 #if DEBUG
+import DeviceActivity
 import SwiftUI
 import UIKit
 import UserNotifications
@@ -15,6 +16,7 @@ struct DiagnosticsView: View {
     @State private var roundTripWorks = false
     @State private var notificationStatus = "checking…"
     @State private var isResetting = false
+    @State private var showsEvents = false
 
     var body: some View {
         NavigationStack {
@@ -76,6 +78,12 @@ struct DiagnosticsView: View {
 
                 Section("Reports and notifications") {
                     diagnosticRow(
+                        "Screen Time access",
+                        value: String(
+                            describing: screenTime.authorizationStatus
+                        )
+                    )
+                    diagnosticRow(
                         "Onboarding report",
                         value: "Rendered privately by iOS"
                     )
@@ -87,6 +95,15 @@ struct DiagnosticsView: View {
                         "Notifications",
                         value: notificationStatus
                     )
+
+                    NavigationLink {
+                        ScreenTimeReportDiagnosticsView()
+                    } label: {
+                        Label(
+                            "Inspect Screen Time report",
+                            systemImage: "chart.bar.doc.horizontal"
+                        )
+                    }
                 }
 
                 Section("Widget") {
@@ -110,29 +127,6 @@ struct DiagnosticsView: View {
                     )
                 }
 
-                Section("Events") {
-                    if events.isEmpty {
-                        Text("No diagnostic events yet.")
-                    } else {
-                        ForEach(events.reversed()) { event in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(event.source.uppercased())
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.tint)
-                                Text(event.message)
-                                    .font(.callout.monospaced())
-                                    .textSelection(.enabled)
-                                Text(event.date.formatted(
-                                    date: .abbreviated,
-                                    time: .standard
-                                ))
-                                .font(.caption)
-                            }
-                            .padding(.vertical, 3)
-                        }
-                    }
-                }
-
                 Section("Actions") {
                     Button("Copy diagnostics") {
                         UIPasteboard.general.string = exportedDiagnostics
@@ -144,14 +138,63 @@ struct DiagnosticsView: View {
                     }
 
                     Button("Reset measurement test", role: .destructive) {
-                        resetMeasurement(forceNoHistory: false)
+                        resetMeasurement(scenario: nil)
                     }
                     .disabled(isResetting)
+                }
 
-                    Button("Test onboarding without history") {
-                        resetMeasurement(forceNoHistory: true)
+                Section("Onboarding data simulation") {
+                    Text(
+                        "Runs the real Screen Time report extension with controlled diagnostic data."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                    ForEach(OnboardingDiagnosticsScenario.allCases) {
+                        scenario in
+                        Button {
+                            resetMeasurement(scenario: scenario)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(scenario.title)
+                                Text(scenario.detail)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .disabled(isResetting)
                     }
-                    .disabled(isResetting)
+                }
+
+                Section {
+                    DisclosureGroup(
+                        isExpanded: $showsEvents,
+                        content: {
+                            if events.isEmpty {
+                                Text("No diagnostic events yet.")
+                            } else {
+                                ForEach(events.reversed()) { event in
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(event.source.uppercased())
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundStyle(.tint)
+                                        Text(event.message)
+                                            .font(.callout.monospaced())
+                                            .textSelection(.enabled)
+                                        Text(event.date.formatted(
+                                            date: .abbreviated,
+                                            time: .standard
+                                        ))
+                                        .font(.caption)
+                                    }
+                                    .padding(.vertical, 3)
+                                }
+                            }
+                        },
+                        label: {
+                            Text("Events (\(events.count))")
+                        }
+                    )
                 }
             }
             .navigationTitle("Diagnostics")
@@ -250,12 +293,17 @@ struct DiagnosticsView: View {
         reload()
     }
 
-    private func resetMeasurement(forceNoHistory: Bool) {
+    private func resetMeasurement(
+        scenario: OnboardingDiagnosticsScenario?
+    ) {
         guard !isResetting else { return }
         isResetting = true
         Task {
-            if forceNoHistory {
-                DiagnosticsScenarioStore.scheduleNoHistoryOnboarding()
+            DiagnosticsScenarioStore.clearOnboardingScenario()
+            if let scenario {
+                DiagnosticsScenarioStore.scheduleOnboarding(
+                    scenario: scenario
+                )
             }
             await screenTime.resetMeasurementForDiagnostics()
             UserDefaults.standard.removeObject(
@@ -265,6 +313,64 @@ struct DiagnosticsView: View {
             isResetting = false
             dismiss()
         }
+    }
+}
+
+private struct ScreenTimeReportDiagnosticsView: View {
+    private let reportInterval: DateInterval
+
+    init() {
+        let calendar = Calendar.autoupdatingCurrent
+        let end = calendar.startOfDay(for: .now)
+        let start = calendar.date(
+            byAdding: .day,
+            value: -OnboardingProjectionRules.recentDayCount,
+            to: end
+        ) ?? end
+        reportInterval = DateInterval(start: start, end: end)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Onboarding request")
+                    .font(.headline)
+
+                Text("From: \(formatted(reportInterval.start))")
+                Text("To: \(formatted(reportInterval.end))")
+                Text("Time zone: \(TimeZone.autoupdatingCurrent.identifier)")
+                Text("Users: all · Devices: all shared devices")
+            }
+            .font(.caption.monospaced())
+            .textSelection(.enabled)
+            .padding(.horizontal)
+
+            Divider()
+
+            DeviceActivityReport(
+                DeviceActivityReport.Context("Mujo Diagnostics"),
+                filter: reportFilter
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .padding(.top, 12)
+        .navigationTitle("Screen Time report")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var reportFilter: DeviceActivityFilter {
+        DeviceActivityFilter(
+            segment: .daily(during: reportInterval),
+            users: .all,
+            devices: .all
+        )
+    }
+
+    private func formatted(_ date: Date) -> String {
+        date.formatted(
+            date: .numeric,
+            time: .standard
+        )
     }
 }
 #endif

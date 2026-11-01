@@ -65,7 +65,7 @@ struct OnboardingInsightsAndLimitReportSection<ReportContent: View>: View {
 
             if showsHistoryReport {
                 reportContent()
-                    .frame(height: isChoosingLimit ? 72 : nil)
+                    .frame(height: isChoosingLimit ? 96 : nil)
                     .frame(maxHeight: isChoosingLimit ? nil : 460)
                     .layoutPriority(1)
                     .padding(.horizontal, isChoosingLimit ? 32 : 0)

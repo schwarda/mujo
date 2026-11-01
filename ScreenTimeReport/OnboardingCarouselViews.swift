@@ -35,6 +35,17 @@ struct OnboardingSavingsCarouselView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            Text(comparisonHeading)
+                .font(MujoTheme.italicFont(
+                    size: OnboardingTypography.descriptive,
+                    relativeTo: .body
+                ))
+                .foregroundStyle(MujoTheme.brandAccent)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 34)
+                .padding(.bottom, 6)
+
             GeometryReader { geometry in
                 let cardWidth = max(0, geometry.size.width - 72)
                 let sideInset = (geometry.size.width - cardWidth) / 2
@@ -84,6 +95,13 @@ struct OnboardingSavingsCarouselView: View {
             .accessibilityHidden(true)
         }
         .padding(.top, 22)
+    }
+
+    private var comparisonHeading: String {
+        if configuration.recentAvailableDayCount == 1 {
+            return "Compared with your screen time\nover the last day:"
+        }
+        return "Compared with your daily average:"
     }
 
     @ViewBuilder
@@ -187,16 +205,10 @@ struct OnboardingInsightsCarouselView: View {
                     value: OnboardingCardDurationFormatter.string(
                         minutes: averageMinutes
                     ),
-                    primaryCaption: .init(
-                        "your ",
-                        emphasis: "daily average"
-                    ),
-                    secondaryCaption: hasFullWeek
-                        ? .init("over the ", emphasis: "last 7 days")
-                        : .init(
-                            "based on ",
-                            emphasis: "\(configuration.recentAvailableDayCount) available days"
-                        ),
+                    primaryCaption: configuration.recentAvailableDayCount == 1
+                        ? .init("your ", emphasis: "screen time")
+                        : .init("your ", emphasis: "daily average"),
+                    secondaryCaption: recentPeriodCaption,
                     horizontalPadding: 0
                 )
 
@@ -213,7 +225,7 @@ struct OnboardingInsightsCarouselView: View {
                         : .init("at this pace,"),
                     secondaryCaption: hasFullWeek
                         ? .init("over the ", emphasis: "last 7 days")
-                        : .init("each ", emphasis: "week"),
+                        : .init("in one ", emphasis: "week"),
                     horizontalPadding: 0
                 )
 
@@ -249,6 +261,19 @@ struct OnboardingInsightsCarouselView: View {
     private var hasFullWeek: Bool {
         configuration.recentAvailableDayCount
             >= OnboardingProjectionRules.recentDayCount
+    }
+
+    private var recentPeriodCaption: OnboardingInsightCaption {
+        if configuration.recentAvailableDayCount == 1 {
+            return .init("over the ", emphasis: "last day")
+        }
+        if hasFullWeek {
+            return .init("over the ", emphasis: "last 7 days")
+        }
+        return .init(
+            "over the ",
+            emphasis: "last \(configuration.recentAvailableDayCount) days"
+        )
     }
 
 }

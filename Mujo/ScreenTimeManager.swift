@@ -169,7 +169,8 @@ final class ScreenTimeManager: ObservableObject {
     func refreshUsageSnapshot() {
         let refreshedSnapshot = usageSnapshotLoader.load()
         let badgeCount = RemainingTimeBadge.badgeCount(
-            from: refreshedSnapshot
+            from: refreshedSnapshot,
+            preferences: NotificationPreferences.load(from: sharedDefaults)
         ) ?? 0
         if badgeUpdateTracker.shouldApply(badgeCount) {
             RemainingTimeBadge.update(count: badgeCount)
@@ -206,6 +207,37 @@ final class ScreenTimeManager: ObservableObject {
             defaults: sharedDefaults
         )
 #endif
+    }
+
+    func refreshNotificationPreferences() async {
+        refreshUsageSnapshot()
+        guard refreshAuthorizationStatus() else { return }
+        do {
+            try await monitoring.restore(limit: limitStore.currentLimit)
+        } catch {
+            handleMonitoringError(error)
+        }
+    }
+
+    var notificationPreferences: NotificationPreferences {
+        NotificationPreferences.load(from: sharedDefaults)
+    }
+
+    var canSaveNotificationPreferences: Bool { sharedDefaults != nil }
+
+    func refreshNotificationBadge() {
+        let count = RemainingTimeBadge.badgeCount(
+            from: usageSnapshotLoader.load(),
+            preferences: notificationPreferences
+        ) ?? 0
+        _ = badgeUpdateTracker.shouldApply(count)
+        RemainingTimeBadge.update(count: count)
+    }
+
+    func saveNotificationPreferences(_ preferences: NotificationPreferences) {
+        guard let sharedDefaults else { return }
+        preferences.save(to: sharedDefaults)
+        refreshUsageSnapshot()
     }
 
     func setDailyLimit(minutes: Int) async {

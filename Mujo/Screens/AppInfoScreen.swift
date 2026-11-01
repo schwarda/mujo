@@ -21,29 +21,33 @@ struct AppInfoMetadata {
 }
 
 struct AppInfoScreen: View {
-    private struct PlaceholderLink: Identifiable {
+    private struct InformationLink: Identifiable {
         let title: String
         let systemImage: String
+        let urlString: String
 
         var id: String { title }
     }
 
-    private static let placeholderItems = [
-        PlaceholderLink(
+    private static let informationItems = [
+        InformationLink(
             title: "Privacy Policy",
-            systemImage: "hand.raised"
+            systemImage: "hand.raised",
+            urlString: "https://aikaristudio.com/privacy/"
         ),
-        PlaceholderLink(
+        InformationLink(
             title: "Support",
-            systemImage: "questionmark.circle"
+            systemImage: "questionmark.circle",
+            urlString: "https://aikaristudio.com/support/"
         ),
-        PlaceholderLink(
+        InformationLink(
             title: "Terms of Use",
-            systemImage: "doc.text"
+            systemImage: "doc.text",
+            urlString: "https://aikaristudio.com/terms/"
         ),
     ]
 
-    @Environment(\.dismiss) private var dismiss
+    @State private var isCreditsExpanded = false
     private let metadata: AppInfoMetadata
 
     init(metadata: AppInfoMetadata = AppInfoMetadata()) {
@@ -52,60 +56,63 @@ struct AppInfoScreen: View {
 
     var body: some View {
         ZStack {
-            SakuraBackground()
-                .ignoresSafeArea()
+            SakuraBackground().ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                appIdentity
-
-                placeholderLinksSection
-                    .padding(.top, 60)
-
-                Text(metadata.copyright)
-                    .font(MujoTheme.italicFont(
-                        size: 14,
-                        relativeTo: .footnote
-                    ))
-                    .foregroundStyle(
-                        MujoTheme.glassAccent.opacity(
-                            MujoTheme.secondaryTextOpacity
-                        )
-                    )
-                    .padding(.top, 28)
-//                    .padding(.bottom, 34)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, 22)
-
-            backButtonOverlay
-        }
-        .navigationBarBackButtonHidden(true)
-        .toolbar(.hidden, for: .navigationBar)
-    }
-
-    private var backButtonOverlay: some View {
-        VStack {
-            HStack {
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 17, weight: .semibold))
-                        .frame(width: 44, height: 44)
-                        .contentShape(Circle())
+            List {
+                Section {
+                    appIdentity
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                 }
-                .buttonStyle(.plain)
-                .glassEffect(.clear.interactive(), in: .circle)
-                .foregroundStyle(.tint)
-                .accessibilityLabel("Back")
 
-                Spacer()
+                Section {
+                    ForEach(Self.informationItems) { link in
+                        if let destination = URL(string: link.urlString) {
+                            Link(destination: destination) {
+                                LabeledContent {
+                                    Image(systemName: "arrow.up.right")
+                                        .foregroundStyle(.secondary)
+                                } label: {
+                                    Label(
+                                        link.title,
+                                        systemImage: link.systemImage
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Information")
+                }
+
+                Section {
+                    DisclosureGroup(isExpanded: $isCreditsExpanded) {
+                        VStack(alignment: .leading) {
+                            Text("Sakura petal artwork")
+                            
+                            if let sourceURL = URL(
+                                string: "https://www.magnific.com/free-vector/mobile_418125913.htm"
+                            ) {
+                                Link("Image by user15245033 on Magnific", destination: sourceURL)
+                                    .accessibilityIdentifier("artwork-source-link")
+                            }
+                        }
+                    } label: {
+                        Label("Credits", systemImage: "person.2")
+                    }
+                    .accessibilityIdentifier("credits-disclosure")
+                } footer: {
+                    Text(metadata.copyright)
+                }
             }
-
-            Spacer()
+            .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
+        .tint(.accentColor)
+        .navigationTitle("App Info")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(false)
+        .toolbar(.visible, for: .navigationBar)
     }
 
     private var appIdentity: some View {
@@ -115,74 +122,26 @@ struct AppInfoScreen: View {
                 .accessibilityHidden(true)
 
             Text("Mujø")
-                .font(MujoTheme.boldFont(
-                    size: 42,
-                    relativeTo: .largeTitle
-                ))
+                .font(.largeTitle.bold())
                 .foregroundStyle(.tint)
 
             Text(metadata.versionAndBuild)
-                .font(MujoTheme.mediumFont(
-                    size: 15,
-                    relativeTo: .subheadline
-                ))
+                .font(.subheadline)
                 .monospacedDigit()
-                .foregroundStyle(
-                    MujoTheme.glassAccent.opacity(
-                        MujoTheme.secondaryTextOpacity
-                    )
-                )
+                .foregroundStyle(.secondary)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
         .accessibilityElement(children: .combine)
-    }
-
-    private var placeholderLinksSection: some View {
-        VStack(spacing: 0) {
-            ForEach(Array(Self.placeholderItems.enumerated()), id: \.element.id) {
-                index, link in
-                HStack(spacing: 14) {
-                    Image(systemName: link.systemImage)
-                        .font(.system(size: 18, weight: .medium))
-                        .frame(width: 24)
-
-                    Text(link.title)
-                        .font(MujoTheme.mediumFont(
-                            size: OnboardingTypography.systemUI,
-                            relativeTo: .body
-                        ))
-
-                    Spacer(minLength: 12)
-
-                    Text("Coming soon")
-                        .font(.system(.caption, design: .rounded))
-                        .foregroundStyle(
-                            MujoTheme.glassAccent.opacity(
-                                MujoTheme.secondaryTextOpacity
-                            )
-                        )
-                }
-                .foregroundStyle(MujoTheme.glassAccent)
-                .frame(minHeight: 56)
-                .padding(.horizontal, 18)
-                .accessibilityElement(children: .combine)
-
-                if index < Self.placeholderItems.count - 1 {
-                    Divider()
-                        .overlay(
-                            MujoTheme.glassAccent.opacity(0.14)
-                        )
-                        .padding(.leading, 56)
-                }
-            }
-        }
-        .glassEffect(.clear, in: .rect(cornerRadius: 24))
     }
 }
 
 #Preview("App Info") {
-    AppInfoScreen(metadata: AppInfoMetadata(infoDictionary: [
-        "CFBundleShortVersionString": "1.0",
-        "CFBundleVersion": "6",
-        "NSHumanReadableCopyright": "© 2026 Aikari Studio",
-    ]))
+    NavigationStack {
+        AppInfoScreen(metadata: AppInfoMetadata(infoDictionary: [
+            "CFBundleShortVersionString": "1.0",
+            "CFBundleVersion": "6",
+            "NSHumanReadableCopyright": "© 2026 Aikari Studio",
+        ]))
+    }
 }

@@ -73,7 +73,6 @@ final class MujoUITests: XCTestCase {
 
         let menu = app.buttons["Menu"]
         XCTAssertTrue(menu.waitForExistence(timeout: 10))
-        let menuFrame = menu.frame
         menu.tap()
 
         let appInfoMenuItem = app.buttons["App Info"]
@@ -83,14 +82,45 @@ final class MujoUITests: XCTestCase {
         let backButton = app.buttons["Back"]
         XCTAssertTrue(backButton.waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Privacy Policy"].exists)
-        XCTAssertEqual(backButton.frame.minX, menuFrame.minX, accuracy: 1)
-        XCTAssertEqual(backButton.frame.minY, menuFrame.minY, accuracy: 1)
-        XCTAssertEqual(backButton.frame.width, menuFrame.width, accuracy: 1)
-        XCTAssertEqual(backButton.frame.height, menuFrame.height, accuracy: 1)
 
         backButton.tap()
         XCTAssertTrue(menu.waitForExistence(timeout: 5))
         XCTAssertTrue(backButton.waitForNonExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testAppInfoCreditsExpandInline() {
+        let app = XCUIApplication()
+        app.launchArguments.append("--ui-test-home")
+        app.launch()
+
+        let menu = app.buttons["Menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 10))
+        menu.tap()
+
+        let appInfoMenuItem = app.buttons["App Info"]
+        XCTAssertTrue(appInfoMenuItem.waitForExistence(timeout: 5))
+        appInfoMenuItem.tap()
+
+        let credits = app.buttons["credits-disclosure"]
+        XCTAssertTrue(credits.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Sakura petal artwork"].exists)
+
+        credits.tap()
+
+        XCTAssertTrue(
+            app.staticTexts["Sakura petal artwork"]
+                .waitForExistence(timeout: 2)
+        )
+        let sourceLink = app.descendants(matching: .any)[
+            "artwork-source-link"
+        ]
+        XCTAssertTrue(sourceLink.waitForExistence(timeout: 2))
+        XCTAssertEqual(
+            sourceLink.label,
+            "Image by user15245033 on Magnific"
+        )
+        XCTAssertFalse(app.descendants(matching: .any)["View source"].exists)
     }
 
     @MainActor

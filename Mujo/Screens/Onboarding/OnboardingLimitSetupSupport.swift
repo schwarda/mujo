@@ -145,14 +145,19 @@ enum OnboardingHomeScreenPlacement {
     static let preImpactDepthDuration = 0.22
     static let impactTime = entryStartTime + approachDuration
     static let releaseTravelDuration = 0.08
-    static let releaseDuration = 0.32
-    static let totalDuration = impactTime + 0.42
+    static let releaseDuration = 0.56
+    static let totalDuration = impactTime
+        + releaseTravelDuration
+        + releaseDuration
 
     private static let foregroundScale: CGFloat = 1.45
     private static let maximumIconSink: CGFloat = 0.14
-    private static let maximumIconOvershoot: CGFloat = 0.045
     private static let maximumIconOffset: CGFloat = 3.5
-    private static let releasePeakProgress = 0.45
+    private static let dampingRatio = 0.34
+    private static let naturalFrequency = 20.0
+    private static let tailFadeStartProgress = 0.72
+    private static let shadowRiseDuration = 0.10
+    private static let shadowDecayRate = 3.2
 
     static func entryOffset(
         containerSize: CGSize,
@@ -317,58 +322,46 @@ enum OnboardingHomeScreenPlacement {
         )
         guard releaseProgress < 1 else { return .identity }
 
-        let overshootScale = 1 + maximumIconOvershoot * proximity
-        let reboundOffset = maximumIconOffset * 0.35 * proximity
-
-        if releaseProgress <= releasePeakProgress {
-            let riseProgress = smootherstep(clampedProgress(
-                releaseProgress / releasePeakProgress
-            ))
-            let offsetMagnitude = interpolate(
-                sinkOffset,
-                reboundOffset,
-                progress: riseProgress
-            )
-
-            return IconSample(
-                offset: CGSize(
-                    width: directionX * offsetMagnitude,
-                    height: directionY * offsetMagnitude
-                ),
-                scale: interpolate(
-                    sinkScale,
-                    overshootScale,
-                    progress: riseProgress
-                ),
-                shadowOpacity: 0.22 * proximity * riseProgress,
-                shadowRadius: 10 * proximity * riseProgress,
-                shadowY: 4 * proximity * riseProgress
-            )
-        }
-
-        let settleProgress = smootherstep(clampedProgress(
-            (releaseProgress - releasePeakProgress)
-                / (1 - releasePeakProgress)
-        ))
-        let offsetMagnitude = interpolate(
-            reboundOffset,
-            0,
-            progress: settleProgress
+        let releaseElapsed = elapsed - arrivalTime
+        let tailFadeProgress = clampedProgress(
+            (releaseProgress - tailFadeStartProgress)
+                / (1 - tailFadeStartProgress)
         )
+        let tailEnvelope = 1 - smootherstep(tailFadeProgress)
+        let response = dampedResponse(elapsed: releaseElapsed)
+            * tailEnvelope
+        let offsetMagnitude = maximumIconOffset * proximity * response
+        let shadowRise = smootherstep(clampedProgress(
+            releaseElapsed / shadowRiseDuration
+        ))
+        let shadowStrength = proximity
+            * shadowRise
+            * exp(-shadowDecayRate * releaseElapsed)
+            * tailEnvelope
 
         return IconSample(
             offset: CGSize(
                 width: directionX * offsetMagnitude,
                 height: directionY * offsetMagnitude
             ),
-            scale: interpolate(
-                overshootScale,
-                1,
-                progress: settleProgress
-            ),
-            shadowOpacity: 0.22 * proximity * (1 - settleProgress),
-            shadowRadius: 10 * proximity * (1 - settleProgress),
-            shadowY: 4 * proximity * (1 - settleProgress)
+            scale: 1 + maximumIconSink * proximity * response,
+            shadowOpacity: 0.22 * shadowStrength,
+            shadowRadius: 10 * shadowStrength,
+            shadowY: 4 * shadowStrength
+        )
+    }
+
+    private static func dampedResponse(elapsed: Double) -> Double {
+        let dampedFrequency = naturalFrequency
+            * sqrt(1 - dampingRatio * dampingRatio)
+        let phaseCorrection = dampingRatio
+            * naturalFrequency
+            / dampedFrequency
+        let decay = exp(-dampingRatio * naturalFrequency * elapsed)
+        let phase = dampedFrequency * elapsed
+
+        return -decay * (
+            cos(phase) + phaseCorrection * sin(phase)
         )
     }
 
