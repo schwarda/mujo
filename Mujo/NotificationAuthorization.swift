@@ -16,6 +16,10 @@ final class NotificationAuthorization: ObservableObject {
         case failed
     }
     @Published private(set) var status: UNAuthorizationStatus = .notDetermined
+    @Published private(set) var hasLoadedSettings = false
+    @Published private(set) var alertSetting: UNNotificationSetting = .notSupported
+    @Published private(set) var notificationCenterSetting: UNNotificationSetting = .notSupported
+    @Published private(set) var badgeSetting: UNNotificationSetting = .notSupported
 
     private let center = UNUserNotificationCenter.current()
 
@@ -35,6 +39,10 @@ final class NotificationAuthorization: ObservableObject {
     func refreshStatus() async {
         let settings = await center.notificationSettings()
         status = settings.authorizationStatus
+        alertSetting = settings.alertSetting
+        notificationCenterSetting = settings.notificationCenterSetting
+        badgeSetting = settings.badgeSetting
+        hasLoadedSettings = true
     }
 
     func requestAuthorization() async -> RequestOutcome {

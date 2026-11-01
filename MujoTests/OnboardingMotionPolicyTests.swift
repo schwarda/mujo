@@ -330,8 +330,8 @@ struct OnboardingMotionPolicyTests {
         #expect(abs(farAfterImpact.scale - farAtImpact.scale) < 0.000_001)
     }
 
-    @Test("Home Screen icons have one small rebound")
-    func homeScreenIconHasOneSmallRebound() {
+    @Test("Home Screen icon response rings down with smaller rebounds")
+    func homeScreenIconResponseRingsDown() {
         let sample: (Double) -> OnboardingHomeScreenPlacement.IconSample = {
             OnboardingHomeScreenPlacement.iconSample(
                 elementCenter: .zero,
@@ -340,26 +340,34 @@ struct OnboardingMotionPolicyTests {
                 elapsed: OnboardingHomeScreenPlacement.impactTime + $0
             )
         }
-        let peak = sample(OnboardingHomeScreenPlacement.releaseDuration * 0.45)
-        let settling = [sample(0.18), sample(0.23), sample(0.28), sample(0.32)]
+        let firstRebound = sample(
+            OnboardingHomeScreenPlacement.releaseDuration * 0.30
+        )
+        let secondRebound = sample(
+            OnboardingHomeScreenPlacement.releaseDuration * 0.61
+        )
+        let finalRipple = sample(
+            OnboardingHomeScreenPlacement.releaseDuration * 0.90
+        )
 
-        #expect(peak.scale >= 1.04)
-        #expect(peak.scale <= 1.045_001)
-        #expect(peak.shadowOpacity >= 0.20)
-        #expect(peak.shadowRadius >= 9)
-        #expect(peak.shadowY >= 3.5)
-        #expect(settling.allSatisfy { $0.scale >= 1 })
-        #expect(settling[0].scale >= settling[1].scale)
-        #expect(settling[1].scale >= settling[2].scale)
-        #expect(settling[2].scale >= settling[3].scale)
-        #expect(abs(settling[3].scale - 1) < 0.000_001)
+        let firstStrength = abs(firstRebound.scale - 1)
+        let secondStrength = abs(secondRebound.scale - 1)
+        let finalStrength = abs(finalRipple.scale - 1)
+
+        #expect(firstRebound.scale > 1.025)
+        #expect(secondRebound.scale < 0.995)
+        #expect(finalRipple.scale > 1)
+        #expect(firstStrength > secondStrength)
+        #expect(secondStrength > finalStrength)
+        #expect(firstRebound.shadowOpacity >= 0.12)
+        #expect(finalRipple.shadowOpacity < firstRebound.shadowOpacity)
     }
 
     @Test("Home Screen icon rebound changes direction without a jerk")
     func homeScreenIconReboundHasSmoothPeak() {
         let step = 0.002
         let peakTime = OnboardingHomeScreenPlacement.impactTime
-            + OnboardingHomeScreenPlacement.releaseDuration * 0.45
+            + OnboardingHomeScreenPlacement.releaseDuration * 0.30
         let scale: (Double) -> Double = { elapsed in
             Double(OnboardingHomeScreenPlacement.iconSample(
                 elementCenter: .zero,

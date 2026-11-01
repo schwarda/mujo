@@ -108,7 +108,7 @@ struct OnboardingSuggestionView: View {
                     : .init("at this pace,"),
                 secondaryCaption: hasFullWeek
                     ? .init("over the ", emphasis: "last 7 days")
-                    : .init("each ", emphasis: "week")
+                    : .init("in one ", emphasis: "week")
             )
 
         case .yearlyTotal:
@@ -134,6 +134,7 @@ struct OnboardingSuggestionView: View {
                 averageText(averageMinutes)
                 suggestionText(suggestedMinutes)
             }
+            .fixedSize(horizontal: false, vertical: true)
             .multilineTextAlignment(.center)
             .foregroundStyle(primaryColor)
             .padding(.horizontal, 12)
@@ -229,6 +230,15 @@ struct OnboardingSuggestionView: View {
 
     private func averageText(_ averageMinutes: Int) -> Text {
         let average = emphasizedItalicText(formatted(averageMinutes))
+        if configuration.recentAvailableDayCount == 1 {
+            return italicText(
+                "Your screen time was \(average)\nover the last day."
+            )
+        }
+        if configuration.recentAvailableDayCount
+            < OnboardingProjectionRules.recentDayCount {
+            return italicText("Your daily average is \(average).")
+        }
         let aDay = Text("a day")
             .font(MujoTheme.semiboldItalicFont(
                 size: OnboardingTypography.descriptive,

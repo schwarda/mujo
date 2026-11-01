@@ -54,6 +54,8 @@
 		D1A600073090000000000001 /* DiagnosticsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A600123090000000000001 /* DiagnosticsStore.swift */; };
 		D1A600083090000000000001 /* DiagnosticsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A600123090000000000001 /* DiagnosticsStore.swift */; };
 		D1A600093090000000000001 /* UsageCheckpointValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A600103090000000000001 /* UsageCheckpointValidator.swift */; };
+		E331000130A0000000000001 /* NotificationPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = E331000030A0000000000001 /* NotificationPreferences.swift */; };
+		E331000230A0000000000001 /* NotificationPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = E331000030A0000000000001 /* NotificationPreferences.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -147,6 +149,7 @@
 		C0D100123080000000000001 /* OnboardingReportSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingReportSupport.swift; sourceTree = "<group>"; };
 		D1A600103090000000000001 /* UsageCheckpointValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageCheckpointValidator.swift; sourceTree = "<group>"; };
 		D1A600123090000000000001 /* DiagnosticsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsStore.swift; sourceTree = "<group>"; };
+		E331000030A0000000000001 /* NotificationPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPreferences.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -283,6 +286,7 @@
 				B4D6E1003070000000000001 /* RemainingTimeBadge.swift */,
 				1521BA08305B395F00866109 /* RemainingTimeActivityAttributes.swift */,
 				1521BA02305B013300866109 /* NotificationMilestone.swift */,
+				E331000030A0000000000001 /* NotificationPreferences.swift */,
 				1521AF803052A00000866109 /* AppConfiguration.swift */,
 				1521AF693052015500866109 /* GlassText.swift */,
 				15730229305C939000B6E3FC /* SakuraPetalField.swift */,
@@ -610,6 +614,7 @@
 				C0D100103080000000000001 /* OnboardingReportSupport.swift in Sources */,
 				B4D6E1013070000000000001 /* RemainingTimeBadge.swift in Sources */,
 				1521BA04305B013D00866109 /* NotificationMilestone.swift in Sources */,
+				E331000130A0000000000001 /* NotificationPreferences.swift in Sources */,
 				A17E4E023060000000000001 /* Theme.swift in Sources */,
 				A17E4E1A3060000000000001 /* GlassText.swift in Sources */,
 				A17E4E053060000000000001 /* TimeFormatting.swift in Sources */,
@@ -644,6 +649,7 @@
 				D1A600063090000000000001 /* DiagnosticsStore.swift in Sources */,
 				D1A600023090000000000001 /* UsageCheckpointValidator.swift in Sources */,
 				1521BA05305B046700866109 /* NotificationMilestone.swift in Sources */,
+				E331000230A0000000000001 /* NotificationPreferences.swift in Sources */,
 				B4D6E1023070000000000001 /* RemainingTimeBadge.swift in Sources */,
 				B4D6E1033070000000000001 /* WidgetUsageEstimate.swift in Sources */,
 				B4D6E1043070000000000001 /* WidgetUsageSnapshotLoader.swift in Sources */,
@@ -701,7 +707,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = CountdownWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_TEAM = 2B2928XT22;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CountdownWidget/Info.plist;
@@ -733,7 +739,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = CountdownWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_TEAM = 2B2928XT22;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CountdownWidget/Info.plist;
@@ -890,7 +896,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Mujo/Mujo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_TEAM = 2B2928XT22;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -928,7 +934,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Mujo/Mujo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_TEAM = 2B2928XT22;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1050,7 +1056,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = ActivityMonitor/ActivityMonitor.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_TEAM = 2B2928XT22;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ActivityMonitor/Info.plist;
@@ -1080,7 +1086,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = ActivityMonitor/ActivityMonitor.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_TEAM = 2B2928XT22;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ActivityMonitor/Info.plist;
@@ -1111,7 +1117,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = ScreenTimeReport/ScreenTimeReport.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_TEAM = 2B2928XT22;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ScreenTimeReport/Info.plist;
@@ -1142,7 +1148,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = ScreenTimeReport/ScreenTimeReport.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_TEAM = 2B2928XT22;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ScreenTimeReport/Info.plist;

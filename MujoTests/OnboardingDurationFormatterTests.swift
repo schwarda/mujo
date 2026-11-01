@@ -97,4 +97,31 @@ struct OnboardingDurationFormatterTests {
         #expect(difference.minutes == 90 * 365)
         #expect(difference.direction == .less)
     }
+
+    @Test("Savings captions emphasize only direction and period")
+    func savingsCaptionEmphasis() {
+        let less = OnboardingSavingsCaption.direction(.less)
+        let more = OnboardingSavingsCaption.direction(.more)
+
+        #expect(less.leading.isEmpty)
+        #expect(less.emphasis == "less")
+        #expect(less.trailing == " screen time")
+        #expect(more.leading.isEmpty)
+        #expect(more.emphasis == "more")
+        #expect(more.trailing == " screen time")
+
+        let daily = OnboardingSavingsCaption.period(page: 0)
+        let weekly = OnboardingSavingsCaption.period(page: 1)
+        let annual = OnboardingSavingsCaption.period(page: 2)
+
+        #expect(daily.leading == "every ")
+        #expect(daily.emphasis == "day")
+        #expect(daily.trailing.isEmpty)
+        #expect(weekly.leading == "every ")
+        #expect(weekly.emphasis == "week")
+        #expect(weekly.trailing.isEmpty)
+        #expect(annual.leading == "over the next ")
+        #expect(annual.emphasis == "year")
+        #expect(annual.trailing.isEmpty)
+    }
 }

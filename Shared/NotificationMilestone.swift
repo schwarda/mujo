@@ -64,17 +64,63 @@
  Every selectable limit also notifies at 5 minutes remaining and at expiry.
 */
 
-struct NotificationMilestone {
-    enum Kind: String {
+nonisolated struct NotificationMilestone: Equatable, Sendable {
+    enum Kind: String, Sendable {
         case percent50
         case percent75
         case finalWindow
         case fiveMinutesRemaining
         case timeExpired
+        case custom
     }
 
     let kind: Kind
     let usedMinutes: Int
+    let percentage: Int?
+
+    init(kind: Kind, usedMinutes: Int, percentage: Int? = nil) {
+        self.kind = kind
+        self.usedMinutes = usedMinutes
+        self.percentage = percentage
+    }
+
+    static func forLimit(
+        minutes: Int,
+        preferences: NotificationPreferences
+    ) -> [Self] {
+        var byMinute: [Int: Self] = [:]
+        for milestone in forLimit(minutes: minutes) {
+            let enabled = milestone.kind == .timeExpired
+                ? preferences.limitReachedEnabled
+                : preferences.recommendedEnabled
+            if enabled { byMinute[milestone.usedMinutes] = milestone }
+        }
+        for percentage in NotificationPreferences.validPercentages(
+            preferences.customPercentages
+        ) {
+            let used = NotificationPreferences.customUsedMinutes(
+                percentage: percentage, limitMinutes: minutes
+            )
+            if byMinute[used] == nil {
+                byMinute[used] = Self(
+                    kind: .custom, usedMinutes: used, percentage: percentage
+                )
+            }
+        }
+        return byMinute.values.sorted { $0.usedMinutes < $1.usedMinutes }
+    }
+
+    static func latestCrossed(
+        forLimitMinutes limit: Int,
+        previousUsedMinutes: Int,
+        reachedUsedMinutes: Int,
+        preferences: NotificationPreferences
+    ) -> Self? {
+        forLimit(minutes: limit, preferences: preferences).last {
+            $0.usedMinutes > previousUsedMinutes
+                && $0.usedMinutes <= reachedUsedMinutes
+        }
+    }
     
     nonisolated static func forLimit(minutes: Int) -> [Self] {
         let limit = AppConfiguration.DailyLimit.normalizedMinutes(minutes)

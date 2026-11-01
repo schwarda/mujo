@@ -65,6 +65,22 @@ struct RemainingTimeBadgeTests {
         #expect(value == 0)
     }
 
+    @Test("Disabling badges clears a valid remaining count")
+    func disabledBadge() {
+        let value = RemainingTimeBadge.badgeCount(
+            from: snapshot(
+                storedDailyLimit: 120 * 60,
+                estimatedUsedTime: 31 * 60,
+                estimateDay: dayStart.timeIntervalSince1970,
+                hasCheckpoint: true
+            ),
+            at: dayStart.addingTimeInterval(12 * 60 * 60),
+            calendar: calendar,
+            preferences: NotificationPreferences(badgeEnabled: false)
+        )
+        #expect(value == 0)
+    }
+
     private func snapshot(
         storedDailyLimit: TimeInterval,
         estimatedUsedTime: TimeInterval = 0,

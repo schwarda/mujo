@@ -40,7 +40,12 @@ enum RemainingTimeBadge {
     static func update(count: Int) {
         precondition(count >= 0, "Badge count cannot be negative")
 
-        UNUserNotificationCenter.current().setBadgeCount(count) { error in
+        let preferences = NotificationPreferences.load(from: UserDefaults(
+            suiteName: AppConfiguration.appGroupIdentifier
+        ))
+        let effectiveCount = preferences.badgeEnabled ? count : 0
+
+        UNUserNotificationCenter.current().setBadgeCount(effectiveCount) { error in
             guard let error else { return }
             logger.error(
                 "Could not update badge: \(error.localizedDescription, privacy: .public)"
@@ -51,8 +56,10 @@ enum RemainingTimeBadge {
     static func badgeCount(
         from snapshot: UsageSnapshot,
         at date: Date = .now,
-        calendar: Calendar = .autoupdatingCurrent
+        calendar: Calendar = .autoupdatingCurrent,
+        preferences: NotificationPreferences = NotificationPreferences()
     ) -> Int? {
+        guard preferences.badgeEnabled else { return 0 }
         guard snapshot.storedDailyLimit > 0 else { return nil }
 
         let estimate = UsageEstimator.estimate(

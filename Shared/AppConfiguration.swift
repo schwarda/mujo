@@ -104,7 +104,8 @@ enum AppConfiguration {
         }
 
         nonisolated static func usageThresholdMinutes(
-            forLimitMinutes minutes: Int
+            forLimitMinutes minutes: Int,
+            customPercentages: [Int] = []
         ) -> [Int] {
             let limit = DailyLimit.normalizedMinutes(minutes)
             let finalWindowStart = max(
@@ -120,6 +121,12 @@ enum AppConfiguration {
             ))
             // Confirm the first usage checkpoint soon after monitoring starts.
             thresholds.insert(1)
+
+            for percentage in customPercentages where (1...99).contains(percentage) {
+                // Keep this calculation independent of the preferences store:
+                // AppConfiguration is also compiled in widget/report targets.
+                thresholds.insert(max(1, (limit * percentage + 99) / 100))
+            }
 
             for usedMinutes in finalWindowStart...limit {
                 thresholds.insert(usedMinutes)
