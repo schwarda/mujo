@@ -11,11 +11,51 @@ enum OnboardingIntroductionVideoHoldMode: Equatable {
 enum OnboardingIntroductionVideoPolicy {
     static let frameRate = 30.0
     static let durationInFrames = 1514
+    static let videoSize = CGSize(width: 1320, height: 2868)
     static let textStartFrames = [
         0, 116, 186, 292, 349, 406, 463, 575,
         674, 748, 834, 946, 1032, 1184, 1290, 1392
     ]
     static let cherryBlossomProgress = 186.0 / 1514.0
+
+    static func fittedVideoRect(in bounds: CGRect) -> CGRect {
+        guard bounds.width > 0, bounds.height > 0 else { return .zero }
+        let scale = min(bounds.width / videoSize.width, bounds.height / videoSize.height)
+        let size = CGSize(width: videoSize.width * scale, height: videoSize.height * scale)
+        return CGRect(
+            x: bounds.midX - size.width / 2,
+            y: bounds.midY - size.height / 2,
+            width: size.width,
+            height: size.height
+        )
+    }
+
+    static func backgroundColor(
+        at time: TimeInterval,
+        colorScheme: ColorScheme
+    ) -> Color {
+        // Match the Remotion scene background while the video is letterboxed.
+        let base = colorScheme == .dark
+            ? SIMD3<Double>(31, 18, 28)
+            : SIMD3<Double>(255, 247, 250)
+        let white = SIMD3<Double>(repeating: 255)
+        let frame = max(0, time * frameRate)
+        let amount: Double
+        switch frame {
+        case ..<156: amount = 0
+        case ..<186: amount = smoothstep((frame - 156) / 30)
+        case ..<292: amount = 1
+        case ..<316: amount = 1 - smoothstep((frame - 292) / 24)
+        default: amount = 0
+        }
+        let rgb = base + (white - base) * amount
+        return Color(red: rgb.x / 255, green: rgb.y / 255, blue: rgb.z / 255)
+    }
+
+    private static func smoothstep(_ value: Double) -> Double {
+        let clamped = min(1, max(0, value))
+        return clamped * clamped * (3 - 2 * clamped)
+    }
 
     static func holdMode(atX x: CGFloat, width: CGFloat) -> OnboardingIntroductionVideoHoldMode {
         guard width.isFinite, width > 0, x.isFinite, (0...width).contains(x) else {
@@ -291,7 +331,10 @@ struct OnboardingIntroductionVideo: UIViewRepresentable {
 
     func makeUIView(context: Context) -> VideoSurface {
         let view = VideoSurface()
-        view.playerLayer.videoGravity = .resizeAspectFill
+        view.playerLayer.videoGravity = .resizeAspect
+        view.playerLayer.backgroundColor = UIColor.clear.cgColor
+        view.backgroundColor = .clear
+        view.isOpaque = false
         view.playerLayer.player = player
         view.isUserInteractionEnabled = true
         let tap = UITapGestureRecognizer(

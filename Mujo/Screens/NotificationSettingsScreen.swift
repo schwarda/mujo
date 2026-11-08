@@ -22,7 +22,7 @@ struct NotificationSettingsScreen: View {
 
     var body: some View {
         ZStack {
-            SakuraBackground().ignoresSafeArea()
+            OnboardingBackground()
 
             List {
                 if !authorization.hasLoadedSettings {
@@ -54,6 +54,7 @@ struct NotificationSettingsScreen: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(false)
         .toolbar(.visible, for: .navigationBar)
+        .background { PinkNavigationBackIndicator() }
         .task { await authorization.refreshStatus() }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
@@ -72,8 +73,7 @@ struct NotificationSettingsScreen: View {
         }
         .sheet(item: $editor) { item in
             CustomNotificationEditor(
-                percentage: item.percentage,
-                existingPercentages: preferences.customPercentages
+                percentage: item.percentage
             ) { percentage in
                 guard authorization.isAuthorized else { return }
                 var values = preferences.customPercentages
@@ -123,7 +123,7 @@ struct NotificationSettingsScreen: View {
         } header: {
             Text("Alerts")
         } footer: {
-            Text("Recommended alerts remind you during the day and as you approach your limit. Limit reached sends an alert when your time is up.")
+            Text("Recommended alerts remind you during the day and as you approach your limit.")
         }
         .disabled(!screenTime.canSaveNotificationPreferences)
     }
@@ -141,7 +141,7 @@ struct NotificationSettingsScreen: View {
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.footnote.weight(.semibold))
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(.tint)
                     }
                     .contentShape(Rectangle())
                 }
@@ -233,16 +233,10 @@ struct NotificationSettingsScreen: View {
 private struct CustomNotificationEditor: View {
     @Environment(\.dismiss) private var dismiss
     @State private var percentage: Int
-    let availablePercentages: [Int]
     let onSave: (Int) -> Void
 
-    init(percentage: Int?, existingPercentages: [Int], onSave: @escaping (Int) -> Void) {
-        let available = (1...99).filter {
-            !existingPercentages.contains($0) || $0 == percentage
-        }
-        availablePercentages = available
-        _percentage = State(initialValue: percentage
-            ?? (available.contains(80) ? 80 : available.first ?? 1))
+    init(percentage: Int?, onSave: @escaping (Int) -> Void) {
+        _percentage = State(initialValue: percentage ?? 50)
         self.onSave = onSave
     }
 
@@ -251,35 +245,46 @@ private struct CustomNotificationEditor: View {
             ZStack {
                 SakuraBackground().ignoresSafeArea()
 
-                Form {
-                    Section {
+                ScrollView {
+                    VStack(spacing: 32) {
+                        Text("Send an alert when you reach this percentage of your daily limit.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+
                         Picker("Daily limit used", selection: $percentage) {
-                            ForEach(availablePercentages, id: \.self) { value in
+                            ForEach(1...99, id: \.self) { value in
                                 Text("\(value)%").tag(value)
                             }
                         }
                         .pickerStyle(.wheel)
+                        .frame(height: 170)
                         .accessibilityIdentifier("custom-alert-percentage")
-                    } header: {
-                        Text("Daily limit used")
-                    } footer: {
-                        Text("Send an alert when you reach this percentage of your daily limit.")
                     }
+                    .padding(24)
+                    .frame(maxWidth: 420)
+                    .frame(maxWidth: .infinity)
                 }
-                .scrollContentBackground(.hidden)
             }
-            .tint(.accentColor)
+            .tint(MujoTheme.brandAccent)
             .navigationTitle("Custom alert")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", role: .cancel) { dismiss() }
+                    Button("Cancel", systemImage: "xmark", role: .cancel) {
+                        dismiss()
+                    }
+                    .labelStyle(.iconOnly)
+                    .accessibilityIdentifier("cancel-custom-alert")
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    Button("Save", systemImage: "checkmark") {
                         onSave(percentage)
                         dismiss()
                     }
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.glassProminent)
                     .accessibilityIdentifier("save-custom-alert")
                 }
             }

@@ -44,7 +44,7 @@ struct OnboardingInsightsAndLimitReportSection<ReportContent: View>: View {
                 .transition(motionStyle.transition)
             } else {
                 Group {
-                    Text("Before you\nchoose, know\nwhere you are")
+                    Text("Every change\nbegins somewhere")
                         .font(MujoTheme.boldFont(
                             size: 40,
                             relativeTo: .largeTitle

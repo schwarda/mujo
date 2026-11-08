@@ -8,6 +8,9 @@ struct OnboardingLimitSetupView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let onCompleted: (OnboardingMotionStyle) -> Void
     private let usesPreviewData: Bool
+#if DEBUG
+    private var reportPreviewConfiguration: OnboardingSuggestionConfiguration?
+#endif
 
     @State private var step: OnboardingStep = .insights
     @State private var motionStyle = OnboardingMotionStyle.standard
@@ -55,14 +58,17 @@ struct OnboardingLimitSetupView: View {
 #if DEBUG
     init(
         previewStep: OnboardingStep,
-        insightPage: OnboardingInsightPage = .day
+        insightPage: OnboardingInsightPage = .day,
+        reportPreviewConfiguration: OnboardingSuggestionConfiguration? = nil
     ) {
         _screenTime = ObservedObject(wrappedValue: ScreenTimeManager())
         _step = State(initialValue: previewStep)
         _insightPage = State(initialValue: insightPage)
         _selectedMinutes = State(
-            initialValue: OnboardingPreviewData.initialLimitMinutes
+            initialValue: reportPreviewConfiguration?.dailyLimitMinutes
+                ?? OnboardingPreviewData.initialLimitMinutes
         )
+        self.reportPreviewConfiguration = reportPreviewConfiguration
         usesPreviewData = true
         onCompleted = { _ in }
     }
@@ -483,7 +489,7 @@ struct OnboardingLimitSetupView: View {
                 Spacer()
 
                 Text(
-                    "Nothing gets locked. Mujø sends you a gentle reminder - then leaves the choice with you."
+                    "Nothing gets locked. Mujø sends you a gentle reminder and leaves the choice with you."
                 )
                 .font(MujoTheme.italicFont(
                     size: OnboardingTypography.descriptive,
@@ -745,7 +751,19 @@ struct OnboardingLimitSetupView: View {
         loadingMessage: String? = nil
     ) -> some View {
         if usesPreviewData {
+#if DEBUG
+            if let reportPreviewConfiguration {
+                OnboardingReportContentView(
+                    configuration: reportPreviewConfiguration,
+                    presentation: context == .mujoSavingsCarousel
+                        ? .savingsCarousel : .insightsCarousel
+                )
+            } else {
+                previewReport(context: context)
+            }
+#else
             previewReport(context: context)
+#endif
         } else {
             ZStack {
                 ScreenTimeReportLoadingView(

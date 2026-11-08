@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import UIKit
 
 struct AppInfoMetadata {
     let version: String?
@@ -56,7 +57,7 @@ struct AppInfoScreen: View {
 
     var body: some View {
         ZStack {
-            SakuraBackground().ignoresSafeArea()
+            OnboardingBackground()
 
             List {
                 Section {
@@ -71,12 +72,15 @@ struct AppInfoScreen: View {
                             Link(destination: destination) {
                                 LabeledContent {
                                     Image(systemName: "arrow.up.right")
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(Color.primary)
                                 } label: {
-                                    Label(
-                                        link.title,
-                                        systemImage: link.systemImage
-                                    )
+                                    Label {
+                                        Text(link.title)
+                                            .foregroundStyle(Color.primary)
+                                    } icon: {
+                                        Image(systemName: link.systemImage)
+                                            .foregroundStyle(.tint)
+                                    }
                                 }
                             }
                         }
@@ -89,17 +93,26 @@ struct AppInfoScreen: View {
                     DisclosureGroup(isExpanded: $isCreditsExpanded) {
                         VStack(alignment: .leading) {
                             Text("Sakura petal artwork")
+                                .foregroundStyle(Color.primary)
                             
                             if let sourceURL = URL(
                                 string: "https://www.magnific.com/free-vector/mobile_418125913.htm"
                             ) {
                                 Link("Image by user15245033 on Magnific", destination: sourceURL)
+                                    .foregroundStyle(Color.accentColor)
                                     .accessibilityIdentifier("artwork-source-link")
                             }
                         }
                     } label: {
-                        Label("Credits", systemImage: "person.2")
+                        Label {
+                            Text("Credits")
+                                .foregroundStyle(Color.primary)
+                        } icon: {
+                            Image(systemName: "person.2")
+                                .foregroundStyle(.tint)
+                        }
                     }
+                    .tint(.accentColor)
                     .accessibilityIdentifier("credits-disclosure")
                 } footer: {
                     Text(metadata.copyright)
@@ -113,6 +126,7 @@ struct AppInfoScreen: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(false)
         .toolbar(.visible, for: .navigationBar)
+        .background { PinkNavigationBackIndicator() }
     }
 
     private var appIdentity: some View {
@@ -133,6 +147,86 @@ struct AppInfoScreen: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
         .accessibilityElement(children: .combine)
+    }
+}
+
+// Style the native back indicator on this destination's navigation item,
+// preserving the system back button, its menu and interactive pop gesture.
+struct PinkNavigationBackIndicator: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> Controller { Controller() }
+
+    func updateUIViewController(_ controller: Controller, context: Context) {
+        guard controller.viewIfLoaded?.window != nil else { return }
+        controller.applyAppearance()
+    }
+
+    final class Controller: UIViewController {
+        private var isVisible = false
+
+        override func loadView() {
+            view = UIView()
+            view.isUserInteractionEnabled = false
+            view.backgroundColor = .clear
+        }
+
+        override func viewWillAppear(_ animated: Bool) {
+            super.viewWillAppear(animated)
+            isVisible = true
+            applyAppearance()
+        }
+
+        override func viewDidAppear(_ animated: Bool) {
+            super.viewDidAppear(animated)
+            applyAppearance()
+        }
+
+        override func viewWillDisappear(_ animated: Bool) {
+            isVisible = false
+            super.viewWillDisappear(animated)
+        }
+
+        func applyAppearance() {
+            guard isVisible, let navigationController,
+                  let item = navigationController.topViewController?.navigationItem
+            else { return }
+            let bar = navigationController.navigationBar
+            let color = UIColor(Color.accentColor)
+
+            // The system back button belongs to the preceding navigation item.
+            // Tint that item as well as the indicator appearance on the destination.
+            if let previous = navigationController.viewControllers.dropLast().last?.navigationItem {
+                if previous.backBarButtonItem == nil {
+                    previous.backBarButtonItem = UIBarButtonItem(
+                        title: previous.backButtonTitle ?? previous.title,
+                        style: .plain,
+                        target: nil,
+                        action: nil
+                    )
+                }
+                previous.backBarButtonItem?.tintColor = color
+            }
+
+            func tinted(_ source: UINavigationBarAppearance) -> UINavigationBarAppearance {
+                let appearance = source.copy() as! UINavigationBarAppearance
+                appearance.setBackIndicatorImage(
+                    source.backIndicatorImage.withTintColor(color, renderingMode: .alwaysOriginal),
+                    transitionMaskImage: source.backIndicatorTransitionMaskImage
+                )
+                return appearance
+            }
+
+            item.standardAppearance = tinted(item.standardAppearance ?? bar.standardAppearance)
+            item.scrollEdgeAppearance = tinted(
+                item.scrollEdgeAppearance ?? bar.scrollEdgeAppearance ?? bar.standardAppearance
+            )
+            item.compactAppearance = tinted(
+                item.compactAppearance ?? bar.compactAppearance ?? bar.standardAppearance
+            )
+            item.compactScrollEdgeAppearance = tinted(
+                item.compactScrollEdgeAppearance ?? bar.compactScrollEdgeAppearance
+                    ?? bar.standardAppearance
+            )
+        }
     }
 }
 

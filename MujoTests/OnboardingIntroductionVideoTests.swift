@@ -21,6 +21,10 @@ struct OnboardingIntroductionVideoTests {
             #expect(abs(duration - (1514.0 / 30.0)) < 0.02)
             #expect(videoTracks.count == 1)
             #expect(audioTracks.isEmpty)
+            if let videoTrack = videoTracks.first {
+                let size = try await videoTrack.load(.naturalSize)
+                #expect(size == OnboardingIntroductionVideoPolicy.videoSize)
+            }
         }
     }
 
@@ -58,6 +62,20 @@ struct OnboardingIntroductionVideoTests {
             OnboardingIntroductionVideoPolicy.finalFrameTime(duration: 10)
                 == 10 - (1.0 / 30.0)
         )
+    }
+
+    @Test("Video fits different screen shapes without stretching or cropping")
+    func fitsVideoWithinScreen() {
+        let largePhone = CGRect(x: 0, y: 0, width: 440, height: 956)
+        let wideScreen = CGRect(x: 0, y: 0, width: 900, height: 700)
+        for bounds in [largePhone, wideScreen] {
+            let rect = OnboardingIntroductionVideoPolicy.fittedVideoRect(in: bounds)
+            #expect(rect.width <= bounds.width + 0.001)
+            #expect(rect.height <= bounds.height + 0.001)
+            #expect(abs(rect.width / rect.height - 1320.0 / 2868.0) < 0.001)
+            #expect(abs(rect.midX - bounds.midX) < 0.001)
+            #expect(abs(rect.midY - bounds.midY) < 0.001)
+        }
     }
 
     @Test("A tap seeks to fully visible next copy, then advances one cue at a time")

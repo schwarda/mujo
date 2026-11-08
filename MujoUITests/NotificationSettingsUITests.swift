@@ -32,14 +32,22 @@ final class NotificationSettingsUITests: XCTestCase {
         add.tap()
         let save = app.buttons["save-custom-alert"]
         XCTAssertTrue(save.waitForExistence(timeout: 5))
+        XCTAssertEqual(app.pickerWheels.firstMatch.value as? String, "50%")
         capture(app, name: "Custom alert editor")
         save.tap()
-        let first = app.buttons["custom-alert-80"]
+        let first = app.buttons["custom-alert-50"]
         XCTAssertTrue(first.waitForExistence(timeout: 5))
         add.tap()
         XCTAssertTrue(save.waitForExistence(timeout: 5))
+        XCTAssertEqual(app.pickerWheels.firstMatch.value as? String, "50%")
         save.tap()
-        let second = app.buttons["custom-alert-1"]
+        XCTAssertTrue(first.waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons.matching(identifier: "custom-alert-50").count, 1)
+        add.tap()
+        XCTAssertTrue(save.waitForExistence(timeout: 5))
+        app.pickerWheels.firstMatch.adjust(toPickerWheelValue: "51%")
+        save.tap()
+        let second = app.buttons["custom-alert-51"]
         XCTAssertTrue(second.waitForExistence(timeout: 5))
         second.tap()
         XCTAssertTrue(save.waitForExistence(timeout: 5))
