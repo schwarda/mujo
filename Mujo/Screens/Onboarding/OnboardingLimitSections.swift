@@ -77,8 +77,9 @@ struct OnboardingInsightsAndLimitReportSection<ReportContent: View>: View {
 struct OnboardingLimitSelectionSection: View {
     @State private var selectedMinutes: Int
     @State private var isSaving = false
+    @State private var saveError: String?
 
-    let onSave: (Int) async -> Bool
+    let onSave: (Int) async -> String?
     let hidesSelectedTime: Bool
     let onSelectedTimeFrameChange: (CGRect) -> Void
 
@@ -86,7 +87,7 @@ struct OnboardingLimitSelectionSection: View {
         initialMinutes: Int,
         hidesSelectedTime: Bool,
         onSelectedTimeFrameChange: @escaping (CGRect) -> Void,
-        onSave: @escaping (Int) async -> Bool
+        onSave: @escaping (Int) async -> String?
     ) {
         _selectedMinutes = State(initialValue: initialMinutes)
         self.hidesSelectedTime = hidesSelectedTime
@@ -105,6 +106,7 @@ struct OnboardingLimitSelectionSection: View {
                 .foregroundStyle(.tint)
                 .contentTransition(.numericText())
                 .opacity(hidesSelectedTime ? 0 : 1)
+                .accessibilityHidden(true)
                 .onGeometryChange(
                     for: CGRect.self,
                     of: { proxy in
@@ -122,6 +124,7 @@ struct OnboardingLimitSelectionSection: View {
                 ))
                 .foregroundStyle(.tint)
                 .padding(.top, -6)
+                .accessibilityHidden(true)
 
             TimeDial(
                 minutes: $selectedMinutes,
@@ -140,12 +143,23 @@ struct OnboardingLimitSelectionSection: View {
                 action: saveLimit
             ) {
                 if isSaving {
-                    ProgressView()
+                    ProgressView("Saving daily limit")
+                        .labelStyle(.iconOnly)
                 } else {
                     Text("Set limit")
                 }
             }
             .padding(.horizontal, 34)
+            .alert("Couldn’t set daily limit", isPresented: Binding(
+                get: { saveError != nil },
+                set: { if !$0 { saveError = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                if let saveError {
+                    Text(saveError)
+                }
+            }
 
             Text("You can always change your limit later.")
                 .font(MujoTheme.italicFont(
@@ -172,9 +186,9 @@ struct OnboardingLimitSelectionSection: View {
         isSaving = true
         let minutes = selectedMinutes
         Task {
-            if !(await onSave(minutes)) {
-                isSaving = false
-            }
+            guard let error = await onSave(minutes) else { return }
+            isSaving = false
+            saveError = error
         }
     }
 }

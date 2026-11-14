@@ -48,6 +48,7 @@ struct AppInfoScreen: View {
         ),
     ]
 
+    @Environment(\.colorScheme) private var colorScheme
     @State private var isCreditsExpanded = false
     private let metadata: AppInfoMetadata
 
@@ -137,7 +138,7 @@ struct AppInfoScreen: View {
 
             Text("Mujø")
                 .font(.largeTitle.bold())
-                .foregroundStyle(.tint)
+                .foregroundStyle(appTitleColor)
 
             Text(metadata.versionAndBuild)
                 .font(.subheadline)
@@ -147,6 +148,13 @@ struct AppInfoScreen: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
         .accessibilityElement(children: .combine)
+    }
+
+    private var appTitleColor: Color {
+        // Match the translucent logo as it appears on the dark background.
+        colorScheme == .dark
+            ? Color(red: 0.82, green: 0.65, blue: 0.70)
+            : Color(red: 0.98, green: 0.78, blue: 0.84)
     }
 }
 

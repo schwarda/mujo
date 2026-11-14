@@ -12,21 +12,25 @@ struct DigitalWidgetEntryView: View {
     @Environment(\.widgetFamily) private var widgetFamily
 
     let entry: CountdownProvider.Entry
+    let metric: LockScreenTimeMetric
 
     @ViewBuilder
     var body: some View {
         Group {
             switch widgetFamily {
-            case .systemSmall:
-                DigitalHomeScreenView(entry: entry)
             case .accessoryRectangular:
-                LockScreenRectangularView(entry: entry)
+                LockScreenRectangularView(entry: entry, metric: metric)
             case .accessoryCircular:
-                LockScreenCircularView(entry: entry)
+                LockScreenCircularView(entry: entry, metric: metric)
             case .accessoryInline:
-                LockScreenInlineView(entry: entry)
+                LockScreenInlineView(entry: entry, metric: metric)
             default:
-                DigitalHomeScreenView(entry: entry)
+                switch metric {
+                case .remaining:
+                    DigitalHomeScreenView(entry: entry)
+                case .used:
+                    UsedDigitalHomeScreenView(entry: entry)
+                }
             }
         }
         .unredacted()
@@ -39,9 +43,9 @@ struct DigitalWidget: Widget {
             kind: AppConfiguration.widgetKind,
             provider: CountdownProvider()
         ) { entry in
-            DigitalWidgetEntryView(entry: entry)
+            DigitalWidgetEntryView(entry: entry, metric: .remaining)
         }
-        .configurationDisplayName("Mujø Time")
+        .configurationDisplayName("Mujø Remaining Time")
         .description("See how much of today's chosen time remains.")
         .supportedFamilies([
             .systemSmall,
@@ -58,12 +62,16 @@ struct UsedDigitalWidget: Widget {
             kind: AppConfiguration.usedDigitalWidgetKind,
             provider: CountdownProvider()
         ) { entry in
-            UsedDigitalHomeScreenView(entry: entry)
-                .unredacted()
+            DigitalWidgetEntryView(entry: entry, metric: .used)
         }
         .configurationDisplayName("Mujø Used Time")
         .description("See how much of today's chosen time you have used.")
-        .supportedFamilies([.systemSmall])
+        .supportedFamilies([
+            .systemSmall,
+            .accessoryRectangular,
+            .accessoryCircular,
+            .accessoryInline
+        ])
     }
 }
 

@@ -36,22 +36,20 @@ struct OnboardingLimitSetupView: View {
     @State private var isShowingNotificationDenialAlert = false
     @State private var showsLockScreenMockup = false
     @State private var widgetHelp: OnboardingWidgetHelp?
-    @StateObject private var notificationAuthorization = NotificationAuthorization()
     @AppStorage("wasNotificationPromptShown")
     private var wasNotificationPromptShown = false
 
     init(
         screenTime: ScreenTimeManager,
-        usesPreviewData: Bool = false,
         onCompleted: @escaping (OnboardingMotionStyle) -> Void
     ) {
         _screenTime = ObservedObject(wrappedValue: screenTime)
         _selectedMinutes = State(
-            initialValue: usesPreviewData
+            initialValue: screenTime.usesSimulatedData
                 ? OnboardingPreviewData.initialLimitMinutes
                 : 0
         )
-        self.usesPreviewData = usesPreviewData
+        usesPreviewData = screenTime.usesSimulatedData
         self.onCompleted = onCompleted
     }
 
@@ -699,7 +697,7 @@ struct OnboardingLimitSetupView: View {
     private func enableNotifications() {
         guard !isRequestingNotifications else { return }
 
-        if usesPreviewData {
+        if usesPreviewData, !screenTime.usesSimulatedData {
             finishNotificationStep()
             return
         }
@@ -707,7 +705,7 @@ struct OnboardingLimitSetupView: View {
         isRequestingNotifications = true
 
         Task {
-            let outcome = await notificationAuthorization
+            let outcome = await screenTime.notificationAuthorization
                 .requestAuthorization()
             isRequestingNotifications = false
             switch outcome {
@@ -738,7 +736,7 @@ struct OnboardingLimitSetupView: View {
     }
 
     private func finishNotificationStep() {
-        if !usesPreviewData {
+        if !usesPreviewData || screenTime.usesSimulatedData {
             wasNotificationPromptShown = true
         }
         advance(to: .lockScreenWidget)
@@ -752,7 +750,15 @@ struct OnboardingLimitSetupView: View {
     ) -> some View {
         if usesPreviewData {
 #if DEBUG
-            if let reportPreviewConfiguration {
+            if screenTime.usesSimulatedData {
+                OnboardingReportContentView(
+                    configuration: WorkflowPreviewData.report(
+                        limitMinutes: selectedMinutes
+                    ),
+                    presentation: context == .mujoSavingsCarousel
+                        ? .savingsCarousel : .insightsCarousel
+                )
+            } else if let reportPreviewConfiguration {
                 OnboardingReportContentView(
                     configuration: reportPreviewConfiguration,
                     presentation: context == .mujoSavingsCarousel
@@ -1131,24 +1137,25 @@ struct OnboardingLimitSetupView: View {
         }
     }
 
-    private func saveLimit(minutes: Int) async -> Bool {
-        guard minutes > 0 else { return false }
+    private func saveLimit(minutes: Int) async -> String? {
+        guard minutes > 0 else { return String(localized: "Choose a daily limit and try again.") }
 
-        if usesPreviewData {
+        if usesPreviewData, !screenTime.usesSimulatedData {
             selectedMinutes = minutes
             advance(to: showsHistoryReports ? .savings : .limitReached)
-            return true
+            return nil
         }
 
         await screenTime.setDailyLimit(minutes: minutes)
 
-        guard screenTime.isAuthorized,
-              screenTime.errorMessage == nil
-        else { return false }
+        if let error = screenTime.errorMessage { return error }
+        guard screenTime.isAuthorized else {
+            return String(localized: "Allow access to Screen Time, then try again.")
+        }
 
         selectedMinutes = minutes
         advance(to: showsHistoryReports ? .savings : .limitReached)
-        return true
+        return nil
     }
 
     private func advance(to destination: OnboardingStep) {

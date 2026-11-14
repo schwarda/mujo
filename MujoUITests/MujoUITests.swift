@@ -23,6 +23,52 @@ final class MujoUITests: XCTestCase {
     }
 
     @MainActor
+    func testWorkflowPreviewRunsFromIntroductionToSettings() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--preview-workflow"]
+        app.launch()
+
+        func tap(_ label: String, timeout: TimeInterval = 10) {
+            let button = app.buttons[label]
+            XCTAssertTrue(button.waitForExistence(timeout: timeout))
+            button.tap()
+        }
+
+        tap("Continue", timeout: 70)
+        tap("Allow Access")
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label BEGINSWITH %@", "Every change")).firstMatch.waitForExistence(timeout: 5))
+        tap("Continue")
+        tap("Set limit")
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label BEGINSWITH %@", "Your new limit")).firstMatch.waitForExistence(timeout: 5))
+        tap("Continue")
+        tap("Got it")
+        tap("Continue")
+        tap("Got it")
+        tap("Got it")
+
+        tap("Change daily limit ›")
+        XCTAssertTrue(app.staticTexts["daily-limit-heading"].waitForExistence(timeout: 5))
+        tap("Set limit")
+        XCTAssertTrue(app.staticTexts["daily-limit-heading"].waitForNonExistence(timeout: 5))
+
+        tap("Menu")
+        tap("Notifications")
+        let recommended = app.switches["notifications-recommended"]
+        XCTAssertTrue(recommended.waitForExistence(timeout: 5))
+        recommended.tap()
+        XCTAssertEqual(recommended.value as? String, "0")
+        tap("Back")
+        tap("Menu")
+        tap("Notifications")
+        XCTAssertTrue(recommended.waitForExistence(timeout: 5))
+        XCTAssertEqual(recommended.value as? String, "0")
+        tap("Back")
+        tap("Menu")
+        tap("App Info")
+        XCTAssertTrue(app.staticTexts["Privacy Policy"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
     func testLimitSheetCanDismissAfterCancelledDrag() {
         let app = XCUIApplication()
         app.launchArguments.append("--ui-test-home")

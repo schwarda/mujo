@@ -153,7 +153,7 @@ struct ContentView: View {
                 onCherryBlossomsStarted: {
                     petalsStartedDuringOnboarding = true
                 },
-                onContinue: requestScreenTimeAuthorization
+                onContinue: continueFromIntroduction
             )
         }
     }
@@ -246,6 +246,14 @@ struct ContentView: View {
             await screenTime.restoreMonitoringIfPossible()
         }
         await screenTime.recoverAfterAppUpdateIfNeeded()
+    }
+
+    private func continueFromIntroduction() {
+        if screenTime.usesSimulatedData {
+            hasReachedScreenTimePermission = true
+        } else {
+            requestScreenTimeAuthorization()
+        }
     }
 
     private func requestScreenTimeAuthorization() {

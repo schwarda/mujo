@@ -8,6 +8,20 @@
 import Foundation
 
 extension TimeInterval {
+    nonisolated var accessibilityDuration: String {
+        let totalMinutes = max(0, Int(self / 60))
+        let formatter = DateComponentsFormatter()
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = Locale(identifier: Bundle.main.preferredLocalizations.first
+            ?? Bundle.main.developmentLocalization ?? "en")
+        formatter.calendar = calendar
+        formatter.allowedUnits = [.hour, .minute]
+        formatter.unitsStyle = .full
+        formatter.zeroFormattingBehavior = .dropAll
+        return formatter.string(from: TimeInterval(totalMinutes) * 60)
+            ?? String(localized: "0 minutes")
+    }
+
     func formatted() -> String {
         let totalMinutes = max(0, Int(self) / 60)
 

@@ -73,6 +73,8 @@ struct DigitalHomeScreenView: View {
                     value: entry.remainingTime,
                     timeSize: 68
                 )
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(entry.remainingTime.accessibilityDuration) remaining")
             } else {
                 HomeScreenUnavailableView(entry: entry)
             }
@@ -94,7 +96,7 @@ struct UsedDigitalHomeScreenView: View {
                     timeSize: 68
                 )
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Used: \(entry.usedTime.formatted())")
+                .accessibilityLabel("\(entry.usedTime.accessibilityDuration) used")
             } else {
                 HomeScreenUnavailableView(entry: entry)
             }
@@ -125,8 +127,7 @@ struct DigitalOverviewHomeScreenView: View {
                 }
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(
-                    "Remaining: \(entry.remainingTime.formatted()), "
-                        + "used: \(entry.usedTime.formatted())"
+                    "\(entry.remainingTime.accessibilityDuration) remaining, \(entry.usedTime.accessibilityDuration) used"
                 )
             } else {
                 HomeScreenUnavailableView(entry: entry)
@@ -202,7 +203,7 @@ struct GradientHomeScreenView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Remaining: \(entry.remainingTime.formatted())")
+            .accessibilityLabel("\(entry.remainingTime.accessibilityDuration) remaining")
         } else {
             HomeScreenUnavailableView(entry: entry)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -226,7 +227,7 @@ struct GradientDigitalHomeScreenView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Remaining: \(entry.remainingTime.formatted())")
+            .accessibilityLabel("\(entry.remainingTime.accessibilityDuration) remaining")
         } else {
             HomeScreenUnavailableView(entry: entry)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -234,12 +235,42 @@ struct GradientDigitalHomeScreenView: View {
     }
 }
 
+enum LockScreenTimeMetric {
+    case remaining
+    case used
+
+    func duration(in entry: CountdownEntry) -> TimeInterval {
+        switch self {
+        case .remaining: entry.remainingTime
+        case .used: entry.usedTime
+        }
+    }
+
+    func displayTime(in entry: CountdownEntry) -> String {
+        let time = duration(in: entry).formatted()
+        return self == .used && time == "Ø" ? "0:00" : time
+    }
+
+    func accessibilityLabel(for entry: CountdownEntry) -> Text {
+        guard entry.isEstimateAvailable else {
+            return Text(entry.unavailableMessage)
+        }
+
+        let time = duration(in: entry).accessibilityDuration
+        switch self {
+        case .remaining: return Text("\(time) remaining")
+        case .used: return Text("\(time) used")
+        }
+    }
+}
+
 struct LockScreenRectangularView: View {
     let entry: CountdownProvider.Entry
+    let metric: LockScreenTimeMetric
 
     var body: some View {
         VStack(spacing: -2) {
-            Text("Mujø")
+            Text(metric == .used ? "Used Time" : "Remaining")
                 .font(.system(
                     size: 15,
                     weight: .semibold,
@@ -248,7 +279,7 @@ struct LockScreenRectangularView: View {
                 .foregroundStyle(.secondary)
 
             if entry.isEstimateAvailable {
-                Text(entry.remainingTime.formatted())
+                Text(metric.displayTime(in: entry))
                     .font(.system(
                         size: 25,
                         weight: .semibold,
@@ -257,6 +288,7 @@ struct LockScreenRectangularView: View {
                     .minimumScaleFactor(0.8)
                     .lineLimit(1)
                     .monospacedDigit()
+                    .accessibilityLabel(metric.accessibilityLabel(for: entry))
             } else {
                 HStack(alignment: .center, spacing: 4) {
                     Image(systemName: entry.unavailableSystemImage)
@@ -304,30 +336,33 @@ private struct LockScreenProgressRing: View {
 
 struct LockScreenCircularView: View {
     let entry: CountdownProvider.Entry
+    let metric: LockScreenTimeMetric
 
-    private var remainingFraction: Double {
-        min(1, max(0, entry.remainingTime / max(1, entry.dailyLimit)))
+    private var fraction: Double {
+        min(1, max(0, metric.duration(in: entry) / max(1, entry.dailyLimit)))
     }
 
     var body: some View {
         ZStack {
             if entry.isEstimateAvailable {
-                LockScreenProgressRing(fraction: remainingFraction)
+                LockScreenProgressRing(fraction: fraction)
 
-                Text(entry.remainingTime.formatted())
+                Text(metric.displayTime(in: entry))
                     .font(.system(
-                        size: entry.isExhausted ? 24 : 16,
+                        size: metric == .remaining && entry.isExhausted ? 24 : 16,
                         weight: .semibold,
                         design: .rounded
                     ))
                     .minimumScaleFactor(0.6)
                     .lineLimit(1)
                     .monospacedDigit()
+                    .accessibilityLabel(metric.accessibilityLabel(for: entry))
             } else if entry.isAdjustingTimeZone {
                 LockScreenProgressRing(fraction: 1)
 
                 Image(systemName: "globe.europe.africa")
                     .font(.system(size: 23, weight: .semibold))
+                    .accessibilityLabel(entry.unavailableMessage)
             } else {
                 LockScreenProgressRing(fraction: 1)
 
@@ -339,6 +374,7 @@ struct LockScreenCircularView: View {
                     ))
                     .fontWeight(.black)
                     .foregroundStyle(.secondary)
+                    .accessibilityLabel(entry.unavailableMessage)
             }
         }
         .containerBackground(.clear, for: .widget)
@@ -347,13 +383,16 @@ struct LockScreenCircularView: View {
 
 struct LockScreenInlineView: View {
     let entry: CountdownProvider.Entry
+    let metric: LockScreenTimeMetric
 
     var body: some View {
         Group {
-            if entry.isExhausted {
-                Text("·  Ø remaining")
-            } else if entry.isEstimateAvailable {
-                Text("·  \(entry.remainingTime.formatted()) remaining")
+            if entry.isEstimateAvailable {
+                let time = metric.displayTime(in: entry)
+                switch metric {
+                case .remaining: Text("·  \(time) remaining")
+                case .used: Text("·  \(time) used")
+                }
             } else if entry.isAdjustingTimeZone {
                 Label(
                     entry.unavailableMessage,
@@ -363,6 +402,7 @@ struct LockScreenInlineView: View {
                 Text("·  \(entry.unavailableMessage)")
             }
         }
+        .accessibilityLabel(metric.accessibilityLabel(for: entry))
         .font(MujoTheme.mediumFont(
             size: 12,
             relativeTo: .caption

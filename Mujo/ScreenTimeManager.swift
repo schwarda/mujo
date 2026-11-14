@@ -22,34 +22,51 @@ private let updateRecoveryLogger = Logger(
 
 @MainActor
 final class ScreenTimeManager: ObservableObject {
-    @Published private(set) var authorizationStatus = AuthorizationCenter.shared.authorizationStatus
+    @Published private(set) var authorizationStatus: AuthorizationStatus = .notDetermined
     @Published private(set) var errorMessage: String?
     @Published private(set) var dailyLimitMinutes: Int
     @Published private(set) var usageSnapshot: UsageSnapshot
 
     private let limitStore: DailyLimitStore
-    private let monitoring: ScreenTimeMonitoring
+    private lazy var monitoring = ScreenTimeMonitoring(
+        suiteName: AppConfiguration.appGroupIdentifier
+    )
     private let usageSnapshotLoader: UsageSnapshotLoader
-    private let appUpdateRecovery: AppUpdateRecovery
+    private lazy var appUpdateRecovery = AppUpdateRecovery()
     private var authorizationStatusSubscription: AnyCancellable?
     private var isRecoveringAppUpdate = false
     private var badgeUpdateTracker = RemainingTimeBadgeUpdateTracker()
     private let sharedDefaults: UserDefaults?
 
-    init(defaults: UserDefaults? = nil) {
+    let usesSimulatedData: Bool
+    lazy var notificationAuthorization = NotificationAuthorization(
+        simulatesPermission: usesSimulatedData
+    )
+
+    convenience init(defaults: UserDefaults? = nil) {
+        self.init(defaults: defaults, usesSimulatedData: false)
+    }
+
+#if DEBUG
+    convenience init(workflowDefaults: UserDefaults) {
+        self.init(defaults: workflowDefaults, usesSimulatedData: true)
+    }
+#endif
+
+    private init(defaults: UserDefaults?, usesSimulatedData: Bool) {
+        self.usesSimulatedData = usesSimulatedData
         let sharedDefaults = defaults ?? UserDefaults(
             suiteName: AppConfiguration.appGroupIdentifier
         )
         self.sharedDefaults = sharedDefaults
         let limitStore = DailyLimitStore(sharedDefaults: sharedDefaults)
         self.limitStore = limitStore
-        appUpdateRecovery = AppUpdateRecovery()
         usageSnapshotLoader = UsageSnapshotLoader(defaults: sharedDefaults)
-        monitoring = ScreenTimeMonitoring(
-            suiteName: AppConfiguration.appGroupIdentifier
-        )
         dailyLimitMinutes = Int(limitStore.currentLimit / 60)
         usageSnapshot = usageSnapshotLoader.load()
+        guard !usesSimulatedData else { return }
+
+        authorizationStatus = AuthorizationCenter.shared.authorizationStatus
         if limitStore.migratedLimit != nil {
             WidgetCenter.shared.reloadAllTimelines()
         }
@@ -76,12 +93,13 @@ final class ScreenTimeManager: ObservableObject {
 
     @discardableResult
     func refreshAuthorizationStatus() -> Bool {
+        guard !usesSimulatedData else { return isAuthorized }
         authorizationStatus = AuthorizationCenter.shared.authorizationStatus
         return isAuthorized
     }
 
     func restoreMonitoringIfPossible() async {
-        guard refreshAuthorizationStatus() else { return }
+        guard !usesSimulatedData, refreshAuthorizationStatus() else { return }
 
         do {
             try await monitoring.restore(limit: limitStore.currentLimit)
@@ -96,6 +114,10 @@ final class ScreenTimeManager: ObservableObject {
 
     func requestAuthorization() async {
         errorMessage = nil
+        if usesSimulatedData {
+            authorizationStatus = .approved
+            return
+        }
 
         do {
             try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
@@ -136,7 +158,8 @@ final class ScreenTimeManager: ObservableObject {
 #endif
 
     func recoverAfterAppUpdateIfNeeded() async {
-        guard appUpdateRecovery.isRequired,
+        guard !usesSimulatedData,
+              appUpdateRecovery.isRequired,
               !isRecoveringAppUpdate
         else { return }
 
@@ -168,6 +191,13 @@ final class ScreenTimeManager: ObservableObject {
 
     func refreshUsageSnapshot() {
         let refreshedSnapshot = usageSnapshotLoader.load()
+        if usesSimulatedData {
+            if refreshedSnapshot != usageSnapshot {
+                usageSnapshot = refreshedSnapshot
+            }
+            return
+        }
+
         let badgeCount = RemainingTimeBadge.badgeCount(
             from: refreshedSnapshot,
             preferences: NotificationPreferences.load(from: sharedDefaults)
@@ -195,6 +225,7 @@ final class ScreenTimeManager: ObservableObject {
     }
 
     func requestWidgetReload() {
+        guard !usesSimulatedData else { return }
         WidgetCenter.shared.reloadAllTimelines()
 #if DEBUG
         sharedDefaults?.set(
@@ -210,6 +241,7 @@ final class ScreenTimeManager: ObservableObject {
     }
 
     func refreshNotificationPreferences() async {
+        guard !usesSimulatedData else { return }
         refreshUsageSnapshot()
         guard refreshAuthorizationStatus() else { return }
         do {
@@ -226,6 +258,7 @@ final class ScreenTimeManager: ObservableObject {
     var canSaveNotificationPreferences: Bool { sharedDefaults != nil }
 
     func refreshNotificationBadge() {
+        guard !usesSimulatedData else { return }
         let count = RemainingTimeBadge.badgeCount(
             from: usageSnapshotLoader.load(),
             preferences: notificationPreferences
@@ -243,7 +276,7 @@ final class ScreenTimeManager: ObservableObject {
     func setDailyLimit(minutes: Int) async {
         errorMessage = nil
 
-        if !isAuthorized {
+        if !isAuthorized, !usesSimulatedData {
             do {
                 try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
                 authorizationStatus = AuthorizationCenter.shared.authorizationStatus
@@ -256,6 +289,11 @@ final class ScreenTimeManager: ObservableObject {
 
         guard isAuthorized else { return }
 
+        guard sharedDefaults != nil else {
+            errorMessage = String(localized: "Screen Time storage is unavailable. Open Mujø again and try again.")
+            return
+        }
+
         let normalizedMinutes = AppConfiguration.DailyLimit
             .normalizedMinutes(minutes)
         let safeLimit = TimeInterval(normalizedMinutes * 60)
@@ -263,8 +301,12 @@ final class ScreenTimeManager: ObservableObject {
         if didChangeLimit {
             dailyLimitMinutes = normalizedMinutes
             refreshUsageSnapshot()
-            WidgetCenter.shared.reloadAllTimelines()
+            if !usesSimulatedData {
+                WidgetCenter.shared.reloadAllTimelines()
+            }
         }
+
+        guard !usesSimulatedData else { return }
 
         do {
             try await monitoring.updateLimit(to: safeLimit)
@@ -274,6 +316,9 @@ final class ScreenTimeManager: ObservableObject {
             )
         } catch {
             handleMonitoringError(error)
+            if errorMessage == nil {
+                errorMessage = String(localized: "Screen Time monitoring is unavailable. Open Mujø again and try again.")
+            }
         }
     }
 

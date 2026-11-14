@@ -72,6 +72,25 @@ enum OnboardingWidgetHelp: String, Identifiable {
             ]
         }
     }
+
+    var voiceOverSteps: [LocalizedStringKey] {
+        switch self {
+        case .lockScreen:
+            [
+                "Wake and unlock your iPhone while staying on the Lock Screen. Select the time or date, then triple-tap with one finger.",
+                "Select Customize and double-tap. If asked which screen to customize, select Lock Screen and double-tap.",
+                "Select the widget area near the clock and double-tap. In the widget list, select Mujø and double-tap, then select the widget and double-tap to add it.",
+                "Close the widget picker. Select Done and double-tap to save."
+            ]
+        case .homeScreen:
+            [
+                "On the Home Screen, select any app. With the rotor set to Actions, swipe down until you hear Edit Mode, then double-tap.",
+                "Select Edit and double-tap, then select Add Widget and double-tap.",
+                "Find Mujø in the widget list and double-tap. Select the widget you want, then select Add Widget and double-tap.",
+                "Select Done and double-tap to finish."
+            ]
+        }
+    }
 }
 
 #if DEBUG
@@ -108,6 +127,7 @@ private struct OnboardingWidgetHelpSheetPreview: View {
 struct OnboardingWidgetHelpSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
     @StateObject private var playback = OnboardingWidgetTutorialPlayback()
 
     let help: OnboardingWidgetHelp
@@ -117,30 +137,10 @@ struct OnboardingWidgetHelpSheet: View {
             SakuraBackground()
                 .ignoresSafeArea()
 
-            GeometryReader { geometry in
-                ScrollView {
-                    OnboardingWidgetTutorialLayout(
-                        aspectRatio: help.videoAspectRatio,
-                        availableHeight: max(0, geometry.size.height - 52)
-                    ) {
-                        Text(help.title)
-                            .font(MujoTheme.boldFont(
-                                size: 30,
-                                relativeTo: .largeTitle
-                            ))
-                            .foregroundStyle(.tint)
-                            .multilineTextAlignment(.center)
-
-                        tutorialVideo
-                            .accessibilityHidden(true)
-
-                        currentStep
-                    }
-                    .padding(.horizontal, 34)
-                    .padding(.top, 32)
-                    .padding(.bottom, 20)
-                    .frame(maxWidth: .infinity)
-                }
+            if voiceOverEnabled {
+                accessibleInstructions
+            } else {
+                videoInstructions
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -151,17 +151,64 @@ struct OnboardingWidgetHelpSheet: View {
             .padding(.top, 12)
             .padding(.bottom, 24)
         }
-        .onAppear {
-            playback.start(resourceName: help.videoResourceName)
-        }
-        .onChange(of: help) { _, newHelp in
-            playback.start(resourceName: newHelp.videoResourceName)
+        .task(id: voiceOverEnabled ? nil : help.videoResourceName) {
+            if voiceOverEnabled {
+                playback.stop()
+            } else {
+                playback.start(resourceName: help.videoResourceName)
+                playback.setActive(scenePhase == .active)
+            }
         }
         .onDisappear {
             playback.stop()
         }
         .onChange(of: scenePhase) { _, phase in
             playback.setActive(phase == .active)
+        }
+    }
+
+    private var videoInstructions: some View {
+        GeometryReader { geometry in
+            ScrollView {
+                OnboardingWidgetTutorialLayout(
+                    aspectRatio: help.videoAspectRatio,
+                    availableHeight: max(0, geometry.size.height - 52)
+                ) {
+                    Text(help.title)
+                        .font(MujoTheme.boldFont(
+                            size: 30,
+                            relativeTo: .largeTitle
+                        ))
+                        .foregroundStyle(.tint)
+                        .multilineTextAlignment(.center)
+
+                    tutorialVideo
+                        .accessibilityHidden(true)
+
+                    currentStep
+                }
+                .padding(.horizontal, 34)
+                .padding(.top, 32)
+                .padding(.bottom, 20)
+                .frame(maxWidth: .infinity)
+            }
+        }
+    }
+
+    private var accessibleInstructions: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                Text(help.title)
+                    .font(.title.bold())
+                    .accessibilityAddTraits(.isHeader)
+
+                ForEach(Array(help.voiceOverSteps.enumerated()), id: \.offset) { index, step in
+                    Text("Step \(index + 1): \(Text(step))")
+                }
+            }
+            .frame(maxWidth: 420, alignment: .leading)
+            .padding(34)
+            .frame(maxWidth: .infinity)
         }
     }
 

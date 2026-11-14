@@ -113,8 +113,11 @@ struct TimeDial: View {
             trigger: minutes
         )
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Denný limit")
-        .accessibilityValue(formattedTime)
+        .accessibilityLabel("Daily limit")
+        .accessibilityValue(minutes == 0 && allowsEmptySelection
+            ? String(localized: "No limit selected")
+            : TimeInterval(minutes * 60).accessibilityDuration)
+        .accessibilityHint("Swipe up or down to adjust the limit.")
         .accessibilityAdjustableAction { direction in
             markTimeDialAsUsed()
 

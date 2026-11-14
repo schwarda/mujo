@@ -10,6 +10,7 @@ import SwiftUI
 struct GlassText: View {
     var value: String
     var size: CGFloat = 118
+    var spokenValue: String? = nil
 
     private var timeFont: Font {
         .system(
@@ -37,6 +38,8 @@ struct GlassText: View {
                 .offset(x: -0.7, y: -0.9)
                 .blendMode(.screen)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(spokenValue ?? (value == "Ø" ? String(localized: "0 minutes") : value))
         .compositingGroup()
         .shadow(
             color: .white.opacity(0.32),

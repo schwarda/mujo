@@ -9,7 +9,7 @@ struct NotificationSettingsScreen: View {
 
     @Environment(\.scenePhase) private var scenePhase
     @ObservedObject var screenTime: ScreenTimeManager
-    @StateObject private var authorization = NotificationAuthorization()
+    @ObservedObject private var authorization: NotificationAuthorization
     @State private var preferences: NotificationPreferences
     @State private var editor: AlertEditor?
     @State private var isRequestingPermission = false
@@ -17,6 +17,7 @@ struct NotificationSettingsScreen: View {
 
     init(screenTime: ScreenTimeManager) {
         self.screenTime = screenTime
+        authorization = screenTime.notificationAuthorization
         _preferences = State(initialValue: screenTime.notificationPreferences)
     }
 
@@ -34,7 +35,9 @@ struct NotificationSettingsScreen: View {
                     alertsSection
                     customAlertsSection
                     badgesSection
-                    systemSettingsSection
+                    if !screenTime.usesSimulatedData {
+                        systemSettingsSection
+                    }
 
                     if !screenTime.canSaveNotificationPreferences {
                         Section {
@@ -146,9 +149,12 @@ struct NotificationSettingsScreen: View {
                     .contentShape(Rectangle())
                 }
                 .accessibilityIdentifier("custom-alert-\(percentage)")
+                .accessibilityAction(named: Text("Remove \(percentage)% alert")) {
+                    removeCustomAlert(percentage)
+                }
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                     Button("Remove", role: .destructive) {
-                        preferences.customPercentages.removeAll { $0 == percentage }
+                        removeCustomAlert(percentage)
                     }
                     .accessibilityIdentifier("remove-custom-alert-\(percentage)")
                 }
@@ -170,6 +176,12 @@ struct NotificationSettingsScreen: View {
             }
         }
         .disabled(!screenTime.canSaveNotificationPreferences)
+    }
+
+    private func removeCustomAlert(_ percentage: Int) {
+        guard authorization.isAuthorized,
+              screenTime.canSaveNotificationPreferences else { return }
+        preferences.customPercentages.removeAll { $0 == percentage }
     }
 
     private var badgesSection: some View {

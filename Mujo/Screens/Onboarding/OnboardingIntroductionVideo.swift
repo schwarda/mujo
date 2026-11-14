@@ -9,6 +9,12 @@ enum OnboardingIntroductionVideoHoldMode: Equatable {
 }
 
 enum OnboardingIntroductionVideoPolicy {
+    struct VoiceOverScene {
+        let start: CMTime
+        let end: CMTime
+        let narration: LocalizedStringResource
+    }
+
     static let frameRate = 30.0
     static let durationInFrames = 1514
     static let videoSize = CGSize(width: 1320, height: 2868)
@@ -17,6 +23,36 @@ enum OnboardingIntroductionVideoPolicy {
         674, 748, 834, 946, 1032, 1184, 1290, 1392
     ]
     static let cherryBlossomProgress = 186.0 / 1514.0
+
+    static let voiceOverScenes: [VoiceOverScene] = {
+        let narration: [LocalizedStringResource] = [
+            "Mujø. A timer draws itself. Time passes, and what passes doesn’t return.",
+            "Your time is finite. The timer starts counting down.",
+            "In Japan, cherry blossoms are cherished for their fleeting beauty. The timer becomes a red circle on white, like the Japanese flag.",
+            "They bloom. The circle breaks apart into cherry blossom petals.",
+            "They fall. The petals drift down.",
+            "They pass. The petals begin to leave the screen.",
+            "Their beauty lies, in part, in knowing they won’t last. A clock appears behind the petals.",
+            "This feeling has a name: mono no aware.",
+            "Our time is much the same. A person walks beneath the clock.",
+            "Where your attention goes, your time follows. The person takes out their phone.",
+            "And every day, some of it goes to a screen. The clock jumps ahead.",
+            "That’s not necessarily time wasted.",
+            "What matters is choosing how much of today you’re willing to give to it. The person lowers their phone.",
+            "Mujø will simply keep you aware of what remains.",
+            "To do that, Mujø needs access to Screen Time.",
+            "Mujø can’t see what you do on your screen. It uses Screen Time to show your usage and calculate how much time remains."
+        ]
+
+        let endFrames = textStartFrames.dropFirst() + [durationInFrames]
+        return zip(zip(textStartFrames, endFrames), narration).map { frames, caption in
+            VoiceOverScene(
+                start: CMTime(value: Int64(frames.0), timescale: 30),
+                end: CMTime(value: Int64(frames.1 - 1), timescale: 30),
+                narration: caption
+            )
+        }
+    }()
 
     static func fittedVideoRect(in bounds: CGRect) -> CGRect {
         guard bounds.width > 0, bounds.height > 0 else { return .zero }
@@ -111,6 +147,31 @@ final class OnboardingIntroductionVideoPlayback: ObservableObject {
     private var timeObserver: Any?
     private var isActive = true
     private var holdMode: OnboardingIntroductionVideoHoldMode?
+
+    func playVoiceOverScene(
+        _ scene: OnboardingIntroductionVideoPolicy.VoiceOverScene,
+        resourceName: String
+    ) async {
+        guard !Task.isCancelled,
+              let url = Bundle.main.url(forResource: resourceName, withExtension: "mp4")
+        else { return }
+
+        player.pause()
+        if currentResourceName != resourceName {
+            stop()
+            currentResourceName = resourceName
+            player.isMuted = true
+            player.actionAtItemEnd = .pause
+            player.replaceCurrentItem(with: AVPlayerItem(url: url))
+        }
+
+        guard let item = player.currentItem else { return }
+        item.cancelPendingSeeks()
+        item.forwardPlaybackEndTime = scene.end
+        let didSeek = await player.seek(to: scene.start, toleranceBefore: .zero, toleranceAfter: .zero)
+        guard !Task.isCancelled, didSeek, item === player.currentItem else { return }
+        player.play()
+    }
 
     func start(resourceName: String) {
         guard currentResourceName == nil else {

@@ -3,6 +3,30 @@ import WidgetKit
 
 #if DEBUG
 private enum WidgetPreviewEntry {
+    static let used = CountdownEntry(
+        date: .now,
+        remainingTime: 2 * 60 * 60 + 15 * 60,
+        usedTime: 45 * 60,
+        dailyLimit: 3 * 60 * 60,
+        isEstimateAvailable: true
+    )
+
+    static let noUsage = CountdownEntry(
+        date: .now,
+        remainingTime: 3 * 60 * 60,
+        usedTime: 0,
+        dailyLimit: 3 * 60 * 60,
+        isEstimateAvailable: true
+    )
+
+    static let overLimit = CountdownEntry(
+        date: .now,
+        remainingTime: 0,
+        usedTime: 3 * 60 * 60 + 15 * 60,
+        dailyLimit: 3 * 60 * 60,
+        isEstimateAvailable: true
+    )
+
     static let remaining = CountdownEntry(
         date: .now,
         remainingTime: 1 * 60 * 60 + 30 * 60,
@@ -222,6 +246,96 @@ private enum WidgetPreviewEntry {
 
 #Preview("Lock Inline · Time Zone", as: .accessoryInline) {
     DigitalWidget()
+} timeline: {
+    WidgetPreviewEntry.timeZoneChanged
+}
+
+#Preview("Used Time Lock Rectangular · Available", as: .accessoryRectangular) {
+    UsedDigitalWidget()
+} timeline: {
+    WidgetPreviewEntry.used
+}
+
+#Preview("Used Time Lock Rectangular · Zero", as: .accessoryRectangular) {
+    UsedDigitalWidget()
+} timeline: {
+    WidgetPreviewEntry.noUsage
+}
+
+#Preview("Used Time Lock Rectangular · Over Limit", as: .accessoryRectangular) {
+    UsedDigitalWidget()
+} timeline: {
+    WidgetPreviewEntry.overLimit
+}
+
+#Preview("Used Time Lock Rectangular · Waiting", as: .accessoryRectangular) {
+    UsedDigitalWidget()
+} timeline: {
+    WidgetPreviewEntry.waiting
+}
+
+#Preview("Used Time Lock Rectangular · Time Zone", as: .accessoryRectangular) {
+    UsedDigitalWidget()
+} timeline: {
+    WidgetPreviewEntry.timeZoneChanged
+}
+
+#Preview("Used Time Lock Circular · Available", as: .accessoryCircular) {
+    UsedDigitalWidget()
+} timeline: {
+    WidgetPreviewEntry.used
+}
+
+#Preview("Used Time Lock Circular · Zero", as: .accessoryCircular) {
+    UsedDigitalWidget()
+} timeline: {
+    WidgetPreviewEntry.noUsage
+}
+
+#Preview("Used Time Lock Circular · Over Limit", as: .accessoryCircular) {
+    UsedDigitalWidget()
+} timeline: {
+    WidgetPreviewEntry.overLimit
+}
+
+#Preview("Used Time Lock Circular · Waiting", as: .accessoryCircular) {
+    UsedDigitalWidget()
+} timeline: {
+    WidgetPreviewEntry.waiting
+}
+
+#Preview("Used Time Lock Circular · Time Zone", as: .accessoryCircular) {
+    UsedDigitalWidget()
+} timeline: {
+    WidgetPreviewEntry.timeZoneChanged
+}
+
+#Preview("Used Time Lock Inline · Available", as: .accessoryInline) {
+    UsedDigitalWidget()
+} timeline: {
+    WidgetPreviewEntry.used
+}
+
+#Preview("Used Time Lock Inline · Zero", as: .accessoryInline) {
+    UsedDigitalWidget()
+} timeline: {
+    WidgetPreviewEntry.noUsage
+}
+
+#Preview("Used Time Lock Inline · Over Limit", as: .accessoryInline) {
+    UsedDigitalWidget()
+} timeline: {
+    WidgetPreviewEntry.overLimit
+}
+
+#Preview("Used Time Lock Inline · Waiting", as: .accessoryInline) {
+    UsedDigitalWidget()
+} timeline: {
+    WidgetPreviewEntry.waiting
+}
+
+#Preview("Used Time Lock Inline · Time Zone", as: .accessoryInline) {
+    UsedDigitalWidget()
 } timeline: {
     WidgetPreviewEntry.timeZoneChanged
 }

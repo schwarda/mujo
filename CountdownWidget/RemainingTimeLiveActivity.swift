@@ -31,6 +31,8 @@ struct RemainingTimeLiveActivity: Widget {
                         )
                             .monospacedDigit()
                     }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(spokenRemainingTime(context.state.remainingMinutes))
                 }
                 .padding()
                 .activityBackgroundTint(MujoTheme.brandAccent.opacity(0.1))
@@ -52,6 +54,8 @@ struct RemainingTimeLiveActivity: Widget {
                             .monospacedDigit()
                             .foregroundStyle(dynamicIslandColor)
                     }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(spokenRemainingTime(context.state.remainingMinutes))
                 }
             } compactLeading: {
                 DynamicIslandProgressRing(
@@ -61,6 +65,7 @@ struct RemainingTimeLiveActivity: Widget {
                 )
                 .frame(width: 18, height: 18)
                 .padding(.trailing, 4)
+                .accessibilityHidden(true)
             } compactTrailing: {
                 dynamicIslandMinutes(context.state.remainingMinutes)
             } minimal: {
@@ -70,6 +75,7 @@ struct RemainingTimeLiveActivity: Widget {
                         limitMinutes: context.attributes.limitMinutes,
                         color: dynamicIslandColor
                     )
+                    .accessibilityHidden(true)
 
                     dynamicIslandMinutes(context.state.remainingMinutes)
                         .padding(6)
@@ -81,6 +87,11 @@ struct RemainingTimeLiveActivity: Widget {
 
     private func minutesText(_ minutes: Int) -> String {
         String(max(0, minutes))
+    }
+
+    private func spokenRemainingTime(_ minutes: Int) -> String {
+        let duration = TimeInterval(minutes * 60).accessibilityDuration
+        return String(localized: "\(duration) remaining")
     }
 
     private func remainingTimeText(_ minutes: Int) -> String {
@@ -96,6 +107,7 @@ struct RemainingTimeLiveActivity: Widget {
             .lineLimit(1)
             .minimumScaleFactor(0.7)
             .foregroundStyle(dynamicIslandColor)
+            .accessibilityLabel(spokenRemainingTime(minutes))
     }
 }
 

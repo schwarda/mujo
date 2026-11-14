@@ -62,7 +62,7 @@ struct HomeScreen: View {
     @State private var isShowingLimitEditor = false
     @State private var isShowingAppInfo = false
     @State private var isShowingNotificationSettings = false
-    @StateObject private var notificationAuthorization = NotificationAuthorization()
+    @ObservedObject private var notificationAuthorization: NotificationAuthorization
     @State private var widgetHelp: OnboardingWidgetHelp?
     @State private var noticeGeometries: [HomeNotice.ID: HomeNoticeGeometry] = [:]
 
@@ -71,6 +71,23 @@ struct HomeScreen: View {
     @AppStorage("hasCompletedOnboarding")
     private var hasCompletedOnboarding = true
 #endif
+
+    init(
+        screenTime: ScreenTimeManager,
+        windStrength: Binding<Double>,
+        petalSimulationTime: Binding<Double>,
+        petalFlow: Binding<SakuraPetalFlowState>,
+        petalsStartFilled: Bool,
+        showsPetals: Bool
+    ) {
+        self.screenTime = screenTime
+        _windStrength = windStrength
+        _petalSimulationTime = petalSimulationTime
+        _petalFlow = petalFlow
+        self.petalsStartFilled = petalsStartFilled
+        self.showsPetals = showsPetals
+        notificationAuthorization = screenTime.notificationAuthorization
+    }
 
     var body: some View {
         NavigationStack {
@@ -112,36 +129,38 @@ struct HomeScreen: View {
                 homeMenu
 
 #if DEBUG
-                VStack {
-                    HStack {
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                hasCompletedOnboarding = false
+                if !screenTime.usesSimulatedData {
+                    VStack {
+                        HStack {
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    hasCompletedOnboarding = false
+                                }
+                            } label: {
+                                Label(
+                                    "Replay onboarding",
+                                    systemImage: "arrow.counterclockwise"
+                                )
                             }
-                        } label: {
-                            Label(
-                                "Replay onboarding",
-                                systemImage: "arrow.counterclockwise"
-                            )
+                            .buttonStyle(.glass)
+                            .foregroundStyle(.tint)
+
+                            Spacer()
+
+                            Button {
+                                isShowingDiagnostics = true
+                            } label: {
+                                Label("Diagnostics", systemImage: "stethoscope")
+                            }
+                            .buttonStyle(.glass)
+                            .foregroundStyle(.tint)
                         }
-                        .buttonStyle(.glass)
-                        .foregroundStyle(.tint)
 
                         Spacer()
-
-                        Button {
-                            isShowingDiagnostics = true
-                        } label: {
-                            Label("Diagnostics", systemImage: "stethoscope")
-                        }
-                        .buttonStyle(.glass)
-                        .foregroundStyle(.tint)
                     }
-
-                    Spacer()
+                    .padding(.horizontal, 16)
+                    .padding(.top, 60)
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 60)
 #endif
             }
             .task {
@@ -284,9 +303,13 @@ struct HomeScreen: View {
                             MujoTheme.secondaryTextOpacity
                         )
                     )
+                    .accessibilityHidden(true)
 
                 if estimate.isAvailable {
-                    GlassText(value: estimate.remainingTime.formatted())
+                    GlassText(
+                        value: estimate.remainingTime.formatted(),
+                        spokenValue: String(localized: "\(estimate.remainingTime.accessibilityDuration) remaining")
+                    )
                         .fixedSize(horizontal: true, vertical: true)
                 } else if estimate.unavailableReason == .timeZoneChanged {
                     Text("-")
@@ -295,6 +318,7 @@ struct HomeScreen: View {
                             relativeTo: .largeTitle
                         ))
                         .foregroundStyle(MujoTheme.glassAccent)
+                        .accessibilityLabel("Remaining time is unavailable while the time zone changes.")
                 } else {
                     Text("Waiting for data")
                         .font(.system(.headline, design: .rounded))
@@ -318,6 +342,7 @@ struct HomeScreen: View {
                         MujoTheme.secondaryTextOpacity
                     )
                 )
+                .accessibilityLabel("\(estimate.usedTime.accessibilityDuration) used, \(TimeInterval(selectedMinutes * 60).accessibilityDuration) daily limit")
             }
         }
         .padding()

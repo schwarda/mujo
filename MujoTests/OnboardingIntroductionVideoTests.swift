@@ -6,6 +6,17 @@ import Testing
 @MainActor
 @Suite("Introduction video")
 struct OnboardingIntroductionVideoTests {
+    @Test("VoiceOver scenes cover every video cue in order without playing into the next scene")
+    func voiceOverScenesMatchVideoCues() {
+        let scenes = OnboardingIntroductionVideoPolicy.voiceOverScenes
+        #expect(scenes.map { $0.start.value } == OnboardingIntroductionVideoPolicy.textStartFrames.map(Int64.init))
+        for (scene, nextScene) in zip(scenes, scenes.dropFirst()) {
+            #expect(scene.start < scene.end)
+            #expect(scene.end < nextScene.start)
+        }
+        #expect(scenes.last?.end == CMTime(value: 1513, timescale: 30))
+    }
+
     @Test("Both silent onboarding renders are bundled with the approved timing")
     func bundledVideosMatchApprovedMetadata() async throws {
         for resourceName in ["mujo_onboarding_light", "mujo_onboarding_dark"] {

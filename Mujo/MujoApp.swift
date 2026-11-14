@@ -15,7 +15,9 @@ struct MujoApp: App {
     var body: some Scene {
         WindowGroup {
 #if DEBUG
-            if ProcessInfo.processInfo.arguments.contains("--ui-test-home") {
+            if ProcessInfo.processInfo.arguments.contains("--preview-workflow") {
+                WorkflowPreview()
+            } else if ProcessInfo.processInfo.arguments.contains("--ui-test-home") {
                 HomeScreenPreview()
             } else {
                 ContentView()

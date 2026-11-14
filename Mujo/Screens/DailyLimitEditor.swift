@@ -74,6 +74,7 @@ struct DailyLimitSheetPresenter: UIViewControllerRepresentable {
 
             let container = UIViewController()
             container.modalPresentationStyle = .pageSheet
+            container.view.accessibilityViewIsModal = true
             let hosting = cachedHosting(for: configuration)
             container.addChild(hosting)
             container.view.addSubview(hosting.view)
@@ -117,7 +118,7 @@ struct DailyLimitSheetPresenter: UIViewControllerRepresentable {
             let content = DailyLimitEditorScreen(
                 screenTime: configuration.screenTime,
                 windStrength: configuration.$windStrength,
-                onSaved: { [weak self] in
+                onClose: { [weak self] in
                     guard let self else { return }
                     self.configuration?.isPresented = false
                     if let presentationAnchor {
@@ -164,7 +165,7 @@ struct DailyLimitSheetPresenter: UIViewControllerRepresentable {
     }
 }
 private struct DailyLimitEditorScreen: View {
-    let onSaved: () -> Void
+    let onClose: () -> Void
     @ObservedObject var screenTime: ScreenTimeManager
     @Binding var windStrength: Double
 
@@ -174,9 +175,9 @@ private struct DailyLimitEditorScreen: View {
     init(
         screenTime: ScreenTimeManager,
         windStrength: Binding<Double>,
-        onSaved: @escaping () -> Void
+        onClose: @escaping () -> Void
     ) {
-        self.onSaved = onSaved
+        self.onClose = onClose
         self.screenTime = screenTime
         _windStrength = windStrength
         _selectedMinutes = State(initialValue: screenTime.dailyLimitMinutes)
@@ -197,18 +198,7 @@ private struct DailyLimitEditorScreen: View {
 
                 // The report owns its private data and stays mounted while editing.
                 // An App Group acknowledgement cannot determine report readiness.
-                ZStack {
-                    ScreenTimeReportLoadingView(
-                        message: "Loading your average time…"
-                    )
-
-                    ScreenTimeReportView(
-                        context: .mujoLimitEditorDescription,
-                        filter: sevenDayReportFilter
-                    )
-                    .equatable()
-                    .allowsHitTesting(false)
-                }
+                limitDescription
                 .frame(height: 72)
                 .padding(.horizontal, 24)
                 .padding(.top, 32)
@@ -223,6 +213,7 @@ private struct DailyLimitEditorScreen: View {
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .multilineTextAlignment(.center)
+                    .accessibilityHidden(true)
 
                 Text("new daily limit")
                     .font(MujoTheme.italicFont(size: 18, relativeTo: .body))
@@ -230,6 +221,7 @@ private struct DailyLimitEditorScreen: View {
                         .tint.opacity(MujoTheme.secondaryTextOpacity)
                     )
                     .padding(.top, -8)
+                    .accessibilityHidden(true)
 
                 TimeDial(
                     minutes: $selectedMinutes,
@@ -255,10 +247,40 @@ private struct DailyLimitEditorScreen: View {
                 .padding(.bottom, 28)
             }
         }
+        .accessibilityAction(.escape) {
+            guard !isSaving else { return }
+            onClose()
+        }
         .onAppear {
             selectedMinutes = screenTime.dailyLimitMinutes
             isSaving = false
         }
+    }
+
+    @ViewBuilder
+    private var limitDescription: some View {
+#if DEBUG
+        if screenTime.usesSimulatedData {
+            OnboardingReportContentView(
+                configuration: WorkflowPreviewData.report(limitMinutes: selectedMinutes),
+                presentation: .limitEditorDescription
+            )
+            .allowsHitTesting(false)
+        } else {
+            liveLimitDescription
+        }
+#else
+        liveLimitDescription
+#endif
+    }
+
+    private var liveLimitDescription: some View {
+        ScreenTimeReportView(
+            context: .mujoLimitEditorDescription,
+            filter: sevenDayReportFilter
+        )
+        .equatable()
+        .allowsHitTesting(false)
     }
 
     private var sevenDayReportFilter: DeviceActivityFilter {
@@ -290,8 +312,11 @@ private struct DailyLimitEditorScreen: View {
         Task {
             await screenTime.setDailyLimit(minutes: selectedMinutes)
             isSaving = false
-            guard screenTime.errorMessage == nil else { return }
-            onSaved()
+            if let error = screenTime.errorMessage {
+                AccessibilityNotification.Announcement(error).post()
+                return
+            }
+            onClose()
         }
     }
 }
