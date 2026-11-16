@@ -39,7 +39,7 @@ struct AppInfoScreen: View {
         InformationLink(
             title: "Support",
             systemImage: "questionmark.circle",
-            urlString: "https://aikaristudio.com/support/"
+            urlString: FeedbackEmail.supportPage
         ),
         InformationLink(
             title: "Terms of Use",
@@ -48,7 +48,6 @@ struct AppInfoScreen: View {
         ),
     ]
 
-    @Environment(\.colorScheme) private var colorScheme
     @State private var isCreditsExpanded = false
     private let metadata: AppInfoMetadata
 
@@ -62,7 +61,7 @@ struct AppInfoScreen: View {
 
             List {
                 Section {
-                    appIdentity
+                    MujoIdentityHeader(versionAndBuild: metadata.versionAndBuild)
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                 }
@@ -129,8 +128,14 @@ struct AppInfoScreen: View {
         .toolbar(.visible, for: .navigationBar)
         .background { PinkNavigationBackIndicator() }
     }
+}
 
-    private var appIdentity: some View {
+struct MujoIdentityHeader: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    var versionAndBuild: String? = nil
+
+    var body: some View {
         VStack(spacing: 10) {
             Image("LaunchLogo")
                 .frame(width: 128, height: 128)
@@ -140,10 +145,12 @@ struct AppInfoScreen: View {
                 .font(.largeTitle.bold())
                 .foregroundStyle(appTitleColor)
 
-            Text(metadata.versionAndBuild)
-                .font(.subheadline)
-                .monospacedDigit()
-                .foregroundStyle(.secondary)
+            if let versionAndBuild {
+                Text(versionAndBuild)
+                    .font(.subheadline)
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)

@@ -23,6 +23,26 @@ final class MujoUITests: XCTestCase {
     }
 
     @MainActor
+    func testHomeMenuOpensAboutAndReturnsToHome() {
+        let app = XCUIApplication()
+        app.launchArguments.append("--ui-test-home")
+        app.launch()
+
+        let menu = app.buttons["Menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 10))
+        menu.tap()
+
+        let about = app.buttons["About"]
+        XCTAssertTrue(about.waitForExistence(timeout: 5))
+        about.tap()
+
+        let navigationBar = app.navigationBars["About"]
+        XCTAssertTrue(navigationBar.waitForExistence(timeout: 5))
+        navigationBar.buttons["Back"].tap()
+        XCTAssertTrue(menu.waitForExistence(timeout: 5))
+    }
+
+    @MainActor
     func testWorkflowPreviewRunsFromIntroductionToSettings() {
         let app = XCUIApplication()
         app.launchArguments = ["--preview-workflow"]

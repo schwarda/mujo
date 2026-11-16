@@ -60,6 +60,7 @@ struct HomeScreen: View {
     let showsPetals: Bool
 
     @State private var isShowingLimitEditor = false
+    @State private var isShowingAbout = false
     @State private var isShowingAppInfo = false
     @State private var isShowingNotificationSettings = false
     @ObservedObject private var notificationAuthorization: NotificationAuthorization
@@ -190,6 +191,9 @@ struct HomeScreen: View {
                     windStrength: $windStrength
                 )
             }
+            .navigationDestination(isPresented: $isShowingAbout) {
+                AboutScreen()
+            }
             .navigationDestination(isPresented: $isShowingAppInfo) {
                 AppInfoScreen()
             }
@@ -245,6 +249,12 @@ struct HomeScreen: View {
                         }
                     } label: {
                         Label("Add a widget", systemImage: "plus.rectangle.on.rectangle")
+                    }
+
+                    Button {
+                        isShowingAbout = true
+                    } label: {
+                        Label("About", systemImage: "book")
                     }
 
                     Button {
