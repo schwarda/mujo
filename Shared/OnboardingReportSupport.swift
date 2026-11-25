@@ -286,7 +286,7 @@ struct OnboardingInsightCaption {
     let emphasis: String
     let trailing: String
 
-    init(
+    nonisolated init(
         _ leading: String = "",
         emphasis: String = "",
         trailing: String = ""

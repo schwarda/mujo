@@ -20,10 +20,10 @@ struct MujoApp: App {
             } else if ProcessInfo.processInfo.arguments.contains("--ui-test-home") {
                 HomeScreenPreview()
             } else {
-                ContentView()
+                ContentView(localDefaults: .standard)
             }
 #else
-            ContentView()
+            ContentView(localDefaults: .standard)
 #endif
         }
     }

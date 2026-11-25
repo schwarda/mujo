@@ -34,7 +34,7 @@ struct AboutScreen: View {
 
                 storySection("Why the name Mujø", paragraphs: [
                     "Mujō is the Japanese word for impermanence. The cherry blossoms in the app are a reminder of what that means. They bloom for a short time, then fall. For me, the countdown is another reminder to think about how I spend the time I have.",
-                    "I chose ø for the name as a nod to ∅, the symbol for an empty set in mathematics. When the countdown reaches zero, there's no screen time left in my daily limit.",
+                    "I chose ø for the name as a nod to the symbol for an empty set in mathematics. When the countdown reaches zero, there's no screen time left in my daily limit.",
                 ])
 
                 storySection("About me", paragraphs: [
@@ -115,7 +115,7 @@ struct AboutScreen: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
-                .font(.title3.bold())
+                .font(.title2.bold())
                 .accessibilityAddTraits(.isHeader)
 
             ForEach(paragraphs.indices, id: \.self) { index in

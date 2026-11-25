@@ -33,8 +33,8 @@ struct ContentView: View {
     @AppStorage("openingsUntilAppStoreReview")
     private var openingsUntilAppStoreReview = 3
 
-    init() {
-        _screenTime = StateObject(wrappedValue: ScreenTimeManager())
+    init(localDefaults: UserDefaults? = nil) {
+        _screenTime = StateObject(wrappedValue: ScreenTimeManager(localDefaults: localDefaults))
     }
 
     init(screenTime: ScreenTimeManager) {

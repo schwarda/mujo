@@ -41,6 +41,7 @@ struct TimeDial: View {
     @Binding var windStrength: Double
     let allowsEmptySelection: Bool
     let showsValue: Bool
+    let hintPresentationID: Int?
     let onValueChange: (Int) -> Void
     let onCommit: (Int) -> Void
 
@@ -51,7 +52,7 @@ struct TimeDial: View {
     @State private var visualRotation = 0.0
     @State private var previousSampleTime: TimeInterval?
     @State private var didChangeDuringGesture = false
-    @State private var hintIsMoving = false
+    @State private var dismissedHintPresentationID: Int?
     @AppStorage(TimeDialPreferences.hasUsedCenteredHintKey)
     private var hasUsedTimeDial = false
 
@@ -60,6 +61,7 @@ struct TimeDial: View {
         windStrength: Binding<Double>,
         allowsEmptySelection: Bool = false,
         showsValue: Bool = true,
+        hintPresentationID: Int? = nil,
         onValueChange: @escaping (Int) -> Void,
         onCommit: @escaping (Int) -> Void
     ) {
@@ -67,6 +69,7 @@ struct TimeDial: View {
         _windStrength = windStrength
         self.allowsEmptySelection = allowsEmptySelection
         self.showsValue = showsValue
+        self.hintPresentationID = hintPresentationID
         self.onValueChange = onValueChange
         self.onCommit = onCommit
     }
@@ -76,8 +79,9 @@ struct TimeDial: View {
             tickMarks
                 .rotationEffect(.degrees(visualRotation))
 
-            if !hasUsedTimeDial {
-                rotationHint
+            if showsRotationHint {
+                RotationHint(fontSize: configuration.hintFontSize)
+                    .id(hintPresentationID)
             }
 
             if showsValue {
@@ -134,32 +138,36 @@ struct TimeDial: View {
             guard changeMinutes(by: amount) else { return }
             onCommit(minutes)
         }
-        .onAppear {
-            guard !hasUsedTimeDial else { return }
-
-            withAnimation(
-                .easeInOut(duration: 0.85)
-                    .repeatForever(autoreverses: true)
-            ) {
-                hintIsMoving = true
-            }
-        }
     }
 
-    private var rotationHint: some View {
-        Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90")
-            .font(.system(
-                size: configuration.hintFontSize,
-                weight: .semibold
-            ))
-            .foregroundStyle(.tint)
-            .opacity(hintIsMoving ? 0.34 : 0.14)
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
-            .symbolEffect(
-                .rotate,
-                options: .speed(0.5)
-            )
+    private var showsRotationHint: Bool {
+        if let hintPresentationID {
+            return dismissedHintPresentationID != hintPresentationID
+        }
+        return !hasUsedTimeDial
+    }
+
+    private struct RotationHint: View {
+        let fontSize: CGFloat
+        @State private var isMoving = false
+
+        var body: some View {
+            Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90")
+                .font(.system(size: fontSize, weight: .semibold))
+                .foregroundStyle(.tint)
+                .opacity(isMoving ? 0.34 : 0.14)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+                .symbolEffect(.rotate, options: .speed(0.5))
+                .onAppear {
+                    withAnimation(
+                        .easeInOut(duration: 0.85)
+                            .repeatForever(autoreverses: true)
+                    ) {
+                        isMoving = true
+                    }
+                }
+        }
     }
 
     private var tickMarks: some View {
@@ -291,10 +299,14 @@ struct TimeDial: View {
     }
 
     private func markTimeDialAsUsed() {
-        guard !hasUsedTimeDial else { return }
+        guard showsRotationHint else { return }
 
         withAnimation(.easeOut(duration: 0.2)) {
-            hasUsedTimeDial = true
+            if let hintPresentationID {
+                dismissedHintPresentationID = hintPresentationID
+            } else {
+                hasUsedTimeDial = true
+            }
         }
     }
 

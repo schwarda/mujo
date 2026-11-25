@@ -23,6 +23,7 @@ struct HomeScreen: View {
             case firstDay
             case notificationsDisabled
             case countedActivitySelection
+            case countedActivityAnnouncement
         }
 
         let id: ID
@@ -40,14 +41,20 @@ struct HomeScreen: View {
     private static let firstDayNotice = HomeNotice(
         id: .firstDay,
         title: "Today’s count",
-        message: "Today’s count started when you saved your settings. "
-            + "Tomorrow it starts at midnight."
+        message: "Today, usage counts from when you started using Mujø. "
+            + "Since tomorrow, it will count from midnight."
     )
 
     private static let countedActivityNotice = HomeNotice(
         id: .countedActivitySelection,
         title: "Choose what counts",
         message: "Open Counted Apps in the menu to choose what counts toward your limit."
+    )
+
+    private static let countedActivityAnnouncement = HomeNotice(
+        id: .countedActivityAnnouncement,
+        title: "Choose which apps count",
+        message: "Use Counted apps in the menu to pick which apps and websites count toward your daily limit."
     )
 
     private static let notificationsNotice = HomeNotice(
@@ -57,6 +64,7 @@ struct HomeScreen: View {
             + "To allow them, open the menu and choose Notifications."
     )
 
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.scenePhase) private var scenePhase
     @ObservedObject var screenTime: ScreenTimeManager
 
@@ -216,6 +224,7 @@ struct HomeScreen: View {
                 CountedActivitySheet(screenTime: screenTime)
                     .presentationDetents([.large])
                     .presentationDragIndicator(.visible)
+                    .onAppear(perform: screenTime.acknowledgeCountedActivityAnnouncement)
             }
             .sheet(item: $widgetHelp) { help in
                 OnboardingWidgetHelpSheet(help: help)
@@ -387,7 +396,25 @@ struct HomeScreen: View {
             Color.clear
         } else {
             GeometryReader { container in
-                let stackAnchorY = container.size.height * 0.64
+                let containerHeight = container.size.height
+                let referenceHeight = notices.first.flatMap {
+                    noticeGeometries[$0.id]?.layoutHeight
+                }
+                let preferredAnchorY = containerHeight * 0.64
+                let stackAnchorY = if let referenceHeight, notices.count > 1 {
+                    max(
+                        min(preferredAnchorY, containerHeight - referenceHeight - Self.noticeStackStep),
+                        0
+                    )
+                } else {
+                    preferredAnchorY
+                }
+                let lastHeight = notices.last.flatMap {
+                    noticeGeometries[$0.id]?.layoutHeight
+                }
+                let bottomPadding = referenceHeight.map { height in
+                    max(containerHeight - stackAnchorY - max(height, lastHeight ?? height), 0)
+                } ?? 0
 
                 ScrollView(.vertical) {
                     VStack(spacing: Self.noticeSpacing) {
@@ -403,27 +430,22 @@ struct HomeScreen: View {
                                 )
                             )
                             .visualEffect { content, proxy in
-                                content
-                                    .scaleEffect(
-                                        noticeStackScale(
-                                            proxy,
-                                            anchorY: stackAnchorY
-                                        ),
-                                        anchor: .top
-                                    )
-                                    .offset(
-                                        y: noticeStackOffset(
-                                            proxy,
-                                            anchorY: stackAnchorY
-                                        )
-                                    )
+                                let transform = noticeStackTransform(
+                                    proxy,
+                                    anchorY: stackAnchorY,
+                                    referenceHeight: referenceHeight
+                                )
+                                return content
+                                    .scaleEffect(transform.scale, anchor: .bottom)
+                                    .offset(y: transform.offset)
                             }
                             .onGeometryChange(
                                 for: HomeNoticeGeometry.self,
                                 of: { proxy in
                                     noticeGeometry(
                                         proxy,
-                                        anchorY: stackAnchorY
+                                        anchorY: stackAnchorY,
+                                        referenceHeight: referenceHeight
                                     )
                                 },
                                 action: { geometry in
@@ -434,11 +456,7 @@ struct HomeScreen: View {
                         }
                     }
                     .padding(.top, stackAnchorY)
-                    .padding(.bottom, noticeBottomPadding(
-                        for: notices,
-                        containerHeight: container.size.height,
-                        anchorY: stackAnchorY
-                    ))
+                    .padding(.bottom, bottomPadding)
                 }
                 .scrollIndicators(.hidden)
                 .scrollDisabled(notices.count < 2)
@@ -459,72 +477,50 @@ struct HomeScreen: View {
         }
     }
 
-    nonisolated private func noticeStackProgress(
+    nonisolated private func noticeStackTransform(
         _ proxy: GeometryProxy,
-        anchorY: CGFloat
-    ) -> CGFloat {
-        let minY = proxy.frame(in: .scrollView(axis: .vertical)).minY
-        let distanceFromAnchor = max(minY - anchorY, 0)
-        let itemStride = max(proxy.size.height + Self.noticeSpacing, 1)
-        return distanceFromAnchor / itemStride
-    }
-
-    nonisolated private func noticeStackOffset(
-        _ proxy: GeometryProxy,
-        anchorY: CGFloat
-    ) -> CGFloat {
-        let minY = proxy.frame(in: .scrollView(axis: .vertical)).minY
-        let distanceFromAnchor = max(minY - anchorY, 0)
-        let visibleDepth = min(
-            noticeStackProgress(proxy, anchorY: anchorY),
-            2
+        anchorY: CGFloat,
+        referenceHeight: CGFloat?
+    ) -> (scale: CGFloat, offset: CGFloat) {
+        let frame = proxy.frame(in: .scrollView(axis: .vertical))
+        // Shorter cards share the lead card's bottom edge before stacking.
+        let height = max(referenceHeight ?? 0, proxy.size.height)
+        let distanceFromAnchor = max(frame.maxY - (anchorY + height), 0)
+        let stride = max(proxy.size.height + Self.noticeSpacing, 1)
+        let visibleDepth = min(distanceFromAnchor / stride, 2)
+        let scalePerStep: CGFloat = 0.025
+        let bottomStep = max(Self.noticeStackStep - height * scalePerStep, 1)
+        return (
+            scale: 1 - visibleDepth * scalePerStep,
+            offset: -distanceFromAnchor + visibleDepth * bottomStep
         )
-        return -distanceFromAnchor + visibleDepth * Self.noticeStackStep
-    }
-
-    nonisolated private func noticeStackScale(
-        _ proxy: GeometryProxy,
-        anchorY: CGFloat
-    ) -> CGFloat {
-        let visibleDepth = min(
-            noticeStackProgress(proxy, anchorY: anchorY),
-            2
-        )
-        return 1 - visibleDepth * 0.025
     }
 
     nonisolated private func noticeGeometry(
         _ proxy: GeometryProxy,
-        anchorY: CGFloat
+        anchorY: CGFloat,
+        referenceHeight: CGFloat?
     ) -> HomeNoticeGeometry {
         let frame = proxy.frame(in: .scrollView(axis: .vertical))
-        let scale = noticeStackScale(proxy, anchorY: anchorY)
+        let transform = noticeStackTransform(
+            proxy,
+            anchorY: anchorY,
+            referenceHeight: referenceHeight
+        )
         let scaledSize = CGSize(
-            width: frame.width * scale,
-            height: frame.height * scale
+            width: frame.width * transform.scale,
+            height: frame.height * transform.scale
         )
 
         return HomeNoticeGeometry(
             visualFrame: CGRect(
                 x: frame.minX + (frame.width - scaledSize.width) / 2,
-                y: frame.minY + noticeStackOffset(proxy, anchorY: anchorY),
+                y: frame.maxY + transform.offset - scaledSize.height,
                 width: scaledSize.width,
                 height: scaledSize.height
             ),
             layoutHeight: proxy.size.height
         )
-    }
-
-    private func noticeBottomPadding(
-        for notices: [HomeNotice],
-        containerHeight: CGFloat,
-        anchorY: CGFloat
-    ) -> CGFloat {
-        guard let lastNotice = notices.last,
-              let lastHeight = noticeGeometries[lastNotice.id]?.layoutHeight
-        else { return 0 }
-
-        return max(containerHeight - anchorY - lastHeight, 0)
     }
 
     private func noticeFrozenAmount(
@@ -562,7 +558,9 @@ struct HomeScreen: View {
         _ notice: HomeNotice,
         frozenAmount: Double
     ) -> some View {
-        HStack(alignment: .center, spacing: 8) {
+        let cardShape = RoundedRectangle(cornerRadius: 22)
+
+        return HStack(alignment: .center, spacing: 8) {
             Image(systemName: "info.circle")
                 .font(.system(size: 32, weight: .regular))
                 .frame(width: 40, height: 40)
@@ -592,10 +590,17 @@ struct HomeScreen: View {
         .padding(.vertical, 12)
         .background {
             Color.clear
-                .glassEffect(.regular, in: .rect(cornerRadius: 22))
+                .glassEffect(.regular, in: cardShape)
+                .overlay {
+                    if colorScheme == .dark {
+                        cardShape.fill(
+                            MujoTheme.surfaceBackground(for: colorScheme).opacity(0.48)
+                        )
+                    }
+                }
                 .opacity(frozenAmount)
         }
-        .glassEffect(.clear, in: .rect(cornerRadius: 22))
+        .glassEffect(.clear, in: cardShape)
         .accessibilityElement(children: .combine)
     }
 
@@ -627,6 +632,8 @@ struct HomeScreen: View {
 
         if screenTime.countedActivitySelection == nil {
             notices.append(Self.countedActivityNotice)
+        } else if screenTime.showsCountedActivityAnnouncement {
+            notices.append(Self.countedActivityAnnouncement)
         }
 
         if estimate.unavailableReason == .timeZoneChanged {

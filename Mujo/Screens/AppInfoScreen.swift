@@ -222,7 +222,7 @@ struct PinkNavigationBackIndicator: UIViewControllerRepresentable {
             }
 
             func tinted(_ source: UINavigationBarAppearance) -> UINavigationBarAppearance {
-                let appearance = source.copy() as! UINavigationBarAppearance
+                let appearance = source.copy()
                 appearance.setBackIndicatorImage(
                     source.backIndicatorImage.withTintColor(color, renderingMode: .alwaysOriginal),
                     transitionMaskImage: source.backIndicatorTransitionMaskImage

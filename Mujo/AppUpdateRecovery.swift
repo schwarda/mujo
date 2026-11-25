@@ -36,6 +36,16 @@ struct AppUpdateRecovery {
         return defaults.string(forKey: Self.recoveredBuildKey) != currentBuild
     }
 
+    var lastRecoveredBuildNumber: Int? {
+        guard let recoveredBuild = defaults.string(forKey: Self.recoveredBuildKey),
+              recoveredBuild.hasSuffix(")"),
+              let buildStart = recoveredBuild.lastIndex(of: "(")
+        else { return nil }
+
+        let buildNumber = recoveredBuild.dropLast()[recoveredBuild.index(after: buildStart)...]
+        return Int(buildNumber)
+    }
+
     func markCompleted() {
         guard let currentBuild else { return }
         defaults.set(currentBuild, forKey: Self.recoveredBuildKey)

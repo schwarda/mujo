@@ -1,5 +1,6 @@
 import DeviceActivity
 import FamilyControls
+import Observation
 import SwiftUI
 import UIKit
 
@@ -52,6 +53,7 @@ struct DailyLimitSheetPresenter: UIViewControllerRepresentable {
         private weak var presentationAnchor: UIViewController?
         private var isDismissing = false
         private var cachedReportDay: Date?
+        private let presentation = DailyLimitPresentation()
 
         func updatePresentation(from anchor: UIViewController) {
             guard let configuration else { return }
@@ -72,6 +74,9 @@ struct DailyLimitSheetPresenter: UIViewControllerRepresentable {
                   anchor.viewIfLoaded?.window != nil,
                   anchor.presentedViewController == nil
             else { return }
+
+            // The cached editor keeps its state between presentations.
+            presentation.id += 1
 
             let container = UIViewController()
             container.modalPresentationStyle = .pageSheet
@@ -119,6 +124,7 @@ struct DailyLimitSheetPresenter: UIViewControllerRepresentable {
             let content = DailyLimitEditorScreen(
                 screenTime: configuration.screenTime,
                 windStrength: configuration.$windStrength,
+                presentation: presentation,
                 onClose: { [weak self] in
                     guard let self else { return }
                     self.configuration?.isPresented = false
@@ -165,10 +171,17 @@ struct DailyLimitSheetPresenter: UIViewControllerRepresentable {
         }
     }
 }
+
+@Observable
+private final class DailyLimitPresentation {
+    var id = 0
+}
+
 private struct DailyLimitEditorScreen: View {
     let onClose: () -> Void
     @ObservedObject var screenTime: ScreenTimeManager
     @Binding var windStrength: Double
+    let presentation: DailyLimitPresentation
 
     @State private var selectedMinutes: Int
     @State private var isSaving = false
@@ -176,11 +189,13 @@ private struct DailyLimitEditorScreen: View {
     init(
         screenTime: ScreenTimeManager,
         windStrength: Binding<Double>,
+        presentation: DailyLimitPresentation,
         onClose: @escaping () -> Void
     ) {
         self.onClose = onClose
         self.screenTime = screenTime
         _windStrength = windStrength
+        self.presentation = presentation
         _selectedMinutes = State(initialValue: screenTime.dailyLimitMinutes)
     }
 
@@ -228,6 +243,7 @@ private struct DailyLimitEditorScreen: View {
                     minutes: $selectedMinutes,
                     windStrength: $windStrength,
                     showsValue: false,
+                    hintPresentationID: presentation.id,
                     onValueChange: { _ in },
                     onCommit: { _ in }
                 )

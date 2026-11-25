@@ -27,6 +27,7 @@ final class ScreenTimeManager: ObservableObject {
     @Published private(set) var dailyLimitMinutes: Int
     @Published private(set) var usageSnapshot: UsageSnapshot
     @Published private(set) var countedActivitySelection: FamilyActivitySelection?
+    @Published private(set) var showsCountedActivityAnnouncement = false
 
     private let limitStore: DailyLimitStore
     private lazy var monitoring = ScreenTimeMonitoring(
@@ -38,6 +39,7 @@ final class ScreenTimeManager: ObservableObject {
     private var isRecoveringAppUpdate = false
     private var badgeUpdateTracker = RemainingTimeBadgeUpdateTracker()
     private let sharedDefaults: UserDefaults?
+    private let countedActivityAnnouncement: CountedActivityAnnouncement?
     private var hasUnrecordedAuthorizationLoss = false
 
     let usesSimulatedData: Bool
@@ -45,17 +47,17 @@ final class ScreenTimeManager: ObservableObject {
         simulatesPermission: usesSimulatedData
     )
 
-    convenience init(defaults: UserDefaults? = nil) {
-        self.init(defaults: defaults, usesSimulatedData: false)
+    convenience init(defaults: UserDefaults? = nil, localDefaults: UserDefaults? = nil) {
+        self.init(defaults: defaults, localDefaults: localDefaults, usesSimulatedData: false)
     }
 
 #if DEBUG
     convenience init(workflowDefaults: UserDefaults) {
-        self.init(defaults: workflowDefaults, usesSimulatedData: true)
+        self.init(defaults: workflowDefaults, localDefaults: nil, usesSimulatedData: true)
     }
 #endif
 
-    private init(defaults: UserDefaults?, usesSimulatedData: Bool) {
+    private init(defaults: UserDefaults?, localDefaults: UserDefaults?, usesSimulatedData: Bool) {
         self.usesSimulatedData = usesSimulatedData
         let sharedDefaults = defaults ?? UserDefaults(
             suiteName: AppConfiguration.appGroupIdentifier
@@ -67,6 +69,15 @@ final class ScreenTimeManager: ObservableObject {
         dailyLimitMinutes = Int(limitStore.currentLimit / 60)
         usageSnapshot = usageSnapshotLoader.load()
         countedActivitySelection = try? CountedActivityScope.load(from: sharedDefaults).selection
+        countedActivityAnnouncement = localDefaults.map(CountedActivityAnnouncement.init(defaults:))
+        if let countedActivityAnnouncement {
+            // Capture upgrade eligibility before app update recovery records this build.
+            showsCountedActivityAnnouncement = countedActivityAnnouncement.resolvePending(
+                hasSavedScope: sharedDefaults?.object(
+                    forKey: AppConfiguration.DefaultsKey.countedActivityScope
+                ) != nil
+            )
+        }
         guard !usesSimulatedData else { return }
 
         applyAuthorizationStatus(AuthorizationCenter.shared.authorizationStatus)
@@ -92,6 +103,12 @@ final class ScreenTimeManager: ObservableObject {
 
     var isAuthorized: Bool {
         authorizationStatus == .approved
+    }
+
+    func acknowledgeCountedActivityAnnouncement() {
+        guard showsCountedActivityAnnouncement else { return }
+        countedActivityAnnouncement?.acknowledge()
+        showsCountedActivityAnnouncement = false
     }
 
     @discardableResult

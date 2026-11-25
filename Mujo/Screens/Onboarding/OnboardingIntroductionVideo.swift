@@ -17,7 +17,7 @@ enum OnboardingIntroductionVideoPolicy {
 
     static let frameRate = 30.0
     static let durationInFrames = 1514
-    static let videoSize = CGSize(width: 1320, height: 2868)
+    nonisolated static let videoSize = CGSize(width: 1320, height: 2868)
     static let textStartFrames = [
         0, 116, 186, 292, 349, 406, 463, 575,
         674, 748, 834, 946, 1032, 1184, 1290, 1392
@@ -54,7 +54,7 @@ enum OnboardingIntroductionVideoPolicy {
         }
     }()
 
-    static func fittedVideoRect(in bounds: CGRect) -> CGRect {
+    nonisolated static func fittedVideoRect(in bounds: CGRect) -> CGRect {
         guard bounds.width > 0, bounds.height > 0 else { return .zero }
         let scale = min(bounds.width / videoSize.width, bounds.height / videoSize.height)
         let size = CGSize(width: videoSize.width * scale, height: videoSize.height * scale)
