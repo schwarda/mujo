@@ -1,4 +1,5 @@
 import DeviceActivity
+import FamilyControls
 import SwiftUI
 import UIKit
 
@@ -274,16 +275,19 @@ private struct DailyLimitEditorScreen: View {
 #endif
     }
 
+    @ViewBuilder
     private var liveLimitDescription: some View {
-        ScreenTimeReportView(
-            context: .mujoLimitEditorDescription,
-            filter: sevenDayReportFilter
-        )
-        .equatable()
-        .allowsHitTesting(false)
+        if let selection = screenTime.countedActivitySelection {
+            ScreenTimeReportView(
+                context: .mujoLimitEditorDescription,
+                filter: sevenDayReportFilter(for: selection)
+            )
+            .equatable()
+            .allowsHitTesting(false)
+        }
     }
 
-    private var sevenDayReportFilter: DeviceActivityFilter {
+    private func sevenDayReportFilter(for selection: FamilyActivitySelection) -> DeviceActivityFilter {
         let calendar = Calendar.autoupdatingCurrent
         let end = calendar.startOfDay(for: .now)
         let start = calendar.date(
@@ -295,7 +299,10 @@ private struct DailyLimitEditorScreen: View {
         return DeviceActivityFilter(
             segment: .daily(during: DateInterval(start: start, end: end)),
             users: .all,
-            devices: .all
+            devices: .all,
+            applications: selection.applicationTokens,
+            categories: selection.categoryTokens,
+            webDomains: selection.webDomainTokens
         )
     }
 

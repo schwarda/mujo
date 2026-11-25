@@ -7,28 +7,33 @@ import ActivityKit
 import Foundation
 
 enum RemainingTimeLiveActivityUpdater {
-    static func refresh(defaults: UserDefaults) {
+    static func refresh(defaults: UserDefaults, activeScope: String) {
         guard AppConfiguration.Features.liveActivitiesEnabled else {
             return
         }
         // ActivityKit documents app/APNs updates. Extension-side updates are
         // best-effort and depend on the system keeping this process alive.
         Task {
-            await applyLatestEstimate(from: defaults)
+            await applyLatestEstimate(from: defaults, activeScope: activeScope)
         }
     }
 
-    static func endAll() {
+    static func endAll(defaults: UserDefaults, activeScope: String) {
         Task {
             for activity in Activity<RemainingTimeActivityAttributes>.activities
             where activity.activityState == .active || activity.activityState == .stale {
+                guard scopeIsCurrent(activeScope, defaults: defaults) else { return }
                 await activity.end(nil, dismissalPolicy: .immediate)
             }
         }
     }
 
-    private static func applyLatestEstimate(from defaults: UserDefaults) async {
-        guard let storedLimit = defaults.object(
+    private static func applyLatestEstimate(
+        from defaults: UserDefaults,
+        activeScope: String
+    ) async {
+        guard scopeIsCurrent(activeScope, defaults: defaults),
+              let storedLimit = defaults.object(
             forKey: AppConfiguration.DefaultsKey.dailyLimit
         ) as? TimeInterval,
               storedLimit.isFinite,
@@ -57,6 +62,7 @@ enum RemainingTimeLiveActivityUpdater {
                 $0.activityState == .active || $0.activityState == .stale
             }
         for activity in activities {
+            guard scopeIsCurrent(activeScope, defaults: defaults) else { return }
             if remainingMinutes == 0
                 || remainingMinutes > finalWindow
                 || activity.attributes.limitMinutes != limitMinutes {
@@ -80,7 +86,13 @@ enum RemainingTimeLiveActivityUpdater {
         if defaults.double(
             forKey: AppConfiguration.DefaultsKey.estimatedUsedTime
         ) > usedSeconds {
-            await applyLatestEstimate(from: defaults)
+            await applyLatestEstimate(from: defaults, activeScope: activeScope)
         }
+    }
+
+    private static func scopeIsCurrent(_ activeScope: String, defaults: UserDefaults) -> Bool {
+        (try? UsageScopeLock.withLock {
+            AppConfiguration.Monitoring.activeUsageActivityName(in: defaults) == activeScope
+        }) == true
     }
 }

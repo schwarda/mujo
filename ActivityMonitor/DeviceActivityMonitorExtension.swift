@@ -10,10 +10,6 @@ import Foundation
 import OSLog
 import WidgetKit
 
-extension DeviceActivityName {
-    static let mujoUsage = Self(AppConfiguration.Monitoring.usageActivityName)
-}
-
 private let logger = Logger(
     subsystem: "AikariStudio.Mujo",
     category: "ActivityMonitor"
@@ -22,20 +18,12 @@ private let logger = Logger(
 final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     override func intervalDidStart(for activity: DeviceActivityName) {
         super.intervalDidStart(for: activity)
-
-        guard activity == .mujoUsage else {
-            return
-        }
-
-        guard let defaults = UserDefaults(
-            suiteName: AppConfiguration.appGroupIdentifier
-        ) else {
-            logger.error("App Group UserDefaults is unavailable")
-            return
-        }
-
-        if resetEstimateForNewDayIfNeeded(defaults) {
-            RemainingTimeLiveActivityUpdater.endAll()
+        withActiveScope(activity) { defaults in
+            if resetEstimateForNewDayIfNeeded(defaults) {
+                RemainingTimeLiveActivityUpdater.endAll(
+                    defaults: defaults, activeScope: activity.rawValue
+                )
+            }
         }
     }
 
@@ -44,19 +32,43 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         activity: DeviceActivityName
     ) {
         super.eventDidReachThreshold(event, activity: activity)
-        
-        guard activity == .mujoUsage else {
-            return
+        withActiveScope(activity) { defaults in
+            applyThreshold(event, activity: activity, defaults: defaults)
         }
+    }
 
+    private func withActiveScope(
+        _ activity: DeviceActivityName,
+        apply: (UserDefaults) -> Void
+    ) {
         guard let defaults = UserDefaults(
             suiteName: AppConfiguration.appGroupIdentifier
         ) else {
             logger.error("App Group UserDefaults is unavailable")
             return
         }
+        do {
+            try UsageScopeLock.withLock {
+                guard AppConfiguration.Monitoring.activeUsageActivityName(in: defaults)
+                    == activity.rawValue else { return }
+                apply(defaults)
+            }
+        } catch {
+            logger.error(
+                "Could not lock Screen Time measurement: \(String(reflecting: error), privacy: .public)"
+            )
+        }
+    }
+
+    private func applyThreshold(
+        _ event: DeviceActivityEvent.Name,
+        activity: DeviceActivityName,
+        defaults: UserDefaults
+    ) {
         if resetEstimateForNewDayIfNeeded(defaults) {
-            RemainingTimeLiveActivityUpdater.endAll()
+            RemainingTimeLiveActivityUpdater.endAll(
+                defaults: defaults, activeScope: activity.rawValue
+            )
         }
         guard let reachedSeconds = usageCheckpointSeconds(
             from: event,
@@ -122,8 +134,11 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
             from: UsageSnapshotLoader(defaults: defaults).load()
         )
 
-        RemainingTimeLiveActivityUpdater.refresh(defaults: defaults)
+        RemainingTimeLiveActivityUpdater.refresh(
+            defaults: defaults, activeScope: activity.rawValue
+        )
 
+        // Submit before releasing the lock so retired callbacks cannot queue alerts.
         if newestSeconds > previousSeconds {
             handleUsageNotificationCheckpoint(
                 previousSeconds: previousSeconds,
@@ -132,7 +147,7 @@ final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
             )
         }
     }
-    
+
     private func handleUsageNotificationCheckpoint(
         previousSeconds: TimeInterval,
         reachedSeconds: TimeInterval,

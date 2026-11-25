@@ -984,7 +984,8 @@ struct OnboardingMotionPolicyTests {
             (.chooseLimit, .savings),
             (.chooseLimit, .limitReached),
             (.savings, .limitReached),
-            (.limitReached, .notifications),
+            (.limitReached, .activityScope),
+            (.activityScope, .notifications),
             (.notifications, .lockScreenWidget),
             (.lockScreenWidget, .homeScreenWidget),
             (.homeScreenWidget, nil)

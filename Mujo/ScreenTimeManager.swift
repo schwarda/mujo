@@ -26,6 +26,7 @@ final class ScreenTimeManager: ObservableObject {
     @Published private(set) var errorMessage: String?
     @Published private(set) var dailyLimitMinutes: Int
     @Published private(set) var usageSnapshot: UsageSnapshot
+    @Published private(set) var countedActivitySelection: FamilyActivitySelection?
 
     private let limitStore: DailyLimitStore
     private lazy var monitoring = ScreenTimeMonitoring(
@@ -37,6 +38,7 @@ final class ScreenTimeManager: ObservableObject {
     private var isRecoveringAppUpdate = false
     private var badgeUpdateTracker = RemainingTimeBadgeUpdateTracker()
     private let sharedDefaults: UserDefaults?
+    private var hasUnrecordedAuthorizationLoss = false
 
     let usesSimulatedData: Bool
     lazy var notificationAuthorization = NotificationAuthorization(
@@ -64,9 +66,10 @@ final class ScreenTimeManager: ObservableObject {
         usageSnapshotLoader = UsageSnapshotLoader(defaults: sharedDefaults)
         dailyLimitMinutes = Int(limitStore.currentLimit / 60)
         usageSnapshot = usageSnapshotLoader.load()
+        countedActivitySelection = try? CountedActivityScope.load(from: sharedDefaults).selection
         guard !usesSimulatedData else { return }
 
-        authorizationStatus = AuthorizationCenter.shared.authorizationStatus
+        applyAuthorizationStatus(AuthorizationCenter.shared.authorizationStatus)
         if limitStore.migratedLimit != nil {
             WidgetCenter.shared.reloadAllTimelines()
         }
@@ -74,7 +77,7 @@ final class ScreenTimeManager: ObservableObject {
             .$authorizationStatus
             .removeDuplicates()
             .sink { [weak self] status in
-                self?.authorizationStatus = status
+                self?.applyAuthorizationStatus(status)
             }
 #if DEBUG
         DiagnosticsStore.record(
@@ -94,8 +97,40 @@ final class ScreenTimeManager: ObservableObject {
     @discardableResult
     func refreshAuthorizationStatus() -> Bool {
         guard !usesSimulatedData else { return isAuthorized }
-        authorizationStatus = AuthorizationCenter.shared.authorizationStatus
-        return isAuthorized
+        applyAuthorizationStatus(AuthorizationCenter.shared.authorizationStatus)
+        return isAuthorized && !hasUnrecordedAuthorizationLoss
+    }
+
+    private func applyAuthorizationStatus(
+        _ status: AuthorizationStatus,
+        aboutToRequest: Bool = false
+    ) {
+        // Screen Time can briefly return .notDetermined on launch. A transition
+        // away from observed approval or an actual new request can invalidate tokens.
+        if status != .approved, authorizationStatus == .approved
+            || (status == .denied && authorizationStatus != .denied)
+            || aboutToRequest {
+            hasUnrecordedAuthorizationLoss = true
+        }
+        if hasUnrecordedAuthorizationLoss, let sharedDefaults {
+            do {
+                let selectionWasInvalidated = try UsageScopeLock.withLock {
+                    CountedActivityScope.recordAuthorizationLoss(in: sharedDefaults)
+                }
+                hasUnrecordedAuthorizationLoss = false
+                if selectionWasInvalidated {
+                    countedActivitySelection = nil
+                    refreshUsageSnapshot()
+                    requestWidgetReload()
+                }
+            } catch {
+                // Retain the pending invalidation and retry before restoring monitoring.
+                usageLogger.error(
+                    "Could not record the change in Screen Time access: \(String(reflecting: error), privacy: .public)"
+                )
+            }
+        }
+        authorizationStatus = status
     }
 
     func restoreMonitoringIfPossible() async {
@@ -107,6 +142,9 @@ final class ScreenTimeManager: ObservableObject {
             await RemainingTimeLiveActivityController.reconcile(
                 with: usageSnapshot
             )
+        } catch CountedActivityScope.StorageError.authorizationChanged {
+            countedActivitySelection = nil
+            refreshUsageSnapshot()
         } catch {
             handleMonitoringError(error)
         }
@@ -119,11 +157,15 @@ final class ScreenTimeManager: ObservableObject {
             return
         }
 
+        applyAuthorizationStatus(
+            AuthorizationCenter.shared.authorizationStatus,
+            aboutToRequest: true
+        )
         do {
             try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
-            authorizationStatus = AuthorizationCenter.shared.authorizationStatus
+            refreshAuthorizationStatus()
         } catch {
-            authorizationStatus = AuthorizationCenter.shared.authorizationStatus
+            refreshAuthorizationStatus()
             handleMonitoringError(error)
         }
     }
@@ -209,6 +251,7 @@ final class ScreenTimeManager: ObservableObject {
 
         usageSnapshot = refreshedSnapshot
         Task {
+            guard refreshedSnapshot == usageSnapshot else { return }
             await RemainingTimeLiveActivityController.reconcile(
                 with: refreshedSnapshot
             )
@@ -246,6 +289,8 @@ final class ScreenTimeManager: ObservableObject {
         guard refreshAuthorizationStatus() else { return }
         do {
             try await monitoring.restore(limit: limitStore.currentLimit)
+        } catch CountedActivityScope.StorageError.authorizationChanged {
+            return
         } catch {
             handleMonitoringError(error)
         }
@@ -273,21 +318,14 @@ final class ScreenTimeManager: ObservableObject {
         refreshUsageSnapshot()
     }
 
-    func setDailyLimit(minutes: Int) async {
+    func setDailyLimit(minutes: Int, startMonitoring: Bool = true) async {
         errorMessage = nil
 
         if !isAuthorized, !usesSimulatedData {
-            do {
-                try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
-                authorizationStatus = AuthorizationCenter.shared.authorizationStatus
-            } catch {
-                authorizationStatus = AuthorizationCenter.shared.authorizationStatus
-                errorMessage = error.localizedDescription
-                return
-            }
+            await requestAuthorization()
         }
 
-        guard isAuthorized else { return }
+        guard isAuthorized, !hasUnrecordedAuthorizationLoss else { return }
 
         guard sharedDefaults != nil else {
             errorMessage = String(localized: "Screen Time storage is unavailable. Open Mujø again and try again.")
@@ -306,7 +344,7 @@ final class ScreenTimeManager: ObservableObject {
             }
         }
 
-        guard !usesSimulatedData else { return }
+        guard !usesSimulatedData, startMonitoring else { return }
 
         do {
             try await monitoring.updateLimit(to: safeLimit)
@@ -314,11 +352,58 @@ final class ScreenTimeManager: ObservableObject {
                 with: usageSnapshot,
                 resumeAfterLimitChange: didChangeLimit
             )
+        } catch CountedActivityScope.StorageError.authorizationChanged {
+            return
         } catch {
             handleMonitoringError(error)
             if errorMessage == nil {
                 errorMessage = String(localized: "Screen Time monitoring is unavailable. Open Mujø again and try again.")
             }
+        }
+    }
+
+    func saveCountedActivity(_ selection: FamilyActivitySelection) async throws {
+        guard refreshAuthorizationStatus() else {
+            throw CountedActivitySaveError.authorizationRequired
+        }
+        let selectionData = try CountedActivityScope.encodeSelection(selection)
+        if usesSimulatedData {
+            countedActivitySelection = selection
+            return
+        }
+
+        let authorizationRevision = sharedDefaults?.string(
+            forKey: AppConfiguration.DefaultsKey.countedActivityAuthorizationRevision
+        )
+        let didStartMeasurement = try await monitoring.updateScope(
+            selectionData: selectionData,
+            limit: limitStore.currentLimit,
+            authorizationRevision: authorizationRevision
+        )
+        guard refreshAuthorizationStatus() else {
+            throw CountedActivitySaveError.authorizationRequired
+        }
+        guard sharedDefaults?.string(
+            forKey: AppConfiguration.DefaultsKey.countedActivityAuthorizationRevision
+        ) == authorizationRevision else {
+            throw CountedActivityScope.StorageError.authorizationChanged
+        }
+        if countedActivitySelection != selection {
+            countedActivitySelection = selection
+        }
+        clearError()
+        refreshUsageSnapshot()
+        if didStartMeasurement {
+            requestWidgetReload()
+            refreshNotificationBadge()
+        }
+    }
+
+    private enum CountedActivitySaveError: LocalizedError {
+        case authorizationRequired
+
+        var errorDescription: String? {
+            String(localized: "Allow access to Screen Time, then try again.")
         }
     }
 

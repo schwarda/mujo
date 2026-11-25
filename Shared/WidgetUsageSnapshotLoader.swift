@@ -14,6 +14,17 @@ struct UsageSnapshotLoader {
 
     func load() -> UsageSnapshot {
         let storedLimit = normalizedStoredLimit()
+        if let defaults,
+           AppConfiguration.Monitoring.activeUsageActivityName(in: defaults) == nil {
+            return UsageSnapshot(
+                storedDailyLimit: storedLimit,
+                estimatedUsedTime: 0,
+                estimateDay: 0,
+                checkpointTimeZoneIdentifier: nil,
+                monitoringStartedAt: 0,
+                hasCheckpoint: false
+            )
+        }
         let estimatedUsage = normalizedStoredUsage()
 
         return UsageSnapshot(
@@ -52,10 +63,6 @@ struct UsageSnapshotLoader {
         guard let defaults else { return 0 }
         let key = AppConfiguration.DefaultsKey.estimatedUsedTime
         let stored = defaults.double(forKey: key)
-        let normalized = AppConfiguration.DailyLimit.normalizedUsage(stored)
-        if normalized != stored {
-            defaults.set(normalized, forKey: key)
-        }
-        return normalized
+        return AppConfiguration.DailyLimit.normalizedUsage(stored)
     }
 }

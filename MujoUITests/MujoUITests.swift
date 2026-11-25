@@ -62,6 +62,8 @@ final class MujoUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label BEGINSWITH %@", "Your new limit")).firstMatch.waitForExistence(timeout: 5))
         tap("Continue")
         tap("Got it")
+        XCTAssertTrue(app.staticTexts["Apps and Websites"].waitForExistence(timeout: 5))
+        tap("Continue")
         tap("Continue")
         tap("Got it")
         tap("Got it")
@@ -70,6 +72,12 @@ final class MujoUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["daily-limit-heading"].waitForExistence(timeout: 5))
         tap("Set limit")
         XCTAssertTrue(app.staticTexts["daily-limit-heading"].waitForNonExistence(timeout: 5))
+
+        tap("Menu")
+        tap("Counted Apps")
+        XCTAssertTrue(app.staticTexts["Apps and Websites"].waitForExistence(timeout: 5))
+        tap("Save")
+        XCTAssertTrue(app.staticTexts["Apps and Websites"].waitForNonExistence(timeout: 5))
 
         tap("Menu")
         tap("Notifications")

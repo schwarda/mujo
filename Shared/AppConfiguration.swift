@@ -87,6 +87,8 @@ enum AppConfiguration {
         nonisolated static let lastCheckpointTimeZoneIdentifier = "lastCheckpointTimeZoneIdentifier"
         nonisolated static let hasUsageCheckpoint = "hasUsageCheckpoint"
         nonisolated static let usageMonitoringStartedAt = "usageMonitoringStartedAt"
+        nonisolated static let countedActivityScope = "countedActivityScope"
+        nonisolated static let countedActivityAuthorizationRevision = "countedActivityAuthorizationRevision"
 #if DEBUG
         nonisolated static let lastWidgetTimelineAt = "debug.lastWidgetTimelineAt"
         nonisolated static let lastWidgetReloadRequestedAt = "debug.lastWidgetReloadRequestedAt"
@@ -98,6 +100,36 @@ enum AppConfiguration {
         nonisolated static let legacyLimitActivityName = "mujo.limit"
         nonisolated static let usageEventPrefix = usageActivityName + "."
         nonisolated static let legacyNotificationActivityName = "mujo.notifications"
+        private nonisolated static let scopedActivityPrefix = usageActivityName + ".scope."
+        nonisolated static let scopeGenerationKey = "generation"
+        nonisolated static let scopeSelectionKey = "selection"
+        nonisolated static let scopeNeedsReselectionKey = "needsReselection"
+
+        nonisolated static func scopedActivityName(generation: UUID) -> String {
+            scopedActivityPrefix + generation.uuidString
+        }
+
+        nonisolated static func isScopedActivityName(_ name: String) -> Bool {
+            name.hasPrefix(scopedActivityPrefix)
+        }
+
+        nonisolated static func activeUsageActivityName(in defaults: UserDefaults) -> String? {
+            guard let stored = defaults.object(forKey: DefaultsKey.countedActivityScope) else {
+                return usageActivityName
+            }
+            guard let record = stored as? [String: Any],
+                  record[scopeNeedsReselectionKey] as? Bool != true,
+                  record[scopeSelectionKey] is Data,
+                  let rawGeneration = record[scopeGenerationKey] as? String,
+                  let generation = UUID(uuidString: rawGeneration) else { return nil }
+            return scopedActivityName(generation: generation)
+        }
+
+        nonisolated static func scopeNeedsReselection(in defaults: UserDefaults) -> Bool {
+            defaults.dictionary(forKey: DefaultsKey.countedActivityScope)?[
+                scopeNeedsReselectionKey
+            ] as? Bool == true
+        }
 
         nonisolated static func usageEventName(minutes: Int) -> String {
             usageEventPrefix + String(minutes)

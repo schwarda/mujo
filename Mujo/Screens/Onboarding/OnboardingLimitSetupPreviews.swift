@@ -40,15 +40,19 @@ private struct OnboardingScreenPreview: View {
     OnboardingScreenPreview(step: .limitReached)
 }
 
-#Preview("07 · Notifications") {
+#Preview("07 · Counted Apps") {
+    OnboardingScreenPreview(step: .activityScope)
+}
+
+#Preview("08 · Notifications") {
     OnboardingScreenPreview(step: .notifications)
 }
 
-#Preview("08 · Lock Screen widget") {
+#Preview("09 · Lock Screen widget") {
     OnboardingScreenPreview(step: .lockScreenWidget)
 }
 
-#Preview("09 · Home Screen widget") {
+#Preview("10 · Home Screen widget") {
     OnboardingScreenPreview(step: .homeScreenWidget)
 }
 #endif

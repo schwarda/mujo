@@ -1,4 +1,5 @@
 import DeviceActivity
+import FamilyControls
 import SwiftUI
 import UIKit
 
@@ -103,6 +104,8 @@ struct OnboardingLimitSetupView: View {
                 EmptyView()
             case .limitReached:
                 limitReachedStep.transition(motionStyle.transition)
+            case .activityScope:
+                activityScopeStep.transition(motionStyle.transition)
             case .notifications:
                 notificationsStep.transition(motionStyle.transition)
             case .lockScreenWidget:
@@ -525,7 +528,7 @@ struct OnboardingLimitSetupView: View {
 //                Spacer(minLength: 28)
 
                 OnboardingPrimaryButton(action: {
-                    advance(to: .notifications)
+                    advance(to: .activityScope)
                 }) {
                     Text("Got it")
                 }
@@ -539,6 +542,22 @@ struct OnboardingLimitSetupView: View {
                 isCountdownActive && limitCountdownHandoffProgress == 0
             )
         }
+    }
+
+    private var activityScopeStep: some View {
+        CountedActivityEditor(
+            selection: usesPreviewData && !screenTime.usesSimulatedData
+                ? FamilyActivitySelection()
+                : screenTime.countedActivitySelection,
+            isOnboarding: true,
+            showsPreviewData: usesPreviewData,
+            onSave: { selection in
+                if !usesPreviewData || screenTime.usesSimulatedData {
+                    try await screenTime.saveCountedActivity(selection)
+                }
+            },
+            onCompletion: { advance(to: .notifications) }
+        )
     }
 
     private var lockScreenWidgetStep: some View {
@@ -1146,7 +1165,7 @@ struct OnboardingLimitSetupView: View {
             return nil
         }
 
-        await screenTime.setDailyLimit(minutes: minutes)
+        await screenTime.setDailyLimit(minutes: minutes, startMonitoring: false)
 
         if let error = screenTime.errorMessage { return error }
         guard screenTime.isAuthorized else {

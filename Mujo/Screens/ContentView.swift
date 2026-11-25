@@ -7,10 +7,12 @@
 
 import SwiftUI
 import FamilyControls
+import StoreKit
 
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.requestReview) private var requestReview
     @StateObject private var screenTime: ScreenTimeManager
     @State private var isRequestingAuthorization = false
     @State private var sharedWindStrength = 0.0
@@ -21,12 +23,15 @@ struct ContentView: View {
     @State private var isShowingLaunchOverlay = true
     @State private var showsOnboardingCompletionPetals = false
     @State private var onboardingCompletionProgress = 0.0
+    @State private var hasHandledCurrentOpening = false
     private let firstLaunchLogoDuration = 1.6
     private let launchOverlayFadeDuration = 0.45
     @AppStorage("hasReachedScreenTimePermission")
     private var hasReachedScreenTimePermission = false
     @AppStorage("hasCompletedOnboarding")
     private var hasCompletedOnboarding = false
+    @AppStorage("openingsUntilAppStoreReview")
+    private var openingsUntilAppStoreReview = 3
 
     init() {
         _screenTime = StateObject(wrappedValue: ScreenTimeManager())
@@ -78,6 +83,17 @@ struct ContentView: View {
         .task {
             await resolveInitialAuthorization()
         }
+        .onChange(of: scenePhase, initial: true) { _, phase in
+            countAppOpening(in: phase)
+        }
+        .task(id: canRequestAppStoreReview) {
+            guard canRequestAppStoreReview else { return }
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled, canRequestAppStoreReview else { return }
+
+            openingsUntilAppStoreReview = 6
+            requestReview()
+        }
         .onChange(of: screenTime.authorizationStatus) { _, newStatus in
             guard newStatus != .notDetermined else { return }
             completeInitialSetup()
@@ -108,6 +124,36 @@ struct ContentView: View {
             }
         } message: {
             Text(screenTime.errorMessage ?? "Please try again.")
+        }
+    }
+
+    private var canRequestAppStoreReview: Bool {
+        !screenTime.usesSimulatedData
+            && openingsUntilAppStoreReview == 0
+            && scenePhase == .active
+            && hasCompletedOnboarding
+            && hasResolvedInitialAuthorization
+            && !isShowingLaunchOverlay
+            && !showsOnboardingCompletionPetals
+            && screenTime.isAuthorized
+            && screenTime.errorMessage == nil
+    }
+
+    private func countAppOpening(in phase: ScenePhase) {
+        guard !screenTime.usesSimulatedData else { return }
+
+        switch phase {
+        case .background:
+            hasHandledCurrentOpening = false
+        case .active:
+            guard !hasHandledCurrentOpening else { return }
+            hasHandledCurrentOpening = true
+            guard hasCompletedOnboarding, !showsOnboardingCompletionPetals else { return }
+            openingsUntilAppStoreReview = max(0, openingsUntilAppStoreReview - 1)
+        case .inactive:
+            break
+        @unknown default:
+            break
         }
     }
 

@@ -22,6 +22,7 @@ struct HomeScreen: View {
             case timeZoneChanged
             case firstDay
             case notificationsDisabled
+            case countedActivitySelection
         }
 
         let id: ID
@@ -38,9 +39,15 @@ struct HomeScreen: View {
 
     private static let firstDayNotice = HomeNotice(
         id: .firstDay,
-        title: "Your first day",
-        message: "Today, usage counts from when you started using Mujø. "
-            + "From tomorrow, it will count from midnight."
+        title: "Today’s count",
+        message: "Today’s count started when you saved your settings. "
+            + "Tomorrow it starts at midnight."
+    )
+
+    private static let countedActivityNotice = HomeNotice(
+        id: .countedActivitySelection,
+        title: "Choose what counts",
+        message: "Open Counted Apps in the menu to choose what counts toward your limit."
     )
 
     private static let notificationsNotice = HomeNotice(
@@ -63,6 +70,7 @@ struct HomeScreen: View {
     @State private var isShowingAbout = false
     @State private var isShowingAppInfo = false
     @State private var isShowingNotificationSettings = false
+    @State private var isShowingCountedActivity = false
     @ObservedObject private var notificationAuthorization: NotificationAuthorization
     @State private var widgetHelp: OnboardingWidgetHelp?
     @State private var noticeGeometries: [HomeNotice.ID: HomeNoticeGeometry] = [:]
@@ -204,6 +212,11 @@ struct HomeScreen: View {
                 guard !showing else { return }
                 Task { await notificationAuthorization.refreshStatus() }
             }
+            .sheet(isPresented: $isShowingCountedActivity) {
+                CountedActivitySheet(screenTime: screenTime)
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
+            }
             .sheet(item: $widgetHelp) { help in
                 OnboardingWidgetHelpSheet(help: help)
                     .presentationDetents([.large])
@@ -229,6 +242,12 @@ struct HomeScreen: View {
                         Label("Notifications", systemImage: "bell")
                     }
 
+                    Button {
+                        isShowingCountedActivity = true
+                    } label: {
+                        Label("Counted apps", systemImage: "square.grid.2x2")
+                    }
+
                     Menu {
                         Button {
                             widgetHelp = .lockScreen
@@ -250,6 +269,8 @@ struct HomeScreen: View {
                     } label: {
                         Label("Add a widget", systemImage: "plus.rectangle.on.rectangle")
                     }
+                    
+                    Divider()
 
                     Button {
                         isShowingAbout = true
@@ -260,7 +281,7 @@ struct HomeScreen: View {
                     Button {
                         isShowingAppInfo = true
                     } label: {
-                        Label("App Info", systemImage: "info.circle")
+                        Label("App info", systemImage: "info.circle")
                     }
                 } label: {
                     Image(systemName: "ellipsis")
@@ -603,6 +624,10 @@ struct HomeScreen: View {
             forLimitMinutes: selectedMinutes
         )
         var notices: [HomeNotice] = []
+
+        if screenTime.countedActivitySelection == nil {
+            notices.append(Self.countedActivityNotice)
+        }
 
         if estimate.unavailableReason == .timeZoneChanged {
             notices.append(Self.timeZoneNotice)

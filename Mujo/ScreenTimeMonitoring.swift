@@ -4,12 +4,10 @@
 //
 
 import DeviceActivity
+import FamilyControls
 import Foundation
 
 private extension DeviceActivityName {
-    nonisolated static let mujoUsage = Self(
-        AppConfiguration.Monitoring.usageActivityName
-    )
     nonisolated static let legacyMujoLimit = Self(
         AppConfiguration.Monitoring.legacyLimitActivityName
     )
@@ -44,16 +42,81 @@ actor ScreenTimeMonitoring {
         try updateLimit(to: limit)
     }
     
-    func updateLimit(to limit: TimeInterval) throws {
+    @discardableResult
+    func updateLimit(to limit: TimeInterval) throws -> Bool {
+        guard let sharedDefaults else { throw Error.sharedStorageUnavailable }
+        let scope = try UsageScopeLock.withLock {
+            try CountedActivityScope.load(from: sharedDefaults)
+        }
         let center = DeviceActivityCenter()
-        try ensureUsageMonitoring(limit: limit, using: center)
-        removeLegacyMonitoring(from: center)
+        let beganMeasurement = try ensureUsageMonitoring(limit: limit, scope: scope, using: center)
+        removeInactiveMonitoring(keeping: DeviceActivityName(scope.activityName), from: center)
+        return beganMeasurement
+    }
+
+    // Keep the previous registration and estimate available until iOS accepts
+    // the replacement. The activity name also identifies stale callbacks.
+    func updateScope(
+        selectionData: Data,
+        limit: TimeInterval,
+        authorizationRevision: String?
+    ) throws -> Bool {
+        guard let sharedDefaults else { throw Error.sharedStorageUnavailable }
+        let selection = try CountedActivityScope.decodeSelection(selectionData)
+        let matchesPrevious = try UsageScopeLock.withLock {
+            try checkAuthorizationRevision(authorizationRevision, defaults: sharedDefaults)
+            guard let previous = try? CountedActivityScope.load(from: sharedDefaults) else {
+                return false
+            }
+            return selection.countsSameActivity(as: previous.selection)
+        }
+        if matchesPrevious {
+            return try updateLimit(to: limit)
+        }
+
+        let generation = UUID()
+        let name = AppConfiguration.Monitoring.scopedActivityName(generation: generation)
+        let activity = DeviceActivityName(name)
+        let scope = CountedActivityScope(selection: selection, activityName: name)
+        let center = DeviceActivityCenter()
+        let start = Date.now
+        try center.startMonitoring(
+            activity,
+            during: dailySchedule,
+            events: usageEvents(for: limit, scope: scope, includesPastActivity: false)
+        )
+
+        do {
+            try UsageScopeLock.withLock {
+                try checkAuthorizationRevision(authorizationRevision, defaults: sharedDefaults)
+                sharedDefaults.set(
+                    [
+                        AppConfiguration.Monitoring.scopeGenerationKey: generation.uuidString,
+                        AppConfiguration.Monitoring.scopeSelectionKey: selectionData
+                    ],
+                    forKey: AppConfiguration.DefaultsKey.countedActivityScope
+                )
+                resetUsageMonitoringStart(to: start, defaults: sharedDefaults)
+            }
+        } catch {
+            center.stopMonitoring([activity])
+            throw error
+        }
+        removeInactiveMonitoring(keeping: activity, from: center)
+        return true
+    }
+
+    private func checkAuthorizationRevision(_ revision: String?, defaults: UserDefaults) throws {
+        guard defaults.string(
+            forKey: AppConfiguration.DefaultsKey.countedActivityAuthorizationRevision
+        ) == revision else { throw CountedActivityScope.StorageError.authorizationChanged }
     }
     
     private func ensureUsageMonitoring(
         limit: TimeInterval,
+        scope: CountedActivityScope,
         using center: DeviceActivityCenter
-    ) throws {
+    ) throws -> Bool {
         guard let sharedDefaults else {
             throw Error.sharedStorageUnavailable
         }
@@ -66,15 +129,18 @@ actor ScreenTimeMonitoring {
             .timeIntervalSince1970
         let events = usageEvents(
             for: limit,
+            scope: scope,
             includesPastActivity: startedAt > 0 && !startedToday
         )
-        let isCurrentConfiguration = center.schedule(for: .mujoUsage)
+        let activity = DeviceActivityName(scope.activityName)
+        let isCurrentConfiguration = center.schedule(for: activity)
         == dailySchedule
-        && center.events(for: .mujoUsage) == events
+        && center.events(for: activity) == events
         
         if isCurrentConfiguration {
-            prepareUsageMonitoringStartIfNeeded()
-            return
+            return try UsageScopeLock.withLock {
+                prepareUsageMonitoringStartIfNeeded()
+            }
         }
 
         // Re-registering with includesPastActivity disabled would restart the
@@ -82,7 +148,7 @@ actor ScreenTimeMonitoring {
         // universal 15-minute checkpoints still advance measurement. Custom
         // alerts use crossing detection until the next registration can safely
         // include past activity.
-        if startedToday, center.activities.contains(.mujoUsage) {
+        if startedToday, center.activities.contains(activity) {
 #if DEBUG
             DiagnosticsStore.record(
                 source: "app",
@@ -90,33 +156,47 @@ actor ScreenTimeMonitoring {
                 defaults: sharedDefaults
             )
 #endif
-            return
+            return false
         }
         
         // startMonitoring replaces this activity's configuration. Keep the old
         // one running if registration fails, and never reset today's estimate.
-        let preparedNewMeasurement = prepareUsageMonitoringStartIfNeeded()
+        let preparedNewMeasurement = try UsageScopeLock.withLock {
+            prepareUsageMonitoringStartIfNeeded()
+        }
         do {
             try center.startMonitoring(
-                .mujoUsage,
+                activity,
                 during: dailySchedule,
                 events: events
             )
         } catch {
             if preparedNewMeasurement {
-                clearPreparedUsageMonitoringStart()
+                try? UsageScopeLock.withLock {
+                    clearPreparedUsageMonitoringStart()
+                }
             }
             throw error
         }
+        return preparedNewMeasurement
     }
 
-    private func removeLegacyMonitoring(from center: DeviceActivityCenter) {
+    private func removeInactiveMonitoring(
+        keeping active: DeviceActivityName? = nil,
+        from center: DeviceActivityCenter
+    ) {
         let legacy: [DeviceActivityName] = [
             .legacyMujoDaily,
             .legacyMujoLimit,
             .legacyMujoNotifications
         ]
-        let running = legacy.filter { center.activities.contains($0) }
+        let running = center.activities.filter {
+            $0 != active && (
+                legacy.contains($0)
+                    || $0.rawValue == AppConfiguration.Monitoring.usageActivityName
+                    || AppConfiguration.Monitoring.isScopedActivityName($0.rawValue)
+            )
+        }
         if !running.isEmpty {
             center.stopMonitoring(running)
         }
@@ -129,7 +209,11 @@ actor ScreenTimeMonitoring {
             forKey: AppConfiguration.DefaultsKey.usageMonitoringStartedAt
         ) == 0 else { return false }
 
-        let now = Date.now
+        resetUsageMonitoringStart(to: .now, defaults: sharedDefaults)
+        return true
+    }
+
+    private func resetUsageMonitoringStart(to now: Date, defaults sharedDefaults: UserDefaults) {
         let calendar = Calendar.autoupdatingCurrent
         sharedDefaults.set(
             now.timeIntervalSince1970,
@@ -159,7 +243,6 @@ actor ScreenTimeMonitoring {
             defaults: sharedDefaults
         )
 #endif
-        return true
     }
 
     private func clearPreparedUsageMonitoringStart() {
@@ -188,6 +271,7 @@ actor ScreenTimeMonitoring {
     
     private func usageEvents(
         for limit: TimeInterval,
+        scope: CountedActivityScope,
         includesPastActivity: Bool
     ) -> [DeviceActivityEvent.Name: DeviceActivityEvent] {
         let minutes = Int(
@@ -204,6 +288,9 @@ actor ScreenTimeMonitoring {
                 AppConfiguration.Monitoring.usageEventName(minutes: usedMinutes)
             )
             events[name] = DeviceActivityEvent(
+                applications: scope.selection.applicationTokens,
+                categories: scope.selection.categoryTokens,
+                webDomains: scope.selection.webDomainTokens,
                 threshold: durationComponents(
                     for: TimeInterval(usedMinutes * 60)
                 ),
@@ -215,7 +302,7 @@ actor ScreenTimeMonitoring {
 
 #if DEBUG
     func resetForDiagnostics() {
-        DeviceActivityCenter().stopMonitoring([.mujoUsage])
+        removeInactiveMonitoring(from: DeviceActivityCenter())
         guard let sharedDefaults else { return }
         let keys = [
             AppConfiguration.DefaultsKey.dailyLimit,
@@ -239,10 +326,14 @@ actor ScreenTimeMonitoring {
 
     func diagnosticsSummary() -> String {
         let center = DeviceActivityCenter()
-        guard center.activities.contains(.mujoUsage) else {
+        guard let sharedDefaults,
+              let name = AppConfiguration.Monitoring.activeUsageActivityName(in: sharedDefaults)
+        else { return "inactive" }
+        let activity = DeviceActivityName(name)
+        guard center.activities.contains(activity) else {
             return "inactive"
         }
-        return "active · \(center.events(for: .mujoUsage).count) events"
+        return "active · \(center.events(for: activity).count) events"
     }
 #endif
 }

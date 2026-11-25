@@ -5,6 +5,7 @@ enum OnboardingStep: Hashable {
     case chooseLimit
     case savings
     case limitReached
+    case activityScope
     case notifications
     case lockScreenWidget
     case homeScreenWidget
