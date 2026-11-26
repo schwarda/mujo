@@ -147,6 +147,44 @@ enum MujoTheme {
     }
 }
 
+extension View {
+    @ViewBuilder
+    func mujoClearGlass(in shape: some Shape, interactive: Bool = false) -> some View {
+        if #available(iOS 26, *) {
+            glassEffect(.clear.interactive(interactive), in: shape)
+        } else {
+            background(.thinMaterial, in: shape)
+        }
+    }
+
+    @ViewBuilder
+    func mujoRegularGlass(in shape: some Shape) -> some View {
+        if #available(iOS 26, *) {
+            glassEffect(.regular, in: shape)
+        } else {
+            background(.regularMaterial, in: shape)
+        }
+    }
+
+    @ViewBuilder
+    func mujoGlassButtonStyle() -> some View {
+        if #available(iOS 26, *) {
+            buttonStyle(.glass)
+        } else {
+            buttonStyle(.bordered)
+        }
+    }
+
+    @ViewBuilder
+    func mujoProminentGlassButtonStyle() -> some View {
+        if #available(iOS 26, *) {
+            buttonStyle(.glassProminent)
+        } else {
+            buttonStyle(.borderedProminent)
+        }
+    }
+}
+
 struct OnboardingPrimaryButton<Label: View>: View {
     @Environment(\.colorScheme) private var colorScheme
 
@@ -178,7 +216,7 @@ struct OnboardingPrimaryButton<Label: View>: View {
                     MujoTheme.surfaceBackground(for: colorScheme)
                 )
         }
-        .buttonStyle(.glassProminent)
+        .mujoProminentGlassButtonStyle()
         .buttonBorderShape(.capsule)
         .tint(.accentColor)
         .disabled(isDisabled)

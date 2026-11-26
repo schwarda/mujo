@@ -261,7 +261,7 @@ struct OnboardingInsightCard: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.horizontal, 18)
-        .glassEffect(.clear, in: .rect(cornerRadius: 36))
+        .mujoClearGlass(in: RoundedRectangle(cornerRadius: 36))
         .shadow(
             color: MujoTheme.brandAccent.opacity(0.20),
             radius: 16,

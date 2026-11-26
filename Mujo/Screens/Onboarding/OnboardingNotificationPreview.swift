@@ -277,7 +277,7 @@ struct NotificationRequestErrorOverlay: View {
             .multilineTextAlignment(.center)
             .padding(.horizontal, 24)
             .padding(.vertical, 28)
-            .glassEffect(.regular, in: .rect(cornerRadius: 28))
+            .mujoRegularGlass(in: RoundedRectangle(cornerRadius: 28))
             .padding(.horizontal, 26)
         }
         .transition(.opacity)

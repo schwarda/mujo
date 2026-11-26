@@ -296,7 +296,7 @@ private struct CustomNotificationEditor: View {
                         dismiss()
                     }
                     .labelStyle(.iconOnly)
-                    .buttonStyle(.glassProminent)
+                    .mujoProminentGlassButtonStyle()
                     .accessibilityIdentifier("save-custom-alert")
                 }
             }

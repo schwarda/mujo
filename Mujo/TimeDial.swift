@@ -109,7 +109,7 @@ struct TimeDial: View {
             width: configuration.diameter,
             height: configuration.diameter
         )
-        .glassEffect(.clear.interactive(), in: .circle)
+        .mujoClearGlass(in: Circle(), interactive: true)
         .contentShape(.circle)
         .gesture(rotationGesture)
         .sensoryFeedback(

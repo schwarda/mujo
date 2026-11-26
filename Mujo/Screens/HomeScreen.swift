@@ -159,7 +159,7 @@ struct HomeScreen: View {
                                     systemImage: "arrow.counterclockwise"
                                 )
                             }
-                            .buttonStyle(.glass)
+                            .mujoGlassButtonStyle()
                             .foregroundStyle(.tint)
 
                             Spacer()
@@ -169,7 +169,7 @@ struct HomeScreen: View {
                             } label: {
                                 Label("Diagnostics", systemImage: "stethoscope")
                             }
-                            .buttonStyle(.glass)
+                            .mujoGlassButtonStyle()
                             .foregroundStyle(.tint)
                         }
 
@@ -300,7 +300,7 @@ struct HomeScreen: View {
                         .contentShape(Circle())
                 }
                 .buttonStyle(.plain)
-                .glassEffect(.clear.interactive(), in: .circle)
+                .mujoClearGlass(in: Circle(), interactive: true)
                 .foregroundStyle(.tint)
                 .accessibilityLabel("Menu")
 
@@ -590,7 +590,7 @@ struct HomeScreen: View {
         .padding(.vertical, 12)
         .background {
             Color.clear
-                .glassEffect(.regular, in: cardShape)
+                .mujoRegularGlass(in: cardShape)
                 .overlay {
                     if colorScheme == .dark {
                         cardShape.fill(
@@ -600,7 +600,7 @@ struct HomeScreen: View {
                 }
                 .opacity(frozenAmount)
         }
-        .glassEffect(.clear, in: cardShape)
+        .mujoClearGlass(in: cardShape)
         .accessibilityElement(children: .combine)
     }
 
